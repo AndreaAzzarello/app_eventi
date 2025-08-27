@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "398100140878",
+    "project_id": "appeventi-1e860",
+    "storage_bucket": "appeventi-1e860.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398100140878:android:ba798056734a7afe6f441f",
+        "android_client_info": {
+          "package_name": "com.example.app_eventi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8zfwusSjZcToqdkSn8-5fDoba9F8R7UM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,28 @@
+name: app_eventi
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  mapbox_maps_flutter: ^2.5.0
+  geolocator: ^13.0.1
+  firebase_core: ^3.4.0
+  cloud_firestore: ^5.4.0
+  shared_preferences: ^2.3.2
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+

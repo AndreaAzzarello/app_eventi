@@ -1,0 +1,53 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ✅ I PERMESSI STANNO QUI, dentro <manifest> e fuori da <application> -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <application
+        android:label="app_eventi"
+        android:icon="@mipmap/ic_launcher">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"/>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- ✅ Token Mapbox: dentro <application>, fuori da <activity> -->
+        <meta-data
+            android:name="com.mapbox.token"
+            android:value="@string/mapbox_access_token"/>
+        <meta-data
+            android:name="com.mapbox.maps.token"
+            android:value="pk.eyJ1IjoiYW5kcmVhenphcmVsbG8iLCJhIjoiY21lc295MW1rMDQ5NTJscXY0bHdqN2hvZSJ9.5rX0woMmxCYRDRxtH0RYfw" />
+
+        <!-- Non rimuovere -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+
+    <!-- ✅ <queries> è figlio diretto di <manifest> -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>
