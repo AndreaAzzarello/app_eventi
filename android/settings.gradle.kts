@@ -1,6 +1,4 @@
-// ===== settings.gradle.kts (project-level) =====
 pluginManagement {
-    // punta al Flutter SDK dal local.properties
     val flutterSdkPath =
         run {
             val properties = java.util.Properties()
@@ -19,12 +17,10 @@ pluginManagement {
     }
 }
 
-// SOLO QUI il loader del plugin Flutter (non duplicarlo altrove)
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.6.0" apply false
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
-    // se usi Firebase:
     id("com.google.gms.google-services") version "4.4.2" apply false
 }
 

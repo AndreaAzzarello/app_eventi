@@ -1,290 +1,366 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-import '../../events/data/event_service.dart';
-import '../../events/domain/event.dart';
-import '../../../common/utils/geo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/event.dart';
+import '../services/firestore_service.dart';
+import '../services/location_service.dart';
+import '../widgets/event_card.dart';
+import '../widgets/filter_bar.dart';
+import 'event_details_page.dart';
 
 class EventsListMapPage extends StatefulWidget {
   const EventsListMapPage({super.key});
+
   @override
   State<EventsListMapPage> createState() => _EventsListMapPageState();
 }
 
-class _EventsListMapPageState extends State<EventsListMapPage> with TickerProviderStateMixin {
-  late final TabController _tab;
-  final _svc = EventService();
-
-  List<Event> _events = [];
-  bool _loading = true;
-
-  bool _freeOnly = false;
-  bool _todayOnly = false;
-  bool _weekendOnly = false;
-  bool _kidsOnly = false;
-
+class _EventsListMapPageState extends State<EventsListMapPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
   MapboxMap? _map;
-  PointAnnotationManager? _pam;
-  Position? _userPos;
+  PointAnnotationManager? _pointManager;
+
+  // Filtri UI
+  bool onlyFree = false;
+  bool onlyToday = false;
+  bool onlyWeekend = false;
+  bool onlyKids = false;
+
+  // Ricerca
+  final _searchCtl = TextEditingController();
+
+  // Centro mappa e raggio filtro
+  double? _centerLat;
+  double? _centerLng;
+  double _radiusKm = 25;
+
+  // Dati
+  List<EventModel> _events = [];
+  Set<String> _favorites = {};
+
+  // Gestione dello stream Firestore per evitare più listener
+  Stream<List<EventModel>>? _activeStream;
+  Stream<List<EventModel>> _buildStream() {
+    final range = _timeRange();
+    final price = onlyFree ? PriceTier.free : null;
+    final kids = onlyKids ? true : null;
+
+    return FirestoreService.instance.eventsStream(
+      from: range.start,
+      to: range.end,
+      priceTier: price,
+      kidsOnly: kids,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
-    _load();
+    _tabs = TabController(length: 2, vsync: this);
+    _init();
   }
 
-  Future<void> _load() async {
-    await _ensurePermissions();
-    _userPos ??= await Geolocator.getCurrentPosition();
-    final data = await _svc.fetchNearby(
-      userLat: _userPos!.latitude,
-      userLng: _userPos!.longitude,
-      radiusKm: 8,
-    );
-    setState(() { _events = data; _loading = false; });
-    await _refreshMarkers();
+  @override
+  void dispose() {
+    _tabs.dispose();
+    _searchCtl.dispose();
+    super.dispose();
   }
 
-  Future<void> _ensurePermissions() async {
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled && mounted) _snack('Attiva il GPS');
+  Future<void> _init() async {
+    // Token Mapbox da --dart-define (se lo usi così)
+    final token = const String.fromEnvironment('MAPBOX_ACCESS_TOKEN');
+    if (token.isNotEmpty) {
+      MapboxOptions.setAccessToken(token);
+    }
 
-    var p = await Geolocator.checkPermission();
-    if (p == LocationPermission.denied) {
-      p = await Geolocator.requestPermission();
+    final prefs = await SharedPreferences.getInstance();
+    _favorites = prefs.getStringList('favorites')?.toSet() ?? {};
+
+    final pos = await LocationService.getCurrentPosition();
+    if (pos != null) {
+      _centerLat = pos.latitude;
+      _centerLng = pos.longitude;
+    } else {
+      // fallback
+      _centerLat = 45.4384; // Verona
+      _centerLng = 10.9916;
+    }
+
+    // Carica eventi iniziali
+    _subscribeAndLoad();
+    setState(() {});
+  }
+
+  void _subscribeAndLoad() {
+    _activeStream ??= _buildStream();
+    _activeStream!.listen((list) {
+      List<EventModel> filtered = list;
+      if (_centerLat != null && _centerLng != null) {
+        filtered = list
+            .where((e) =>
+                _haversineKm(_centerLat!, _centerLng!, e.lat, e.lng) <=
+                _radiusKm)
+            .toList();
+      }
+      setState(() {
+        _events = filtered;
+      });
+      _refreshAnnotations();
+    });
+  }
+
+  DateTimeRange _timeRange() {
+    final now = DateTime.now();
+    if (onlyToday) {
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start
+          .add(const Duration(days: 1))
+          .subtract(const Duration(seconds: 1));
+      return DateTimeRange(start: start, end: end);
+    }
+    if (onlyWeekend) {
+      final daysToSat = (DateTime.saturday - now.weekday) % 7;
+      final sat = DateTime(now.year, now.month, now.day)
+          .add(Duration(days: daysToSat));
+      final sunEnd = sat
+          .add(const Duration(days: 2))
+          .subtract(const Duration(seconds: 1));
+      return DateTimeRange(start: sat, end: sunEnd);
+    }
+    // Default: prossimi 14 giorni
+    return DateTimeRange(start: now, end: now.add(const Duration(days: 14)));
+  }
+
+  double _haversineKm(
+      double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0;
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  double _deg2rad(double deg) => deg * (pi / 180.0);
+
+  // ===== MAPPA =====
+  void _onMapCreated(MapboxMap mapboxMap) async {
+    _map = mapboxMap;
+    _pointManager =
+        await _map!.annotations.createPointAnnotationManager();
+    _refreshAnnotations();
+
+    // Posiziona la camera sul centro
+    if (_centerLat != null && _centerLng != null) {
+      await _map!.setCamera(
+        CameraOptions(
+          center: Point(
+            coordinates: Position(_centerLng!, _centerLat!),
+          ).toJson(),
+          zoom: 11,
+        ),
+      );
     }
   }
 
-  List<Event> _applyFilters(List<Event> all) {
-    return all.where((e) {
-      final okFree = _freeOnly ? e.priceType == 'free' : true;
-      final okToday = _todayOnly ? isToday(e.startTime) : true;
-      final okWeekend = _weekendOnly ? isWeekend(e.startTime) : true;
-      final okKids = _kidsOnly ? e.tags.contains('kids') : true;
-      return okFree && okToday && okWeekend && okKids;
-    }).toList();
+  Future<void> _refreshAnnotations() async {
+    if (_pointManager == null) return;
+    await _pointManager!.deleteAll();
+
+    for (final e in _events) {
+      await _pointManager!.create(
+        PointAnnotationOptions(
+          geometry: Point(
+            coordinates: Position(e.lng, e.lat),
+          ).toJson(),
+          iconSize: 1.0,
+          textField: e.title,
+          textOffset: [0, 1.6],
+        ),
+      );
+    }
   }
 
-  Future<void> _refreshMarkers() async {
-    if (_map == null || _pam == null) return;
-    final filtered = _applyFilters(_events);
-    await _pam!.deleteAll();
-    final opts = filtered.map((e) => PointAnnotationOptions(
-      geometry: Point(coordinates: Position(e.lng, e.lat)).toJson(),
-      textField: e.title,
-      textOffset: [0, -2],
-      iconImage: 'marker-15',
-    )).toList();
-    await _pam!.createMulti(opts);
+  Future<void> _searchAddress(String query) async {
+    if (query.trim().isEmpty) return;
+    try {
+      final results = await locationFromAddress(query);
+      if (results.isNotEmpty) {
+        final loc = results.first;
+        _centerLat = loc.latitude;
+        _centerLng = loc.longitude;
+
+        if (_map != null) {
+          await _map!.flyTo(
+            CameraOptions(
+              center: Point(
+                coordinates: Position(_centerLng!, _centerLat!),
+              ).toJson(),
+              zoom: 11,
+            ),
+          );
+        }
+        _activeStream = null; // ricrea stream (per sicurezza)
+        _subscribeAndLoad();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Indirizzo non trovato: $query')),
+        );
+      }
+    }
+  }
+
+  Future<void> _seedDemo() async {
+    final lat = _centerLat ?? 45.4384;
+    final lng = _centerLng ?? 10.9916;
+    await FirestoreService.instance.seedSampleEvents(lat: lat, lng: lng);
+  }
+
+  Future<void> _toggleFavorite(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_favorites.contains(id)) {
+      _favorites.remove(id);
+    } else {
+      _favorites.add(id);
+    }
+    await prefs.setStringList('favorites', _favorites.toList());
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final df = DateFormat('dd-MMM-yyyy HH:mm');
-    final filtered = _applyFilters(_events);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Eventi vicini'),
-        bottom: TabBar(
-          controller: _tab,
-          tabs: const [Tab(text: 'Lista'), Tab(text: 'Mappa')],
-        ),
-        actions: [
-          IconButton(
-            onPressed: () async { setState(()=>_loading=true); await _load(); },
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Aggiorna',
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Eventi Vicini'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'LISTA'),
+              Tab(text: 'MAPPA'),
+            ],
           ),
-          IconButton(
-            onPressed: () async {
-              await seedSampleEvents();
-              if (!mounted) return;
-              _snack('Eventi di prova inseriti');
-              setState(()=>_loading=true);
-              await _load();
-            },
-            icon: const Icon(Icons.cloud_upload),
-            tooltip: 'Inserisci eventi di prova',
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tab,
-              children: [
-                // LISTA
-                Column(
-                  children: [
-                    _filtersBar(),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) {
-                          final e = filtered[i];
-                          return ListTile(
-                            title: Text(e.title),
-                            subtitle: Text('${e.venueName} • ${df.format(e.startTime)}'),
-                            trailing: _FavButton(eventId: e.id),
-                            onTap: ()=> _showEventSheet(e),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                // MAPPA
-                Stack(
-                  children: [
-                    MapWidget(
-                      styleUri: MapboxStyles.MAPBOX_STREETS,
-                      onMapCreated: (controller) async {
-                        _map = controller;
-                        _pam = await _map!.annotations.createPointAnnotationManager();
-                        if (_userPos == null) {
-                          await _ensurePermissions();
-                          _userPos = await Geolocator.getCurrentPosition();
-                        }
-                        await _map!.setCamera(
-                          CameraOptions(
-                            center: Point(coordinates: Position(_userPos!.longitude, _userPos!.latitude)).toJson(),
-                            zoom: 13,
-                          ),
-                        );
-                        await _refreshMarkers();
-                      },
-                    ),
-                    Positioned(
-                      right: 12, bottom: 12,
-                      child: FloatingActionButton.extended(
-                        icon: const Icon(Icons.gps_fixed),
-                        label: const Text('Centro'),
-                        onPressed: () async {
-                          if (_userPos == null || _map == null) return;
-                          await _map!.flyTo(
-                            CameraOptions(
-                              center: Point(coordinates: Position(_userPos!.longitude, _userPos!.latitude)).toJson(),
-                              zoom: 13,
-                            ),
-                            const MapAnimationOptions(duration: 600),
-                          );
-                        },
-                      ),
-                    ),
-                    Positioned(
-                      left: 8, right: 8, top: 8,
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: _filtersBar(),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ],
+          actions: [
+            IconButton(
+              onPressed: _seedDemo,
+              icon: const Icon(Icons.auto_awesome),
+              tooltip: 'Aggiungi 10 eventi demo',
             ),
-    );
-  }
-
-  Widget _filtersBar() {
-    return Wrap(
-      spacing: 8,
-      children: [
-        FilterChip(label: const Text('Gratis'), selected: _freeOnly, onSelected: (v){ setState(()=>_freeOnly=v); _refreshMarkers(); }),
-        FilterChip(label: const Text('Oggi'), selected: _todayOnly, onSelected: (v){ setState(()=>_todayOnly=v); _refreshMarkers(); }),
-        FilterChip(label: const Text('Weekend'), selected: _weekendOnly, onSelected: (v){ setState(()=>_weekendOnly=v); _refreshMarkers(); }),
-        FilterChip(label: const Text('Bambini'), selected: _kidsOnly, onSelected: (v){ setState(()=>_kidsOnly=v); _refreshMarkers(); }),
-      ],
-    );
-  }
-
-  void _showEventSheet(Event e) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(e.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text(e.shortDescription.isEmpty ? 'Nessuna descrizione' : e.shortDescription),
-            const SizedBox(height: 6),
-            Text('${e.venueName} • ${e.address}'),
-            const SizedBox(height: 6),
-            Text('Prezzo: ${e.priceType} • Categoria: ${e.category}'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: ()=> Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Chiudi'),
-                ),
+            PopupMenuButton<double>(
+              initialValue: _radiusKm,
+              onSelected: (v) => setState(() => _radiusKm = v),
+              itemBuilder: (ctx) => const [
+                PopupMenuItem(value: 5, child: Text('Raggio 5 km')),
+                PopupMenuItem(value: 10, child: Text('Raggio 10 km')),
+                PopupMenuItem(value: 25, child: Text('Raggio 25 km')),
+                PopupMenuItem(value: 50, child: Text('Raggio 50 km')),
               ],
             ),
           ],
         ),
+        body: Column(
+          children: [
+            FilterBar(
+              onlyFree: onlyFree,
+              onlyToday: onlyToday,
+              onlyWeekend: onlyWeekend,
+              onlyKids: onlyKids,
+              onFreeChanged: (v) {
+                setState(() => onlyFree = v);
+                _activeStream = null;
+                _subscribeAndLoad();
+              },
+              onTodayChanged: (v) {
+                setState(() {
+                  onlyToday = v;
+                  if (v) onlyWeekend = false;
+                });
+                _activeStream = null;
+                _subscribeAndLoad();
+              },
+              onWeekendChanged: (v) {
+                setState(() {
+                  onlyWeekend = v;
+                  if (v) onlyToday = false;
+                });
+                _activeStream = null;
+                _subscribeAndLoad();
+              },
+              onKidsChanged: (v) {
+                setState(() => onlyKids = v);
+                _activeStream = null;
+                _subscribeAndLoad();
+              },
+              onSearchSubmitted: _searchAddress,
+              searchController: _searchCtl,
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildList(),
+                  _buildMap(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            _activeStream = null;
+            _subscribeAndLoad();
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('Aggiorna eventi'),
+        ),
       ),
     );
   }
 
-  void _snack(String m) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-  }
-}
-
-class _FavButton extends StatefulWidget {
-  final String eventId;
-  const _FavButton({required this.eventId});
-
-  @override
-  State<_FavButton> createState() => _FavButtonState();
-}
-
-class _FavButtonState extends State<_FavButton> {
-  static const _k = 'fav_event_ids';
-  bool _isFav = false;
-  bool _loaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final sp = await SharedPreferences.getInstance();
-    final set = sp.getStringList(_k)?.toSet() ?? <String>{};
-    setState(() { _isFav = set.contains(widget.eventId); _loaded = true; });
-  }
-
-  Future<void> _toggle() async {
-    final sp = await SharedPreferences.getInstance();
-    final set = sp.getStringList(_k)?.toSet() ?? <String>{};
-    if (_isFav) {
-      set.remove(widget.eventId);
-    } else {
-      set.add(widget.eventId);
+  Widget _buildList() {
+    if (_events.isEmpty) {
+      return const Center(
+          child: Text('Nessun evento nella zona/periodo selezionato'));
     }
-    await sp.setStringList(_k, set.toList());
-    setState(() { _isFav = !_isFav; });
+    return ListView.builder(
+      itemCount: _events.length,
+      itemBuilder: (ctx, i) {
+        final ev = _events[i];
+        return EventCard(
+          event: ev,
+          isFavorite: _favorites.contains(ev.id),
+          onToggleFavorite: () => _toggleFavorite(ev.id),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => EventDetailsPage(event: ev),
+            ),
+          ),
+        );
+      },
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (!_loaded) return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
-    return IconButton(
-      icon: Icon(_isFav ? Icons.favorite : Icons.favorite_border),
-      onPressed: _toggle,
+  Widget _buildMap() {
+    final lat = _centerLat ?? 45.4384;
+    final lng = _centerLng ?? 10.9916;
+    return MapWidget(
+      key: const ValueKey('map'),
+      cameraOptions: CameraOptions(
+        center: Point(coordinates: Position(lng, lat)).toJson(),
+        zoom: 11,
+      ),
+      onMapCreated: _onMapCreated,
     );
   }
 }

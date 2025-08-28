@@ -2,10 +2,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    // Applica Google Services QUI (Firebase)
-    id("com.google.gms.google-services")
-    // Plugin Flutter dell'app (solo qui)
-    id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")       // Firebase nel modulo app
+    id("dev.flutter.flutter-gradle-plugin")    // Plugin Flutter: SOLO qui
 }
 
 android {
@@ -15,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app_eventi"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -24,19 +22,14 @@ android {
 
     buildTypes {
         release {
-            // per test: usa keystore debug; per publish configura una release key
-            signingConfig = signingConfigs.getByName("debug")
-
-            // lascia off finché non è tutto stabile
+            signingConfig = signingConfigs.getByName("debug") // per test
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
-        debug {
-            // nulla di speciale
-        }
+        debug { }
     }
 
     compileOptions {
