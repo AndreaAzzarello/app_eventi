@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'features/map/map_page.dart';
+import 'features/map/map_page.dart'; // se usi la sola mappa
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   runApp(const EventiApp());
 }
 
@@ -16,10 +14,8 @@ class EventiApp extends StatelessWidget {
     return MaterialApp(
       title: 'Eventi Vicini',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MapPage(),
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
+      home: const MapPage(), // oppure EventsListMapPage() se hai già quella
     );
   }
 }

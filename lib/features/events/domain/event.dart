@@ -32,7 +32,7 @@ class Event {
   });
 
   factory Event.fromMap(String id, Map<String, dynamic> m) {
-    DateTime ts(dynamic v) {
+    DateTime _ts(dynamic v) {
       if (v is DateTime) return v;
       if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
       final s = v.toString();
@@ -45,8 +45,8 @@ class Event {
       shortDescription: (m['shortDescription'] ?? '').toString(),
       category: (m['category'] ?? 'other').toString(),
       priceType: (m['priceType'] ?? 'free').toString(),
-      startTime: ts(m['startTime']),
-      endTime: ts(m['endTime']),
+      startTime: _ts(m['startTime']),
+      endTime: _ts(m['endTime']),
       venueName: (m['venueName'] ?? '').toString(),
       address: (m['address'] ?? '').toString(),
       lat: (m['lat'] as num).toDouble(),

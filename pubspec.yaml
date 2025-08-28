@@ -1,28 +1,30 @@
 name: app_eventi
-description: "A new Flutter project."
-publish_to: 'none'
-
-version: 1.0.0+1
+publish_to: "none"
+description: Eventi Vicini – L’agenda locale intelligente
+version: 0.1.0+1
 
 environment:
-  sdk: ^3.9.0
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  mapbox_maps_flutter: ^2.5.0
-  geolocator: ^13.0.1
-  firebase_core: ^3.4.0
-  cloud_firestore: ^5.4.0
+  firebase_core: ^3.5.0
+  cloud_firestore: ^5.4.4
   shared_preferences: ^2.3.2
+  mapbox_maps_flutter: ^2.3.0
+  geolocator: ^12.0.0
+  geocoding: ^3.0.0
   intl: ^0.19.0
+  device_calendar: ^4.3.3
+  url_launcher: ^6.3.0
+  cached_network_image: ^3.4.1
+  uuid: ^4.4.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
-

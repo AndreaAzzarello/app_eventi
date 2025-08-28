@@ -1,17 +1,21 @@
+// ===== app/build.gradle.kts (module-level) =====
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    // Applica Google Services QUI (Firebase)
+    id("com.google.gms.google-services")
+    // Plugin Flutter dell'app (solo qui)
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.app_eventi"          // usa il tuo namespace
+    namespace = "com.example.app_eventi"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
-        applicationId = "com.example.app_eventi"  // usa il tuo applicationId
-        minSdk = flutter.minSdkVersion                                // Mapbox richiede almeno 21
+        applicationId = "com.example.app_eventi"
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -20,9 +24,18 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug") // per test release
-            // isMinifyEnabled = true
-            // proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // per test: usa keystore debug; per publish configura una release key
+            signingConfig = signingConfigs.getByName("debug")
+
+            // lascia off finché non è tutto stabile
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        debug {
+            // nulla di speciale
         }
     }
 
