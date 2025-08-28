@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/map/map_page.dart'; // se usi la sola mappa
+import 'pages/map_page.dart'; // se usi la sola mappa
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
