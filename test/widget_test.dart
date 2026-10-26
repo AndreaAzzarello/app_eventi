@@ -1,35 +1,77 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:app_eventi/features/events/application/providers.dart';
+import 'package:app_eventi/features/events/domain/event.dart';
+import 'package:app_eventi/features/location/location_service.dart';
+import 'package:app_eventi/main.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+Event _event(String id, String title, {String category = 'music'}) {
+  final start = DateTime.now().add(const Duration(hours: 2));
+  return Event(
+    id: id,
+    title: title,
+    shortDescription: '',
+    category: category,
+    priceType: 'free',
+    startTime: start,
+    endTime: start.add(const Duration(hours: 2)),
+    venueName: 'Piazza Grande',
+    address: 'Piazza Grande, Modena',
+    lat: 44.6471,
+    lng: 10.9252,
+    imageUrl: '',
+    ticketUrl: '',
+    tags: const [],
+  );
+}
 
-class MyApp {
-  const MyApp();
+Future<void> _pumpApp(WidgetTester tester, Stream<List<Event>> events) async {
+  await tester.pumpWidget(ProviderScope(
+    overrides: [
+      eventsProvider.overrideWith((ref) => events),
+      userLocationProvider.overrideWith(
+          (ref) async => const UserLocation(modenaCenter, isFallback: true)),
+    ],
+    child: const EventiApp(),
+  ));
+  await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp() as Widget);
+  setUpAll(() => initializeDateFormatting('it_IT'));
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('mostra gli eventi e filtra per categoria', (tester) async {
+    await _pumpApp(tester, Stream.value([
+      _event('1', 'Concerto in piazza'),
+      _event('2', 'Sagra del quartiere', category: 'food'),
+    ]));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Eventi Vicini'), findsOneWidget);
+    expect(find.text('Concerto in piazza'), findsOneWidget);
+    expect(find.text('Sagra del quartiere'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Cibo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Concerto in piazza'), findsNothing);
+    expect(find.text('Sagra del quartiere'), findsOneWidget);
+  });
+
+  testWidgets('lista vuota e preferiti vuoti', (tester) async {
+    await _pumpApp(tester, Stream.value(const []));
+    expect(find.text('Nessun evento qui'), findsOneWidget);
+
+    await tester.tap(find.text('Preferiti'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ancora nessun preferito'), findsOneWidget);
+  });
+
+  testWidgets('errore di caricamento', (tester) async {
+    await _pumpApp(tester, Stream.error('Firebase non configurato'));
+    expect(find.text('Impossibile caricare gli eventi'), findsOneWidget);
+    expect(find.text('Riprova'), findsOneWidget);
   });
 }
-
-
