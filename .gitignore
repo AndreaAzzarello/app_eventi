@@ -1,18 +1,40 @@
-# Flutter
-.build/
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
-pubspec.lock
+.pub/
+build/
+coverage/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
 
 # Android
-android/app/google-services.json
+android/.gradle/
+android/local.properties
 android/key.properties
 *.keystore
 *.jks
+*.bak
 
-# iOS
-ios/Runner/GoogleService-Info.plist
+# iOS / macOS
 Pods/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+ios/Runner/GoogleService-Info.plist
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
