@@ -1,0 +1,207 @@
+"""Normalizzazione di un evento Plone (design-comuni-plone) nel modello Event dell'app.
+
+Funzioni pure: niente rete, così si testano con le fixture salvate.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
+
+from dateutil.rrule import rrulestr
+
+ROME = ZoneInfo("Europe/Rome")
+
+# Token di tipologia_evento (vocabolario design-comuni-plone) → categoria dell'app.
+CATEGORY_BY_TYPE = {
+    "maifestazione_musicale": "music",  # sic, refuso nel vocabolario
+    "manifestazione_musicale": "music",
+    "concerto": "music",
+    "mercatino": "market",
+    "fiera_o_salone": "market",
+    "evento_sportivo": "sport",
+    "gara_sportiva": "sport",
+    "sagra": "food",
+    "evento_gastronomico": "food",
+    "eventi_sociali": "other",
+    "raduno_di_comunita": "other",
+}
+CULTURE_TYPES = {
+    "mostra", "evento_culturale", "spettacolo_teatrale", "proiezione_cinematografia",
+    "visita_guidata", "presentazione_libro", "lettura_pubblica", "manifestazione_artistica",
+    "commemorazione", "convegno", "seminario", "giornata_informativa", "riunione_esperti",
+    "corso", "laboratorio", "conferenza",
+}
+# Se la tipologia manca o è generica, decide il titolo.
+KEYWORDS = [
+    ("food", r"\b(sagra|degustazion\w*|street food|enogastronom\w*|cena|aperitiv\w*)\b"),
+    ("sport", r"\b(corsa|camminata|maratona|torneo|partita|gara|sport\w*|bici\w*)\b"),
+    ("music", r"\b(concert\w*|musica\w*|jazz|rock|orchestra|coro|dj)\b"),
+    ("market", r"\b(mercat\w*|fiera|antiquariato|bancarell\w*)\b"),
+]
+KIDS_RE = re.compile(r"bambin|bimb|ragazz|famigli|\b\d{1,2}\s*-\s*\d{1,2}\s*anni|piccoli|kids", re.I)
+FREE_RE = re.compile(r"gratuit|gratis|gratutio|libero|free", re.I)
+EURO_RE = re.compile(r"(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro)|€\s*(\d+(?:[.,]\d{1,2})?)", re.I)
+
+PREMIUM_FROM_EUR = 25
+MAX_DESCRIPTION = 300
+
+
+def event_id(source_url: str) -> str:
+    """Id deterministico: lo stesso evento letto ogni giorno aggiorna lo stesso documento."""
+    return hashlib.sha1(source_url.encode("utf-8")).hexdigest()[:20]
+
+
+def dedupe_key(ev: dict) -> tuple:
+    """Stesso titolo, giorno e luogo = stesso evento anche se pubblicato da due comuni."""
+    day = datetime.fromtimestamp(ev["startTime"] / 1000, ROME).date()
+    return (_norm(ev["title"]), day, _norm(ev["venueName"]))
+
+
+def _norm(s: str) -> str:
+    return re.sub(r"\W+", " ", s.lower()).strip()
+
+
+def plaintext(blocks_field) -> str:
+    """Testo semplice da un campo a blocchi Volto ({"blocks": {...}, "blocks_layout": ...})."""
+    if not isinstance(blocks_field, dict):
+        return ""
+    blocks = blocks_field.get("blocks") or {}
+    order = (blocks_field.get("blocks_layout") or {}).get("items") or list(blocks)
+    parts = [(blocks.get(k) or {}).get("plaintext", "") for k in order]
+    return " ".join(p.strip() for p in parts if p and p.strip())
+
+
+def map_category(item: dict) -> str:
+    t = item.get("tipologia_evento")
+    token = t.get("token") if isinstance(t, dict) else None
+    if token in CATEGORY_BY_TYPE and CATEGORY_BY_TYPE[token] != "other":
+        return CATEGORY_BY_TYPE[token]
+    title = item.get("title", "")
+    for cat, rx in KEYWORDS:
+        if re.search(rx, title, re.I):
+            return cat
+    if token in CULTURE_TYPES:
+        return "culture"
+    return CATEGORY_BY_TYPE.get(token, "other")
+
+
+def map_price(text: str) -> str:
+    """free / low / premium. Senza indicazioni chiare: low (meglio non promettere gratis)."""
+    amounts = [float((a or b).replace(",", ".")) for a, b in EURO_RE.findall(text)]
+    if amounts:
+        return "premium" if max(amounts) >= PREMIUM_FROM_EUR else "low"
+    return "free" if FREE_RE.search(text) else "low"
+
+
+HOUR_RE = re.compile(
+    r"\b([01]?\d|2[0-3])[:.]([0-5]\d)\b|\b(?:ore|alle|dalle)\s+([01]?\d|2[0-3])\b(?![:.]\d)", re.I)
+
+
+def parse_hours(text: str) -> list[time]:
+    """Orari nel testo libero: "dalle ore 8.30 alle 12.30" → [08:30, 12:30]."""
+    return [time(int(h or h2), int(m or 0)) for h, m, h2 in HOUR_RE.findall(text)]
+
+
+def _parse(dt: str) -> datetime:
+    return datetime.fromisoformat(dt.replace("Z", "+00:00"))
+
+
+def _times(item: dict, now: datetime) -> tuple[datetime, datetime] | None:
+    """Inizio e fine (aware). Per gli eventi ricorrenti restituisce la prossima occorrenza."""
+    start = _parse(item["start"]).astimezone(ROME)
+    end = _parse(item["end"]).astimezone(ROME) if item.get("end") else start
+    if item.get("whole_day"):
+        start = datetime.combine(start.date(), time(0, 0), ROME)
+        end = datetime.combine(end.date(), time(23, 59), ROME)
+    elif item.get("open_end"):
+        end = datetime.combine(start.date(), time(23, 59), ROME)
+    elif start.minute % 15 or start.second:
+        # Orario non "tondo" (es. 11:33:57): è quello di inserimento, quello vero sta in "orari".
+        hours = parse_hours(plaintext(item.get("orari")))
+        first = hours[0] if hours else time(0, 0)
+        last = hours[1] if len(hours) > 1 and hours[1] > first else (
+            time(min(first.hour + 2, 23), first.minute) if hours else time(23, 59))
+        start = datetime.combine(start.date(), first, ROME)
+        end = datetime.combine(end.date(), last, ROME)
+
+    rule = item.get("recurrence")
+    if rule:
+        # La fine dei ricorrenti spesso coincide con l'UNTIL: la durata si ricava dall'orario.
+        dur = end - start
+        if dur >= timedelta(days=1) or dur <= timedelta(0):
+            same_day_end = datetime.combine(start.date(), end.timetz())
+            dur = same_day_end - start if same_day_end > start else timedelta(hours=2)
+        # La regola (con i suoi EXDATE) usa l'orario originale: da lei prendo solo il giorno,
+        # l'ora è quella di start. Così regge anche il cambio dell'ora legale.
+        try:
+            rr = rrulestr(rule, dtstart=_parse(item["start"]), forceset=True)
+            for occ in rr.xafter(now - dur - timedelta(days=1), inc=True):
+                s = datetime.combine(occ.astimezone(ROME).date(), start.time(), ROME)
+                if s + dur >= now:
+                    return s, s + dur
+        except (ValueError, TypeError):
+            pass
+        return None
+    return start, end
+
+
+def to_event(item: dict, source: dict, now: datetime, horizon_days: int = 60) -> dict | None:
+    """Evento dell'app (senza lat/lng se mancano) o None se va scartato.
+
+    Restituisce anche "_geocode": indirizzi da provare con Nominatim, in ordine.
+    """
+    title = (item.get("title") or "").strip()
+    url = item.get("@id") or ""
+    if not title or not url or not item.get("start"):
+        return None
+    times = _times(item, now)
+    if times is None:
+        return None
+    start, end = times
+    if end < now or start > now + timedelta(days=horizon_days):
+        return None
+
+    venues = item.get("luoghi_correlati") or []
+    venue = venues[0] if venues else {}
+    city = item.get("city") or venue.get("city") or source["city"]
+    venue_name = (item.get("nome_sede") or venue.get("title") or "").strip()
+    street = (item.get("street") or venue.get("street") or "").strip()
+    address = ", ".join(p for p in [street, f"{item.get('zip_code') or ''} {city}".strip()] if p)
+
+    description = (item.get("description") or "").strip() or plaintext(item.get("descrizione_estesa"))
+    if len(description) > MAX_DESCRIPTION:
+        description = description[: MAX_DESCRIPTION - 1].rsplit(" ", 1)[0] + "…"
+
+    audience = " ".join([title, plaintext(item.get("descrizione_destinatari"))])
+    image = item.get("image") or {}
+    image_url = ((image.get("scales") or {}).get("large") or {}).get("download") or image.get("download") or ""
+
+    geo = item.get("geolocation") or venue.get("geolocation") or {}
+    lat, lng = geo.get("latitude"), geo.get("longitude")
+    has_geo = bool(lat and lng)
+
+    return {
+        "id": event_id(url),
+        "title": title,
+        "shortDescription": description,
+        "category": map_category(item),
+        "priceType": map_price(plaintext(item.get("prezzo"))),
+        "startTime": int(start.timestamp() * 1000),
+        "endTime": int(end.timestamp() * 1000),
+        "venueName": venue_name,
+        "address": address or city,
+        "lat": float(lat) if has_geo else None,
+        "lng": float(lng) if has_geo else None,
+        "imageUrl": image_url,
+        "ticketUrl": "",
+        "tags": ["kids"] if KIDS_RE.search(audience) else [],
+        "source": "scraper",
+        "sourceUrl": url,
+        "_geocode": [] if has_geo else [q for q in dict.fromkeys([
+            f"{street}, {city}" if street else "",
+            f"{venue_name}, {city}" if venue_name else "",
+        ]) if q],
+    }

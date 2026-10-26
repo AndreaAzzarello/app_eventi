@@ -1,0 +1,458 @@
+{
+ "items_total": 5,
+ "items": [
+  {
+   "@id": "https://www.comune.modena.it/vivere-modena/eventi/2026/mercato-settimanale-del-lunedi-1",
+   "title": "Mercato settimanale del lunedì",
+   "description": "Mercato di generi sia alimentari che extralimentari",
+   "start": "2026-01-05T09:07:45+00:00",
+   "end": "2026-12-28T11:08:00+00:00",
+   "whole_day": false,
+   "open_end": false,
+   "recurrence": "DTSTART:20260105T090745Z\nRRULE:UNTIL=20261228T090800Z;FREQ=WEEKLY;INTERVAL=1;WKST=MO;BYDAY=MO",
+   "tipologia_evento": {
+    "title": "Eventi sociali » Raduno di comunità » Mercatino",
+    "token": "mercatino"
+   },
+   "prezzo": {
+    "blocks": {
+     "aca1116476d74edb9590d29f8d4dbb37": {
+      "@type": "slate",
+      "plaintext": "ingresso libero",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "ingresso libero"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "aca1116476d74edb9590d29f8d4dbb37"
+     ]
+    }
+   },
+   "orari": {
+    "blocks": {
+     "ac621a15e62942b982746a00e7229ebd": {
+      "@type": "slate",
+      "plaintext": "il lunedì dalle ore 8 alle 14",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "il lunedì dalle ore 8 alle 14"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "ac621a15e62942b982746a00e7229ebd"
+     ]
+    }
+   },
+   "descrizione_destinatari": {
+    "blocks": {
+     "da298a9620f04bfe90dad5a7a7858f97": {
+      "@type": "slate",
+      "plaintext": "Evento per tutti",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Evento per tutti"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "da298a9620f04bfe90dad5a7a7858f97"
+     ]
+    }
+   },
+   "nome_sede": "Parco Novi Sad",
+   "street": "Ingresso da viale Berengario",
+   "zip_code": "41121",
+   "city": "Modena",
+   "geolocation": null,
+   "image": {
+    "download": "https://www.comune.modena.it/vivere-modena/eventi/2026/mercato-settimanale-del-lunedi-1/@@images/image-730-9231a037b9a1506d3bd65a32756ee241.jpeg",
+    "scales": {
+     "large": {
+      "download": "https://www.comune.modena.it/vivere-modena/eventi/2026/mercato-settimanale-del-lunedi-1/@@images/image-800-e4aa95d60d3a61a549ea6646641b5e70.jpeg",
+      "height": 410,
+      "width": 730
+     }
+    }
+   },
+   "luoghi_correlati": []
+  },
+  {
+   "@id": "https://www.comune.modena.it/vivere-modena/eventi/2026/delfini-book-party",
+   "title": "Delfini Book Party",
+   "description": "Partecipa al Silent Reading Party ",
+   "start": "2026-09-12T15:47:26+00:00",
+   "end": "2026-11-14T18:55:00+00:00",
+   "whole_day": false,
+   "open_end": false,
+   "recurrence": "DTSTART:20260912T154726Z\nRRULE:UNTIL=20261114T185500Z;FREQ=WEEKLY;INTERVAL=1;BYDAY=SA\nEXDATE:20260919T154726Z,20260926T154726Z,20261003T154726Z,20261017T154726Z,20261024T154726Z,20261031T154726Z,20261107T154726Z",
+   "tipologia_evento": {
+    "title": "Evento culturale",
+    "token": "evento_culturale"
+   },
+   "prezzo": {
+    "blocks": {
+     "745580863ef640029951e2074a95b29e": {
+      "@type": "slate",
+      "plaintext": "ingresso libero",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "ingresso libero"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "745580863ef640029951e2074a95b29e"
+     ]
+    }
+   },
+   "orari": {
+    "blocks": {
+     "446d34cd95ca4e9988a241f6662c3c88": {
+      "@type": "slate",
+      "plaintext": "dalle ore 8.30 alle 12.30 nei sabati: 12 settembre, 10 ottobre e 14 novembre",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "dalle ore 8.30 alle 12.30 nei sabati: 12 settembre, 10 ottobre e 14 novembre"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "446d34cd95ca4e9988a241f6662c3c88"
+     ]
+    }
+   },
+   "descrizione_destinatari": {
+    "blocks": {
+     "a383e9a8a7f14bfe87b0246f04e79009": {
+      "@type": "slate",
+      "plaintext": "Evento aperto a tutti",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Evento aperto a tutti"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "a383e9a8a7f14bfe87b0246f04e79009"
+     ]
+    }
+   },
+   "nome_sede": "Biblioteca Delfini",
+   "street": "corso Canalgrande, 103",
+   "zip_code": "41121",
+   "city": "Modena",
+   "geolocation": {
+    "latitude": 44.647252403501,
+    "longitude": 10.930774133155
+   },
+   "image": {
+    "download": "https://www.comune.modena.it/vivere-modena/eventi/2026/delfini-book-party/@@images/image-890-fb83e161fd3855e485c09c02b3e2fe83.jpeg",
+    "scales": {
+     "large": {
+      "download": "https://www.comune.modena.it/vivere-modena/eventi/2026/delfini-book-party/@@images/image-800-c679e2b7e1762882d693826705732556.jpeg",
+      "height": 496,
+      "width": 800
+     }
+    }
+   },
+   "luoghi_correlati": []
+  },
+  {
+   "@id": "https://www.comune.formigine.mo.it/vivere-formigine/eventi/2026/nessun-dubbio",
+   "title": "Nessun dubbio",
+   "description": "Spettacolo teatrale di Pericle APS - l'unico noir in cui il colpevole è il morto",
+   "start": "2026-10-30T20:00:00+00:00",
+   "end": "2026-10-30T22:00:00+00:00",
+   "whole_day": false,
+   "open_end": false,
+   "recurrence": null,
+   "tipologia_evento": {
+    "title": "Evento culturale » Manifestazione artistica » Spettacolo teatrale",
+    "token": "spettacolo_teatrale"
+   },
+   "prezzo": {
+    "blocks": {
+     "deb84d34-8e47-4d22-ba39-e084971f9c88": {
+      "@type": "slate",
+      "plaintext": "Biglietti: 10€ (intero) / 5€ (ridotto soci AiNTS)",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Biglietti: 10€ (intero) / 5€ (ridotto soci AiNTS)"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "deb84d34-8e47-4d22-ba39-e084971f9c88"
+     ]
+    }
+   },
+   "orari": {
+    "blocks": {
+     "dfb0e532-6fc0-4eeb-aa6b-d4b8e01ce271": {
+      "@type": "slate"
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "dfb0e532-6fc0-4eeb-aa6b-d4b8e01ce271"
+     ]
+    }
+   },
+   "descrizione_destinatari": {
+    "blocks": {
+     "4c3552fe-937d-440a-8dbc-c2813414a7e0": {
+      "@type": "slate",
+      "plaintext": "Tutti",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Tutti"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "4c3552fe-937d-440a-8dbc-c2813414a7e0"
+     ]
+    }
+   },
+   "nome_sede": null,
+   "street": null,
+   "zip_code": null,
+   "city": null,
+   "geolocation": null,
+   "image": null,
+   "luoghi_correlati": [
+    {
+     "@id": "https://www.comune.formigine.mo.it/vivere-formigine/luoghi/auditorium-spira-mirabilis",
+     "city": "Formigine",
+     "geolocation": {
+      "latitude": 44.576540767619605,
+      "longitude": 10.839273516166623
+     },
+     "street": "Via Pagani,25",
+     "title": "Auditorium \"Spira mirabilis\""
+    }
+   ]
+  },
+  {
+   "@id": "https://www.comune.formigine.mo.it/vivere-formigine/eventi/2026/giochetto-o-scherzetto",
+   "title": "Giochetto o scherzetto?",
+   "description": "Giochi e attività mostruose per bambini 4-10 anni",
+   "start": "2026-10-28T15:30:00+00:00",
+   "end": "2026-10-28T17:30:00+00:00",
+   "whole_day": false,
+   "open_end": false,
+   "recurrence": null,
+   "tipologia_evento": {
+    "title": "Evento culturale",
+    "token": "evento_culturale"
+   },
+   "prezzo": {
+    "blocks": {
+     "4ff59b373cd74785ad9f89af7bbc6dac": {
+      "@type": "slate",
+      "plaintext": "Ingresso libero, prenotazione necessaria",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Ingresso libero, prenotazione necessaria"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "4ff59b373cd74785ad9f89af7bbc6dac"
+     ]
+    }
+   },
+   "orari": {
+    "blocks": {
+     "f44a070a-c32f-489f-9fb6-5b64583f03be": {
+      "@type": "slate"
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "f44a070a-c32f-489f-9fb6-5b64583f03be"
+     ]
+    }
+   },
+   "descrizione_destinatari": {
+    "blocks": {
+     "1c10720bdfc045f681f92cb9db49e409": {
+      "@type": "slate",
+      "plaintext": "Bambini dai 4 ai 10 anni",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Bambini dai 4 ai 10 anni"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "1c10720bdfc045f681f92cb9db49e409"
+     ]
+    }
+   },
+   "nome_sede": "Ceas Pedecollinare",
+   "street": "Via Sant'Antonio, 4/a",
+   "zip_code": "41043",
+   "city": "Formigine",
+   "geolocation": {
+    "latitude": 44.57282649386977,
+    "longitude": 10.850725934863801
+   },
+   "image": null,
+   "luoghi_correlati": []
+  },
+  {
+   "@id": "https://www.comune.sassuolo.mo.it/vivere-sassuolo/eventi/fiere-dottobre-2026",
+   "title": "Fiere di Ottobre 2026",
+   "description": "Un mese di iniziative che culminano ogni domenica con il mercato ambulante nelle piazze del centro ed un ricco calendario di eventi, tra concerti, mercatini e negozi aperti con tante promozioni.",
+   "start": "2026-10-01T07:00:00+00:00",
+   "end": "2026-10-31T19:00:00+00:00",
+   "whole_day": true,
+   "open_end": false,
+   "recurrence": null,
+   "tipologia_evento": {
+    "title": "Eventi di affari o commerciali » Fiera o salone",
+    "token": "fiera_o_salone"
+   },
+   "prezzo": {
+    "blocks": {
+     "f43bd0ac478b48ebabfda4d401f993c0": {
+      "@type": "slate",
+      "plaintext": "Gratuito",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Gratuito"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "f43bd0ac478b48ebabfda4d401f993c0"
+     ]
+    }
+   },
+   "orari": {
+    "blocks": {
+     "cf983e42-cbe0-43d8-96bc-7c71e1d647d0": {
+      "@type": "slate"
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "cf983e42-cbe0-43d8-96bc-7c71e1d647d0"
+     ]
+    }
+   },
+   "descrizione_destinatari": {
+    "blocks": {
+     "d488f2047e0041c79a3b31535d4b3970": {
+      "@type": "slate",
+      "plaintext": "Aperto a tutti",
+      "value": [
+       {
+        "children": [
+         {
+          "text": "Aperto a tutti"
+         }
+        ],
+        "type": "p"
+       }
+      ]
+     }
+    },
+    "blocks_layout": {
+     "items": [
+      "d488f2047e0041c79a3b31535d4b3970"
+     ]
+    }
+   },
+   "nome_sede": "Centro storico",
+   "street": "Centro storico",
+   "zip_code": "41049",
+   "city": "Sassuolo",
+   "geolocation": null,
+   "image": null,
+   "luoghi_correlati": []
+  }
+ ],
+ "batching": null
+}

@@ -38,3 +38,13 @@ firestore-debug.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Importer Python: mai committare credenziali
+tools/importer/.venv/
+__pycache__/
+.pytest_cache/
+tools/importer/geocache.json
+*serviceAccount*.json
+*service-account*.json
+*-firebase-adminsdk-*.json
+.env
