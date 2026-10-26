@@ -1,9 +1,26 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'pages/map_page.dart'; // se usi la sola mappa
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
-void main() {
+import 'app/theme.dart';
+import 'firebase_options.dart';
+import 'pages/events_list_map_page.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const EventiApp());
+  Intl.defaultLocale = 'it_IT';
+  await initializeDateFormatting('it_IT');
+  try {
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    // L'app parte comunque: la lista mostrerà lo stato di errore.
+    debugPrint('Firebase non inizializzato: $e');
+  }
+  runApp(const ProviderScope(child: EventiApp()));
 }
 
 class EventiApp extends StatelessWidget {
@@ -14,8 +31,12 @@ class EventiApp extends StatelessWidget {
     return MaterialApp(
       title: 'Eventi Vicini',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
-      home: const MapPage(), // oppure EventsListMapPage() se hai già quella
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      locale: const Locale('it', 'IT'),
+      supportedLocales: const [Locale('it', 'IT')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: const EventsListMapPage(),
     );
   }
 }
