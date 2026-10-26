@@ -8,6 +8,8 @@ class FavoritesStore {
     return sp.getStringList(_k)?.toSet() ?? <String>{};
   }
 
+  Future<Set<String>> all() => _get();
+
   Future<bool> isFav(String id) async => (await _get()).contains(id);
 
   Future<void> toggle(String id) async {
