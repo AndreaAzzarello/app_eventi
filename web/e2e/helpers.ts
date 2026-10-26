@@ -1,0 +1,57 @@
+import { expect, type Page } from '@playwright/test';
+
+export const PROJECT = 'demo-eventi';
+export const AUTH = 'http://127.0.0.1:9099';
+export const FIRESTORE = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`;
+
+/** Accesso reale col link via email, leggendo il codice dall'emulatore Auth. */
+export async function signInByEmail(page: Page, email: string, next = '/') {
+	await page.goto(`/accedi?next=${encodeURIComponent(next)}`);
+	await page.getByLabel('Ricevi un link via email').fill(email);
+	await page.getByRole('button', { name: 'Mandami il link' }).click();
+	await expect(page.getByText('Controlla la posta.')).toBeVisible();
+	const link = await latestLink(email);
+	await page.goto(link);
+	await page.waitForURL((u) => u.pathname === next || u.pathname === new URL(next, 'http://x').pathname);
+}
+
+export async function latestLink(email: string) {
+	const res = await fetch(`${AUTH}/emulator/v1/projects/${PROJECT}/oobCodes`);
+	const { oobCodes } = (await res.json()) as {
+		oobCodes: { email: string; requestType: string; oobCode: string; oobLink: string }[];
+	};
+	const code = oobCodes.filter((c) => c.email === email && c.requestType === 'EMAIL_SIGNIN').at(-1);
+	if (!code) throw new Error(`nessun link per ${email}`);
+	const continueUrl = new URL(code.oobLink).searchParams.get('continueUrl')!;
+	const u = new URL(continueUrl);
+	u.searchParams.set('mode', 'signIn');
+	u.searchParams.set('oobCode', code.oobCode);
+	u.searchParams.set('apiKey', 'demo-key');
+	return u.href;
+}
+
+export async function accountExists(email: string) {
+	const res = await fetch(`${AUTH}/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:query`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json', Authorization: 'Bearer owner' },
+		body: JSON.stringify({ returnUserInfo: true })
+	});
+	const body = (await res.json()) as { userInfo?: { email: string }[] };
+	return (body.userInfo ?? []).some((u) => u.email === email);
+}
+
+export async function getDocument(path: string) {
+	const res = await fetch(`${FIRESTORE}/${path}`, { headers: { Authorization: 'Bearer owner' } });
+	return res.status === 404 ? null : ((await res.json()) as { fields: Record<string, Record<string, unknown>> });
+}
+
+/** Il geocoding passa da /api/geocode: nei test risponde una fixture, Nominatim non viene mai chiamato. */
+export async function mockGeocode(page: Page) {
+	await page.route('**/api/geocode**', (route) => {
+		const url = new URL(route.request().url());
+		const place = { city: 'Modena', citySlug: 'modena', province: 'MO', region: 'Emilia-Romagna' };
+		if (url.searchParams.has('lat'))
+			return route.fulfill({ json: [{ label: 'Modena', lat: Number(url.searchParams.get('lat')), lng: Number(url.searchParams.get('lng')), place }] });
+		return route.fulfill({ json: [{ label: 'Via Emilia Centro 100, Modena', lat: 44.6466, lng: 10.9262, place }] });
+	});
+}

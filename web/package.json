@@ -14,8 +14,9 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:e2e": "playwright test",
-    "emulators": "firebase emulators:start --config ../firebase/firebase.json --project demo-eventi"
+    "test:e2e": "node ../firebase/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config ../firebase/firebase.json --project demo-eventi --only auth,firestore \"playwright test\"",
+    "emulators": "node ../firebase/node_modules/firebase-tools/lib/bin/firebase.js emulators:start --config ../firebase/firebase.json --project demo-eventi --only auth,firestore",
+    "seed": "node scripts/seed-emulator.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261026.1",
