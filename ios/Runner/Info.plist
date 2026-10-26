@@ -60,5 +60,15 @@
 	<array>
 		<string>it</string>
 	</array>
+	<!-- Login Google via Firebase Auth: Encoded App ID dell'app iOS. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app-1-398100140878-ios-aabd7a6ffdf7862c6f441f</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

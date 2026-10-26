@@ -1,10 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Eventi: lettura pubblica, scrittura solo da console/Admin SDK.
+    // Deve coincidere con adminEmail in lib/features/auth/auth.dart.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'azzatubo@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    // Eventi: lettura pubblica, scrittura solo all'admin (l'importer usa
+    // l'Admin SDK, che non passa dalle regole).
     match /events/{eventId} {
       allow read: if true;
-      allow write: if false;
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.startTime is int
+        && request.resource.data.endTime is int
+        && request.resource.data.lat is number
+        && request.resource.data.lng is number;
     }
     // Tutto il resto è chiuso.
     match /{document=**} {
