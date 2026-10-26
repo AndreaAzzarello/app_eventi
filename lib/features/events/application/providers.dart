@@ -12,7 +12,7 @@ final eventsProvider = StreamProvider<List<Event>>((ref) {
     throw StateError('Firebase non è configurato per questa piattaforma. '
         'Esegui `flutterfire configure` e riavvia l\'app.');
   }
-  return EventService().watchAll();
+  return EventService().watchUpcoming();
 });
 
 final userLocationProvider =

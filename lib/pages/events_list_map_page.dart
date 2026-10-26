@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../common/utils/geo.dart';
 import '../features/events/application/providers.dart';
-import '../features/events/data/event_service.dart';
 import '../features/events/domain/event.dart';
 import '../features/location/location_service.dart';
 import '../widgets/event_card.dart';
@@ -31,18 +29,6 @@ class _EventsListMapPageState extends ConsumerState<EventsListMapPage> {
   void _openDetails(Event e) => Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => EventDetailsPage(event: e)));
 
-  Future<void> _seedDemo() async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await seedSampleEvents();
-      messenger.showSnackBar(
-          const SnackBar(content: Text('10 eventi demo caricati')));
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text('Seed fallito (regole Firestore o emulatore?): $e')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
@@ -62,12 +48,6 @@ class _EventsListMapPageState extends ConsumerState<EventsListMapPage> {
               child: Icon(Icons.location_disabled_rounded),
             ),
           ),
-        if (kDebugMode)
-          IconButton(
-            tooltip: 'Carica eventi demo',
-            onPressed: _seedDemo,
-            icon: const Icon(Icons.auto_awesome_rounded),
-          ),
         const SizedBox(width: 8),
       ],
     );
@@ -83,7 +63,7 @@ class _EventsListMapPageState extends ConsumerState<EventsListMapPage> {
             width: 440,
             child: Column(children: [
               const FilterBar(),
-              Expanded(child: _ListView(onTap: _openDetails, onSeed: _seedDemo)),
+              Expanded(child: _ListView(onTap: _openDetails)),
             ]),
           ),
           Expanded(
@@ -98,7 +78,7 @@ class _EventsListMapPageState extends ConsumerState<EventsListMapPage> {
         ]),
       _Section.list => Column(children: [
           const FilterBar(),
-          Expanded(child: _ListView(onTap: _openDetails, onSeed: _seedDemo)),
+          Expanded(child: _ListView(onTap: _openDetails)),
         ]),
     };
 
@@ -175,8 +155,7 @@ Widget _async(
 
 class _ListView extends ConsumerWidget {
   final ValueChanged<Event> onTap;
-  final VoidCallback onSeed;
-  const _ListView({required this.onTap, required this.onSeed});
+  const _ListView({required this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -188,13 +167,6 @@ class _ListView extends ConsumerWidget {
           icon: Icons.event_busy_rounded,
           title: 'Nessun evento qui',
           message: 'Prova ad allargare il raggio o a togliere qualche filtro.',
-          action: kDebugMode
-              ? OutlinedButton.icon(
-                  onPressed: onSeed,
-                  icon: const Icon(Icons.auto_awesome_rounded),
-                  label: const Text('Carica eventi demo'),
-                )
-              : null,
         );
       }
       return _EventList(
