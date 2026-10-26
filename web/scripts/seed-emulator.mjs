@@ -1,0 +1,118 @@
+// Popola l'emulatore Firestore con eventi di prova sparsi in Italia (solo sviluppo e test E2E).
+// Uso: node scripts/seed-emulator.mjs   (con `npm run emulators` attivo)
+import { geohashForLocation } from 'geofire-common';
+
+const HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
+const PROJECT = process.env.PUBLIC_FIREBASE_PROJECT_ID || 'demo-eventi';
+const BASE = `http://${HOST}/v1/projects/${PROJECT}/databases/(default)/documents`;
+const H = 3600_000;
+const now = Date.now();
+const day0 = new Date(now);
+day0.setHours(0, 0, 0, 0);
+const at = (days, hour) => day0.getTime() + days * 24 * H + hour * H;
+
+const places = {
+	modena: { city: 'Modena', citySlug: 'modena', province: 'MO', region: 'Emilia-Romagna', lat: 44.6458, lng: 10.9256 },
+	formigine: { city: 'Formigine', citySlug: 'formigine', province: 'MO', region: 'Emilia-Romagna', lat: 44.5733, lng: 10.8466 },
+	bologna: { city: 'Bologna', citySlug: 'bologna', province: 'BO', region: 'Emilia-Romagna', lat: 44.4939, lng: 11.3428 },
+	roma: { city: 'Roma', citySlug: 'roma', province: 'RM', region: 'Lazio', lat: 41.8986, lng: 12.4769 },
+	lecce: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia', lat: 40.3529, lng: 18.1743 }
+};
+
+const ev = (id, place, over) => {
+	const p = places[place];
+	const lat = p.lat + (Math.random() - 0.5) * 0.01;
+	const lng = p.lng + (Math.random() - 0.5) * 0.01;
+	return {
+		id,
+		data: {
+			title: 'Evento',
+			shortDescription: '',
+			category: 'other',
+			priceType: 'free',
+			venueName: '',
+			address: `Centro, ${p.city}`,
+			imageUrl: '',
+			ticketUrl: '',
+			tags: [],
+			source: 'manual',
+			sourceUrl: '',
+			createdAt: now,
+			updatedAt: now,
+			...p,
+			lat,
+			lng,
+			geohash: geohashForLocation([lat, lng]),
+			...over
+		}
+	};
+};
+
+const events = [
+	ev('seedJazz', 'modena', {
+		title: 'Jazz in Piazza Grande',
+		shortDescription: 'Quartetto dal vivo sotto la Ghirlandina. Porta una sedia pieghevole!',
+		category: 'music',
+		startTime: at(0, 21),
+		endTime: at(0, 23),
+		venueName: 'Piazza Grande',
+		address: 'Piazza Grande, 41121 Modena',
+		ticketUrl: 'https://example.org/biglietti',
+		source: 'scraper',
+		sourceUrl: 'https://www.comune.modena.it/eventi/jazz-in-piazza'
+	}),
+	ev('seedMercato', 'modena', {
+		title: 'Mercato dell’antiquariato',
+		category: 'market',
+		startTime: at(1, 8),
+		endTime: at(1, 18),
+		venueName: 'Parco Novi Sad',
+		priceType: 'free'
+	}),
+	ev('seedBimbi', 'formigine', {
+		title: 'Letture animate per bambini al castello',
+		shortDescription: 'Storie e laboratori per bambini dai 4 agli 8 anni.',
+		category: 'kids',
+		startTime: at(2, 16),
+		endTime: at(2, 18),
+		venueName: 'Castello di Formigine',
+		tags: ['kids']
+	}),
+	ev('seedSagra', 'formigine', {
+		title: 'Sagra del gnocco fritto',
+		category: 'food',
+		priceType: 'low',
+		startTime: at(3, 18),
+		endTime: at(3, 23, 59),
+		tags: ['family']
+	}),
+	ev('seedMostra', 'bologna', {
+		title: 'Mostra: la Bologna dei portici',
+		category: 'culture',
+		priceType: 'premium',
+		startTime: at(-2, 10),
+		endTime: at(20, 19),
+		venueName: 'Palazzo d’Accursio'
+	}),
+	ev('seedRoma', 'roma', { title: 'Concerto all’Auditorium', category: 'music', priceType: 'premium', startTime: at(4, 20), endTime: at(4, 23) }),
+	ev('seedLecce', 'lecce', { title: 'Festa del barocco leccese', category: 'culture', startTime: at(5, 18), endTime: at(5, 23) }),
+	ev('seedFinito', 'modena', { title: 'Evento già concluso', startTime: at(-3, 10), endTime: at(-3, 12) })
+];
+
+const enc = (v) => {
+	if (typeof v === 'string') return { stringValue: v };
+	if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+	if (typeof v === 'boolean') return { booleanValue: v };
+	if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
+	return { nullValue: null };
+};
+
+for (const { id, data } of events) {
+	const res = await fetch(`${BASE}/events/${id}`, {
+		method: 'PATCH',
+		headers: { 'content-type': 'application/json', Authorization: 'Bearer owner' },
+		body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, enc(v)])) })
+	});
+	if (!res.ok) throw new Error(`${id}: ${res.status} ${await res.text()}`);
+}
+console.log(`Inseriti ${events.length} eventi in ${BASE}`);

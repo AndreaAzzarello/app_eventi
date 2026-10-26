@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { distanceKm, geohashOf, placeFromNominatim, radiusBounds, roundCoord } from './geo';
+import { distanceKm, geohashOf, placeFromNominatim, radiusBounds, snapCoord } from './geo';
 
 describe('geo', () => {
 	it('geohash di riferimento (stesso vettore del test Python)', () => {
@@ -16,7 +16,7 @@ describe('geo', () => {
 		}
 		expect(bounds.length).toBeLessThanOrEqual(9);
 	});
-	it('roundCoord a ~1 km', () => expect(roundCoord(44.64712)).toBe(44.65));
+	it('griglia di cache a 0,05°', () => expect([snapCoord(44.6471), snapCoord(10.9252)]).toEqual([44.65, 10.95]));
 	it('località da Nominatim', () => {
 		expect(
 			placeFromNominatim({ town: 'Formigine', county: 'Modena', 'ISO3166-2-lvl6': 'IT-MO', state: 'Emilia-Romagna' })

@@ -17,8 +17,10 @@ export const geohashOf = (p: LatLng) => geohashForLocation([p.lat, p.lng]);
 /** Intervalli di geohash [inizio, fine] che coprono il cerchio: una query Firestore ciascuno. */
 export const radiusBounds = (c: LatLng, km: number) => geohashQueryBounds([c.lat, c.lng], km * 1000);
 
-/** Coordinate arrotondate (~1 km): chiave di cache condivisa e niente posizione precisa nei log. */
-export const roundCoord = (n: number) => Math.round(n * 100) / 100;
+/** Griglia di 0,05° (~5 km) per la cache delle ricerche: chi è vicino condivide la stessa risposta. */
+export const snapCoord = (n: number) => Math.round(n * 20) / 20;
+/** Margine da aggiungere al raggio quando si interroga dal punto della griglia (metà diagonale ≈ 3,5 km). */
+export const SNAP_MARGIN_KM = 4;
 
 export interface Place {
 	city: string;

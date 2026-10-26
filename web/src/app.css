@@ -399,3 +399,29 @@ dialog::backdrop {
 		scroll-behavior: auto !important;
 	}
 }
+
+/* Testi lunghi (privacy, termini) */
+.prose {
+	padding-top: 1.5rem;
+	font-size: 1.02rem;
+	line-height: 1.7;
+}
+.prose h2 {
+	margin-top: 2rem;
+}
+.prose li {
+	margin-bottom: 0.5rem;
+}
+
+/* Tessere OSM nel tema scuro: inversione morbida, i marker restano a colori. */
+:root[data-theme='dark'] .leaflet-tile-pane {
+	filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
+}
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) .leaflet-tile-pane {
+		filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
+	}
+}
+.leaflet-container {
+	font: inherit;
+}
