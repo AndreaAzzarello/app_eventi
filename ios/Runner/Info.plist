@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>App Eventi</string>
+	<string>Eventi Vicini</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,13 +48,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-
-	<!-- 🔑 Token Mapbox -->
-	<key>MBXAccessToken</key>
-	<string>pk.eyJ1IjoiYW5kcmVhenphcmVsbG8iLCJhIjoiY21lc295MW1rMDQ5NTJscXY0bHdqN2hvZSJ9.5rX0woMmxCYRDRxtH0RYfw</string>
-
-	<!-- 📍 Permesso posizione (obbligatorio per Geolocator/Mapbox WhenInUse) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>La tua posizione serve per mostrare la mappa.</string>
+	<string>Usiamo la tua posizione per mostrarti gli eventi più vicini a te.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Serve per aggiungere gli eventi che ti interessano al tuo calendario.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Serve per aggiungere gli eventi che ti interessano al tuo calendario.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Richiesto dalla schermata di sistema del calendario per suggerire i luoghi.</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>it</string>
+	</array>
 </dict>
 </plist>
