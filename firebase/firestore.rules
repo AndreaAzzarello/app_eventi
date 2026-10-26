@@ -1,26 +1,186 @@
 rules_version = '2';
+
+// Modello dati e motivazioni: README, sezione "Regole Firestore".
+// I limiti di lunghezza coincidono con LIMITS in web/src/lib/event.ts.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deve coincidere con adminEmail in lib/features/auth/auth.dart.
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isAdmin() {
-      return request.auth != null
+      return signedIn()
         && request.auth.token.email == 'azzatubo@gmail.com'
         && request.auth.token.email_verified == true;
     }
 
-    // Eventi: lettura pubblica, scrittura solo all'admin (l'importer usa
-    // l'Admin SDK, che non passa dalle regole).
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function str(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+
+    // Vuoto oppure un link http(s): niente javascript:, data: e simili.
+    function optUrl(v) {
+      return v is string && v.size() <= 500 && (v == '' || v.matches('https?://[^\\s]+'));
+    }
+
+    // Campi comuni a eventi e proposte.
+    function eventKeys() {
+      return ['title', 'shortDescription', 'category', 'priceType', 'startTime', 'endTime',
+        'venueName', 'address', 'lat', 'lng', 'imageUrl', 'ticketUrl', 'tags',
+        'geohash', 'city', 'citySlug', 'province', 'region'];
+    }
+
+    function validEventFields(d) {
+      return str(d.title, 1, 200)
+        && str(d.shortDescription, 0, 1000)
+        && d.category in ['music', 'food', 'sport', 'culture', 'kids', 'market', 'other']
+        && d.priceType in ['free', 'low', 'premium']
+        && d.startTime is int && d.endTime is int && d.endTime >= d.startTime
+        && str(d.venueName, 0, 200)
+        && str(d.address, 1, 300)
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180
+        && !(d.lat == 0 && d.lng == 0)
+        && optUrl(d.imageUrl) && optUrl(d.ticketUrl)
+        && d.tags is list && d.tags.size() <= 10
+        && str(d.geohash, 5, 12)
+        && str(d.city, 1, 80) && str(d.citySlug, 1, 80)
+        && str(d.province, 0, 4) && str(d.region, 0, 40);
+    }
+
+    // ---- Eventi pubblici ------------------------------------------------
+    // L'importer scrive con l'Admin SDK, che non passa da queste regole.
     match /events/{eventId} {
       allow read: if true;
       allow delete: if isAdmin();
       allow create, update: if isAdmin()
-        && request.resource.data.title is string
-        && request.resource.data.title.size() > 0
-        && request.resource.data.startTime is int
-        && request.resource.data.endTime is int
-        && request.resource.data.lat is number
-        && request.resource.data.lng is number;
+        && request.resource.data.keys().hasAll(eventKeys().concat(['source']))
+        && request.resource.data.keys().hasOnly(eventKeys().concat(
+             ['source', 'sourceUrl', 'createdAt', 'updatedAt', 'submittedBy']))
+        && validEventFields(request.resource.data)
+        && request.resource.data.source in ['manual', 'scraper', 'user']
+        && optUrl(request.resource.data.get('sourceUrl', ''))
+        && request.resource.data.get('createdAt', 0) is int
+        && request.resource.data.get('updatedAt', 0) is int
+        && request.resource.data.get('submittedBy', '') is string;
     }
+
+    // ---- Proposte degli utenti -------------------------------------------
+    // Limite anti-spam: users/{uid}.pendingCount (max 5) cambia nello stesso
+    // batch della proposta; le due regole si controllano a vicenda con getAfter.
+    function userAfter(uid) {
+      return getAfter(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function userBefore(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    match /submissions/{sid} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerId == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(eventKeys().concat(['ownerId', 'status', 'createdAt']))
+        && request.resource.data.keys().hasOnly(eventKeys().concat(['ownerId', 'status', 'createdAt']))
+        && validEventFields(request.resource.data)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && userAfter(request.auth.uid).pendingCount == userBefore(request.auth.uid).pendingCount + 1
+        && userAfter(request.auth.uid).lastSubmissionId == sid;
+
+      // Solo l'admin cambia lo stato, una volta sola, decrementando il contatore dell'autore.
+      allow update: if isAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'rejectReason', 'reviewedAt', 'eventId'])
+        && request.resource.data.reviewedAt == request.time
+        && (
+          (request.resource.data.status == 'approved'
+            && request.resource.data.eventId is string
+            && existsAfter(/databases/$(database)/documents/events/$(request.resource.data.eventId)))
+          || (request.resource.data.status == 'rejected'
+            && str(request.resource.data.rejectReason, 3, 500))
+        )
+        && userAfter(resource.data.ownerId).pendingCount == userBefore(resource.data.ownerId).pendingCount - 1;
+
+      // L'autore può ritirare le proprie proposte (serve anche a "Elimina account e dati"):
+      // se è pending, nello stesso batch libera il posto nel contatore.
+      // L'admin cancella solo proposte già gestite: una pending bloccherebbe il contatore.
+      allow delete: if (isAdmin() && resource.data.status != 'pending')
+        || (signedIn() && resource.data.ownerId == request.auth.uid
+          && (resource.data.status != 'pending'
+            || (userAfter(request.auth.uid).pendingCount == userBefore(request.auth.uid).pendingCount - 1
+              && userAfter(request.auth.uid).lastSubmissionId == sid)));
+    }
+
+    // ---- Utenti --------------------------------------------------------
+    function submissionPath(sid) {
+      return /databases/$(database)/documents/submissions/$(sid);
+    }
+
+    function validProfile(d) {
+      return str(d.get('name', ''), 0, 80) && str(d.get('city', ''), 0, 80);
+    }
+
+    // +1 solo se nello stesso batch nasce la proposta lastSubmissionId;
+    // -1 solo se nello stesso batch sparisce la proposta pending lastSubmissionId.
+    function validCounterChange(uid) {
+      let before = resource.data.pendingCount;
+      let after = request.resource.data.pendingCount;
+      let sid = request.resource.data.get('lastSubmissionId', '');
+      return (after == before
+          && request.resource.data.get('lastSubmissionId', '') == resource.data.get('lastSubmissionId', ''))
+        || (after == before + 1 && after <= 5
+          && !exists(submissionPath(sid))
+          && existsAfter(submissionPath(sid))
+          && getAfter(submissionPath(sid)).data.ownerId == uid)
+        || (after == before - 1 && after >= 0
+          && exists(submissionPath(sid))
+          && get(submissionPath(sid)).data.ownerId == uid
+          && get(submissionPath(sid)).data.status == 'pending'
+          && !existsAfter(submissionPath(sid)));
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasAll(['createdAt', 'pendingCount'])
+        && request.resource.data.keys().hasOnly(['name', 'city', 'createdAt', 'pendingCount'])
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.pendingCount == 0
+        && validProfile(request.resource.data);
+
+      allow update: if (isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['name', 'city', 'pendingCount', 'lastSubmissionId'])
+          && validProfile(request.resource.data)
+          && request.resource.data.pendingCount is int
+          && validCounterChange(uid))
+        // L'admin, approvando o rifiutando, scala di uno il contatore: non legge nulla.
+        || (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingCount'])
+          && request.resource.data.pendingCount == resource.data.pendingCount - 1
+          && request.resource.data.pendingCount >= 0);
+
+      // Con proposte pending il profilo non si cancella: ricrearlo azzererebbe il contatore.
+      allow delete: if isOwner(uid) && resource.data.pendingCount == 0;
+
+      match /favorites/{eventId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['addedAt'])
+          && request.resource.data.addedAt is int;
+      }
+    }
+
     // Tutto il resto è chiuso.
     match /{document=**} {
       allow read, write: if false;

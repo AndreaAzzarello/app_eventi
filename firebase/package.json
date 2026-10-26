@@ -1,0 +1,20 @@
+{
+  "name": "eventi-vicini-firebase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-eventi \"vitest run\"",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes --project appeventi-1e860"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.34.1",
+    "vitest": "4.1.12"
+  },
+  "allowScripts": {
+    "@firebase/util": false,
+    "protobufjs": false,
+    "re2": false
+  }
+}
