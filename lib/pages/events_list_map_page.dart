@@ -164,7 +164,7 @@ Widget _async(
       error: (e, _) => MessageView(
         icon: Icons.cloud_off_rounded,
         title: 'Impossibile caricare gli eventi',
-        message: '$e',
+        message: e is StateError ? e.message : '$e',
         action: FilledButton.tonal(
           onPressed: () => ref.invalidate(eventsProvider),
           child: const Text('Riprova'),
@@ -214,15 +214,12 @@ class _MapView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(userLocationProvider).value;
-    return _async(
-      ref.watch(filteredEventsProvider),
-      ref,
-      (events) => EventsMap(
-        events: events,
-        center: location?.position ?? modenaCenter,
-        showUser: !(location?.isFallback ?? true),
-        onEventTap: onTap,
-      ),
+    // Niente stato di errore qui: la mappa resta usabile, l'errore lo mostra la lista.
+    return EventsMap(
+      events: ref.watch(filteredEventsProvider).value ?? const [],
+      center: location?.position ?? modenaCenter,
+      showUser: !(location?.isFallback ?? true),
+      onEventTap: onTap,
     );
   }
 }

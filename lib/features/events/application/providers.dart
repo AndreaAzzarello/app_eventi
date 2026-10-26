@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../favorites/favorites_store.dart';
@@ -6,8 +7,13 @@ import '../data/event_service.dart';
 import '../domain/event.dart';
 import '../domain/event_filter.dart';
 
-final eventsProvider =
-    StreamProvider<List<Event>>((ref) => EventService().watchAll());
+final eventsProvider = StreamProvider<List<Event>>((ref) {
+  if (Firebase.apps.isEmpty) {
+    throw StateError('Firebase non è configurato per questa piattaforma. '
+        'Esegui `flutterfire configure` e riavvia l\'app.');
+  }
+  return EventService().watchAll();
+});
 
 final userLocationProvider =
     FutureProvider<UserLocation>((ref) => LocationService().current());

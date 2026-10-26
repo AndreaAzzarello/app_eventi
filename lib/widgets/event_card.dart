@@ -63,8 +63,8 @@ class EventCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          height: 128,
+        // Altezza minima fissa, ma cresce con titoli lunghi o testo ingrandito.
+        child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -75,7 +75,8 @@ class EventCard extends StatelessWidget {
                     child: EventImage(event: event, iconSize: 36)),
               ),
               Expanded(
-                child: Padding(
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 128),
                   padding: const EdgeInsets.fromLTRB(16, 14, 4, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +91,7 @@ class EventCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: t.textTheme.titleMedium),
-                      const Spacer(),
+                      const SizedBox(height: 10),
                       Text(
                         event.venueName.isNotEmpty
                             ? event.venueName

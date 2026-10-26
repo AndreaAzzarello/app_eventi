@@ -29,14 +29,17 @@ Event _event(String id, String title, {String category = 'music'}) {
 }
 
 Future<void> _pumpApp(WidgetTester tester, Stream<List<Event>> events) async {
-  await tester.pumpWidget(ProviderScope(
-    overrides: [
-      eventsProvider.overrideWith((ref) => events),
-      userLocationProvider.overrideWith(
-          (ref) async => const UserLocation(modenaCenter, isFallback: true)),
-    ],
-    child: const EventiApp(),
-  ));
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        eventsProvider.overrideWith((ref) => events),
+        userLocationProvider.overrideWith(
+          (ref) async => const UserLocation(modenaCenter, isFallback: true),
+        ),
+      ],
+      child: const EventiApp(),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -45,10 +48,13 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('mostra gli eventi e filtra per categoria', (tester) async {
-    await _pumpApp(tester, Stream.value([
-      _event('1', 'Concerto in piazza'),
-      _event('2', 'Sagra del quartiere', category: 'food'),
-    ]));
+    await _pumpApp(
+      tester,
+      Stream.value([
+        _event('1', 'Concerto in piazza'),
+        _event('2', 'Sagra del quartiere', category: 'food'),
+      ]),
+    );
 
     expect(find.text('Eventi Vicini'), findsOneWidget);
     expect(find.text('Concerto in piazza'), findsOneWidget);
@@ -67,6 +73,20 @@ void main() {
     await tester.tap(find.text('Preferiti'));
     await tester.pumpAndSettle();
     expect(find.text('Ancora nessun preferito'), findsOneWidget);
+  });
+
+  testWidgets('nessun overflow su schermo stretto', (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pumpApp(
+      tester,
+      Stream.value([
+        _event('1', 'Un titolo molto lungo per un evento in piazza a Modena'),
+      ]),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('Lista'), findsOneWidget);
   });
 
   testWidgets('errore di caricamento', (tester) async {
