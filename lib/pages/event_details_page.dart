@@ -42,6 +42,7 @@ class EventDetailsPage extends ConsumerWidget {
     final isFav =
         ref.watch(favoritesProvider).value?.contains(event.id) ?? false;
     final tickets = Uri.tryParse(event.ticketUrl);
+    final source = Uri.tryParse(event.sourceUrl);
     final mapsUri = Uri.https('www.google.com', '/maps/search/', {
       'api': '1',
       'query': '${event.lat},${event.lng}',
@@ -131,6 +132,15 @@ class EventDetailsPage extends ConsumerWidget {
                           label: const Text('Biglietti'),
                         ),
                     ]),
+                    // Le note legali dei comuni chiedono di citare la fonte.
+                    if (source != null && source.isScheme('https')) ...[
+                      const SizedBox(height: 24),
+                      TextButton.icon(
+                        onPressed: () => _open(context, source),
+                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                        label: Text('Fonte: ${source.host}'),
+                      ),
+                    ],
                   ],
                 ),
               ),

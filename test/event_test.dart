@@ -52,6 +52,24 @@ void main() {
       expect(e.endTime, e.startTime);
       expect(e.lat, 0);
       expect(e.tags, isEmpty);
+      expect(e.source, 'manual');
+      expect(e.sourceUrl, '');
+      expect(e.createdAt, isNull);
+    });
+
+    test('legge source, sourceUrl e date di creazione/modifica', () {
+      final e = Event.fromMap('1', {
+        'startTime': 0,
+        'source': 'scraper',
+        'sourceUrl': 'https://www.comune.modena.it/e/1',
+        'createdAt': DateTime(2026, 1, 1).millisecondsSinceEpoch,
+        'updatedAt': Timestamp.fromDate(DateTime(2026, 1, 2)),
+      });
+      expect(e.source, 'scraper');
+      expect(e.sourceUrl, 'https://www.comune.modena.it/e/1');
+      expect(e.createdAt, DateTime(2026, 1, 1));
+      expect(e.updatedAt, DateTime(2026, 1, 2));
+      expect(e.toMap()['createdAt'], DateTime(2026, 1, 1).millisecondsSinceEpoch);
     });
 
     test('toMap → fromMap è reversibile', () {
