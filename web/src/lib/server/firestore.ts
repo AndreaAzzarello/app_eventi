@@ -58,7 +58,7 @@ async function call<T>(path: string, body?: unknown): Promise<T | null> {
 // Cache per isolate: copre le richieste ravvicinate anche dove la Cache API di Cloudflare non c'è.
 // shortcut: memoria per singolo isolate, non condivisa tra data center; KV costerebbe scritture limitate.
 const memo = new Map<string, { at: number; value: unknown }>();
-const TTL_MS = 60_000;
+const TTL_MS = 5 * 60_000; // i dati cambiano una volta al giorno (import) o a mano dall'admin
 async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
 	const hit = memo.get(key);
 	if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T;

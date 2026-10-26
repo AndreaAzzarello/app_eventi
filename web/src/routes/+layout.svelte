@@ -17,7 +17,7 @@
 		theme = readJson(KEYS.theme, null);
 		favorites.load();
 		session.resume();
-		if (!dev && 'serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { type: 'module' });
+		if (!dev && 'serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js');
 	});
 
 	function toggleTheme() {

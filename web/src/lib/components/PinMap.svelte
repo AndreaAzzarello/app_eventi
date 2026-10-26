@@ -16,9 +16,19 @@
 	let marker: import('leaflet').Marker | null = null;
 	let loaded = $state(false);
 
+	// La mappa (Leaflet + tessere OSM) si carica solo quando arriva vicino allo schermo.
 	onMount(() => {
 		let cancelled = false;
-		loadLeaflet().then((L) => {
+		const io = new IntersectionObserver(
+			(entries) => {
+				if (!entries.some((e) => e.isIntersecting)) return;
+				io.disconnect();
+				init();
+			},
+			{ rootMargin: '200px' }
+		);
+		io.observe(el);
+		const init = () => loadLeaflet().then((L) => {
 			if (cancelled) return;
 			map = baseMap(L, el, { interactive: true });
 			const icon = L.divIcon({
@@ -43,6 +53,7 @@
 		});
 		return () => {
 			cancelled = true;
+			io.disconnect();
 			map?.remove();
 		};
 	});

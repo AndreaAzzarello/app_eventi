@@ -105,6 +105,7 @@
 
 	<div class="split" data-view={view}>
 		<div id="panel-list" class="list-pane" role="tabpanel" aria-labelledby="tab-list">
+			<h2 class="visually-hidden">Eventi in programma</h2>
 			<EventList
 				events={visible}
 				{now}
