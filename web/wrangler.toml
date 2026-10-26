@@ -1,0 +1,14 @@
+# Cloudflare Pages (piano gratuito). Le variabili qui sono pubbliche o non segrete:
+# la config web di Firebase è pubblica per costruzione (la sicurezza sta nelle regole).
+name = "eventi-vicini"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+[vars]
+PUBLIC_SITE_URL = "https://eventi-vicini.pages.dev"
+PUBLIC_FIREBASE_API_KEY = "AIzaSyDsN6z3qhJwe6w6yvXlzZuNtdDkAbm1CRw"
+PUBLIC_FIREBASE_AUTH_DOMAIN = "appeventi-1e860.firebaseapp.com"
+PUBLIC_FIREBASE_PROJECT_ID = "appeventi-1e860"
+PUBLIC_FIREBASE_APP_ID = "1:398100140878:web:34828944279a6b896f441f"
+PUBLIC_USE_EMULATORS = "false"
+CONTACT_EMAIL = "azzatubo@gmail.com"
