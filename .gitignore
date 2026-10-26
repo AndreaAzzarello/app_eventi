@@ -1,43 +1,17 @@
-# Flutter / Dart
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
+# Node / SvelteKit / Cloudflare
+node_modules/
+.svelte-kit/
 build/
-coverage/
+.wrangler/
+.dev.vars
+web/test-results/
+web/playwright-report/
+web/.lighthouse/
 
-# IDE
-.idea/
-*.iml
-*.ipr
-*.iws
-.vscode/
-
-# Android
-android/.gradle/
-android/local.properties
-android/key.properties
-*.keystore
-*.jks
-*.bak
-
-# iOS / macOS
-Pods/
-**/ios/Flutter/ephemeral/
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-ios/Runner/GoogleService-Info.plist
-
-# Firebase CLI
+# Firebase CLI ed emulatori
 .firebase/
-firebase-debug.log
-firestore-debug.log
-
-# OS
-.DS_Store
-Thumbs.db
+*-debug.log
+firebase/emulator-data/
 
 # Importer Python: mai committare credenziali
 tools/importer/.venv/
@@ -47,4 +21,15 @@ tools/importer/geocache.json
 *serviceAccount*.json
 *service-account*.json
 *-firebase-adminsdk-*.json
+
+# Variabili d'ambiente locali (gli esempi .env.example sì)
 .env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
