@@ -103,6 +103,8 @@ def analyze(f: Fetcher, r: dict) -> dict:
     res = {"comune": r["comune"], "cms": r["cms"], "url_eventi": r["url_eventi"], "pagina": "", "frase": "",
            "classe": "non-trovata", "conflitto": False, "robots_eventi": "n/d", "robots_api": "", "api": "", "errore": ""}
     api = base + ("/++api++/@search" if r["cms"] == "plone" else "/wp-json/wp/v2/")
+    if r["cms"] == "design_comuni_html":  # l'adapter legge le pagine HTML della sezione eventi
+        api = r["url_eventi"] or base + "/"
     res["api"] = api
     res["robots_api"] = robots_state(f, api)
     if r["url_eventi"]:
@@ -184,6 +186,8 @@ def render(results: list[dict]) -> str:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--comune", action="append", help="solo questo comune (ripetibile)")
+    p.add_argument("--cms", help="tutti i comuni con questo CMS (es. design_comuni_html), non solo i candidati")
+    p.add_argument("--out", type=Path, default=REPORT, help="file del report")
     p.add_argument("--no-csv", action="store_true", help="non aggiornare comuni.csv")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
@@ -191,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = read_rows()
     only = {c.lower() for c in args.comune} if args.comune else None
     todo = [r for r in rows if r["sito"] and (r["comune"].lower() in only if only else
+                                              r["cms"] == args.cms if args.cms else
                                               r["stato"] == "candidato" or r["comune"].lower() in EXTRA)]
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20, follow_redirects=True) as client:
         fetcher = Fetcher(client)
@@ -203,8 +208,8 @@ def main(argv: list[str] | None = None) -> int:
             r["licenza"] = a["licenza"]
             r["note"] = (f"licenza: {a['pagina']} — «{a['frase']}»" if a["frase"]
                          else f"licenza: non trovata ({a['errore'] or 'nessuna pagina'})")
-    REPORT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT.write_text(render(results), encoding="utf-8")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(render(results), encoding="utf-8")
     if not args.no_csv:
         write_rows(rows)
     return 0

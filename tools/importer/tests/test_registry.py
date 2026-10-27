@@ -7,7 +7,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from adapters import load_sources  # noqa: E402
 from build_registry import merge, parse_ipa, parse_istat  # noqa: E402
-from detect_cms import Blocked, Fetcher, apply, cms_of, detect, find_link, is_open, license_of  # noqa: E402
+from detect_cms import Blocked, Fetcher, apply, cms_of, detect, find_link, is_open, license_of, vendor_of  # noqa: E402
 from registry import COLUMNS, base_url, read_rows, write_rows  # noqa: E402
 
 
@@ -278,3 +278,10 @@ def test_load_sources():
     out = load_sources(rows)
     assert list(out) == ["modena"]
     assert out["modena"].name == "modena"
+
+
+def test_cms_of_modello_design_comuni_e_fornitore():
+    page = '<script src="https://x.epublic.it/a.js"></script><div class="cmp-hero it-header-slim-wrapper">'
+    assert cms_of(page) == "design_comuni_html" and vendor_of(page) == "ComWeb"
+    assert vendor_of('<meta name="generator" content="Joomla! - Open Source">') == "Joomla"
+    assert vendor_of("<p>niente</p>") == "" and cms_of("<p>niente</p>") == "altro"

@@ -25,6 +25,7 @@ from fetch import Blocked, Fetcher, RobotsUnknown
 from registry import PROTECTED, USER_AGENT, base_url, read_rows, write_rows
 
 OPEN_LICENSE = re.compile(r"^(CC0|CC-BY(-SA)?(-\d\.\d)?|IODL(-\d\.\d)?)$")
+CANDIDATE_CMS = ("plone", "wordpress-dci", "design_comuni_html")
 PLONE_API = "/++api++/@search?portal_type=Event&b_size=1"
 
 
@@ -61,7 +62,24 @@ def cms_of(html: str) -> str:
         return "plone"
     if "design-comuni-italia" in h or "design-comuni-wordpress" in h:
         return "wordpress-dci"
+    if MODEL_RE.search(h):
+        return "design_comuni_html"
     return "altro"
+
+
+#: marcatori del modello Designers Italia / Bootstrap Italia nell'HTML (classi cmp-*, it-*, asset del tema)
+MODEL_RE = re.compile(r"bootstrap-italia|\bcmp-[a-z]|it-header-slim-wrapper|it-page-section|design-comuni")
+VENDORS = [
+    ("WordPress", r"wp-content/|name=.generator. content=.wordpress"), ("Drupal", r"drupal|/sites/default/files"),
+    ("Joomla", r"joomla|/media/jui/"), ("ComWeb", r"epublic\.it|comweb"), ("Halley", r"halley"),
+    ("Maggioli", r"maggioli|\bj-?suite\b"), ("ISWEB", r"isweb"), ("ASP.NET", r"__viewstate|\.aspx"),
+]
+
+
+def vendor_of(html: str) -> str:
+    """Fornitore/piattaforma riconoscibile da generator, asset o piè di pagina ("" se non si capisce)."""
+    h = html.lower()
+    return next((name for name, rx in VENDORS if re.search(rx, h)), "")
 
 
 def find_link(html: str, base: str, kind: str) -> str:
@@ -108,7 +126,7 @@ def _text(html: str) -> str:
 
 def detect(f: Fetcher, sito: str) -> dict:
     """Campi rilevati per un sito: cms, url_eventi, licenza, robots_ok, stato, note."""
-    out = {"cms": "", "url_eventi": "", "licenza": "", "robots_ok": "", "stato": "da_verificare"}
+    out = {"cms": "", "fornitore": "", "url_eventi": "", "licenza": "", "robots_ok": "", "stato": "da_verificare"}
     notes: list[str] = []
     blocked = False
     try:
@@ -125,6 +143,7 @@ def detect(f: Fetcher, sito: str) -> dict:
     base = base_url(str(home.url))  # dopo i redirect (es. www)
     html = home.text
     out["cms"] = cms = cms_of(html)
+    out["fornitore"] = vendor_of(html)
 
     def fetch(url: str) -> httpx.Response | None:
         nonlocal blocked
@@ -147,6 +166,11 @@ def detect(f: Fetcher, sito: str) -> dict:
         api_ok = n is not None
         notes.append(f"API Plone ok, {n} eventi" if api_ok else "API Plone non disponibile")
     out["url_eventi"] = find_link(html, base, "eventi")
+    if cms == "wordpress-dci":  # WordPress DCI "nativo": senza REST degli eventi serve l'adapter HTML
+        res = fetch(base + "/wp-json/wp/v2/eventi?per_page=1")
+        if res is None or not res.headers.get("content-type", "").startswith("application/json"):
+            out["cms"] = cms = "design_comuni_html"
+            notes.append("niente REST degli eventi: adapter HTML")
     if out["url_eventi"] and (res := fetch(out["url_eventi"])) is None:
         notes.append("pagina eventi non leggibile")
 
@@ -163,10 +187,8 @@ def detect(f: Fetcher, sito: str) -> dict:
     out["robots_ok"] = "no" if blocked else "si"
     if blocked or lic.startswith("CC-BY-NC") or lic == "riservata":
         out["stato"] = "escluso"
-    elif cms in ("plone", "wordpress-dci") and out["robots_ok"] == "si" and is_open(lic) and (api_ok or cms != "plone"):
+    elif cms in CANDIDATE_CMS and out["robots_ok"] == "si" and is_open(lic) and (api_ok or cms != "plone")             and (out["url_eventi"] or cms != "design_comuni_html"):
         out["stato"] = "candidato"
-        if cms == "wordpress-dci":
-            notes.append("adapter WordPress da scrivere")
     return out | {"note": "auto: " + "; ".join(notes) if notes else ""}
 
 
@@ -183,6 +205,7 @@ def report(rows: list[dict]) -> str:
     table = lambda title, c: out.extend(  # noqa: E731
         [f"**{title}**", "", "| | n |", "|---|---|", *[f"| {k or '(vuoto)'} | {v} |" for k, v in c.most_common()], ""])
     table("Per CMS", Counter(r["cms"] for r in seen))
+    table("Per fornitore", Counter(r["fornitore"] for r in seen))
     table("Per licenza delle note legali", Counter(r["licenza"] for r in seen))
     open_n = sum(1 for r in seen if is_open(r["licenza"]))
     out += [f"**Licenza aperta: {open_n} su {len(seen)}**", ""]

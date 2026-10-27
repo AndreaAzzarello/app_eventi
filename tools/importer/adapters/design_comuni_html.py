@@ -39,7 +39,7 @@ WEEKDAYS = {"lunedì": 0, "lunedi": 0, "martedì": 1, "martedi": 1, "mercoledì"
 _MON = "|".join(MONTHS)
 DATE_RE = re.compile(rf"\b(\d{{1,2}})\s*(?:°|º)?\s+({_MON})(?:\s+(\d{{4}}))?\b", re.I)
 NUM_DATE_RE = re.compile(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{2}|\d{4})\b")
-RANGE_RE = re.compile(rf"\bdal\s+(\d{{1,2}})(?:\s+({_MON}))?(?:\s+(\d{{4}}))?\s+al\s+(\d{{1,2}})\s+({_MON})(?:\s+(\d{{4}}))?\b", re.I)
+RANGE_RE = re.compile(rf"\bdal\s+(\d{{1,2}})(?:°|º)?(?:\s+({_MON}))?(?:\s+(\d{{4}}))?\s+al\s+(\d{{1,2}})(?:°|º)?\s+({_MON})(?:\s+(\d{{4}}))?\b", re.I)
 RECUR_RE = re.compile(r"\b(?:tutti\s+i|tutte\s+le|ogni)\s+(" + "|".join(WEEKDAYS) + r")\b", re.I)
 GCAL_RE = re.compile(r"dates=(\d{8})(?:T(\d{6}))?/(\d{8})(?:T(\d{6}))?")
 ADDRESS_TAIL = re.compile(r"(?:\s*[-–]\s*|,\s*)[^,\d]+\([A-Z]{2}\).*$|,?\s*\b\d{5}\b.*$")
@@ -177,7 +177,10 @@ def from_calendar_link(tree: LexborHTMLParser) -> tuple[datetime, datetime] | No
             hours = [datetime.strptime(t, "%H%M%S").time() for t in (t1, t2) if t]
             if t2 is None and day2 > day1:  # evento "tutto il giorno": la fine è esclusiva
                 day2 -= timedelta(days=1)
-            return span(day1, max(day2, day1), hours)
+            when = span(day1, max(day2, day1), hours)
+            # Alcuni temi, senza data di fine, mettono nel link l'ora in cui la pagina è stata generata.
+            if abs(when[1] - datetime.now(ROME)) > timedelta(minutes=30) or when[1] - when[0] < timedelta(days=1):
+                return when
     return None
 
 
@@ -188,9 +191,23 @@ def _text_of(node) -> str:
 
 
 def _section(tree: LexborHTMLParser, *ids: str):
+    """Sezione per id. In Municipium l'id sta su un'àncora dentro una riga: la sezione sono le righe fino alla prossima àncora."""
     for i in ids:
-        if n := tree.css_first(f"#{i}"):
+        n = tree.css_first(f"#{i}")
+        if n is None:
+            continue
+        if n.tag != "a" or n.parent is None or n.parent.parent is None:
             return n
+        row, nodes = n.parent.parent, []
+        nodes.append(row.html)
+        sib = row.next
+        while sib is not None and not (sib.css_first("a.anchor-content") if sib.tag not in ("-text", "-comment") else None):
+            nodes.append(sib.html or "")
+            sib = sib.next
+        wrapper = LexborHTMLParser("<div>" + "".join(nodes) + "</div>")
+        for anchor in wrapper.css("a.anchor-content"):
+            anchor.decompose()
+        return wrapper.css_first("div")
     return None
 
 
@@ -228,12 +245,16 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
     """Campi grezzi di un dettaglio: title, start, end, venue, street, description, price_text, tipo, image."""
     tree = LexborHTMLParser(page)
     canonical = (tree.css_first('link[rel="canonical"]') or tree.css_first("body")).attributes.get("href") or url
-    title = _clean((tree.css_first("h1") or tree.css_first("title")).text())
+    og = tree.css_first('meta[property="og:title"]')
+    # Alcuni temi hanno più <h1> ("Seguici su" nel piè di pagina): meglio l'h1 marcato o og:title
+    title_node = tree.css_first('h1[data-element="event-title"]') or tree.css_first("main h1")
+    title = _clean(title_node.text()) if title_node else _clean(og.attributes.get("content") if og else "")         or _clean((tree.css_first("h1") or tree.css_first("title")).text())
     if not title:
         return None
     ld = jsonld_event(tree) or microdata_event(tree)
     venue, street = _place(tree)
-    desc = _clean(tree.css_first('meta[name="description"]').attributes.get("content")) if tree.css_first('meta[name="description"]') else ""
+    meta = tree.css_first('meta[name="description"]')
+    desc = _clean(meta.attributes.get("content")) if meta else ""
     when = None
     if ld:  # (a)/(b)
         when = from_structured(ld, today)
@@ -265,7 +286,7 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
             when = span(dates[0], dates[1], parse_hours(main_text[at.start(): at.start() + 120]) if at else [])
     if when is None:
         return None
-    sec = _section(tree, "costi")
+    sec = _section(tree, "costi", "costo")
     price_text = _text_of(sec) if sec is not None else _heading_section(tree, "costi")
     tipo = ""
     for strong in tree.css("strong"):
@@ -273,9 +294,9 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
             tipo = _clean(strong.next.text()).lstrip(": ")
     if not tipo and (c := tree.css_first(".category, .category-top a")):
         tipo = _clean(c.text())
-    if not desc:
-        sec = _section(tree, "cos-e", "descrizione")
-        desc = _text_of(sec) if sec is not None else ""
+    sec = _section(tree, "cos-e", "cos-", "descrizione")
+    if sec is not None and (not desc or desc.startswith("Sito ufficiale")):
+        desc = _text_of(sec)
     return {"title": title, "start": when[0], "end": when[1], "venue": venue, "street": street, "description": desc,
             "price_text": price_text or (_clean(str(ld.get("isAccessibleForFree"))) if ld and ld.get("isAccessibleForFree") else ""),
             "tipo": tipo, "image": _image(tree, url), "url": urljoin(url, canonical), "recurring": bool(RECUR_RE.search(main_text))}
@@ -284,15 +305,21 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
 def _next_point(sec, today: date) -> tuple[datetime, datetime] | None:
     """Prossima data dell'elenco puntato (.point-list: giorno, mese abbreviato, orari); le righe dello stesso giorno si uniscono."""
     days: dict[date, list[time]] = {}
+    marks: list[tuple[date, str, list[time]]] = []
     for pt in sec.css(".point-list"):
         d, m = pt.css_first(".point-date"), pt.css_first(".point-month")
         mon = MONTH_ABBR.get(_clean(m.text()).lower()[:3]) if m else None
         if not (d and mon and _clean(d.text()).isdigit()):
             continue
         day = date(_year(None, today, mon, int(_clean(d.text()))), mon, int(_clean(d.text())))
-        days.setdefault(day, []).extend(parse_hours(_text_of(pt.css_first(".point-list-content"))))
+        label = _text_of(pt.css_first(".point-list-content"))
+        marks.append((day, label.lower(), parse_hours(label)))
+        days.setdefault(day, []).extend(marks[-1][2])
     if not days:
         return None
+    # "24 ott 10:00 Inizio evento" ... "01 nov 19:00 Fine evento": un solo evento su più giorni
+    if len(days) > 1 and "inizio" in marks[0][1] and "fine" in marks[-1][1]:
+        return span(marks[0][0], marks[-1][0], marks[0][2][:1] + marks[-1][2][-1:])
     day = next((x for x in sorted(days) if x >= today), max(days))
     return span(day, day, sorted(days[day]))
 
@@ -376,13 +403,17 @@ class DesignComuniHtmlAdapter:
 
     def events(self, client: httpx.Client, now: datetime, horizon_days: int):
         f = self.fetcher or Fetcher(client, cache_dir=CACHE_DIR)
-        for url in self._list_urls(f, now):
+        urls = self._list_urls(f, now)
+        found = 0
+        for url in urls:
             page = self._get(f, url)
             if page is None:
                 continue
             ev = self.event_from_page(page, url, now, horizon_days)
             if ev is not None:
+                found += 1
                 yield ev
+        log.info("%s: %d pagine evento lette, %d futuri", self.name, len(urls), found)
 
     def event_from_page(self, page: str, url: str, now: datetime, horizon_days: int) -> dict | None:
         d = parse_detail(page, url, now.astimezone(ROME).date())

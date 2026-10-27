@@ -45,7 +45,10 @@ CASES = [
     ("pavullo-nel-frignano", 1, "2026-10-27", "Salone dell’Orientamento 2026", "2026-11-07 15:00",
      "2026-11-07 17:00", "Sala Consiliare del Comune di Pavullo", "X", "free", "other"),
     ("granarolo-dell-emilia", 1, "2026-10-20", "La Scuola di Pozioni: un laboratorio di Halloween alla biblioteca Rodari",
-     "2026-10-31 00:00", "2026-10-31 23:59", "", "X", "low", "culture"),
+     "2026-10-31 00:00", "2026-10-31 23:59", "", "X", "free", "culture"),
+    # Municipium (Maggioli): più <h1>, id sulle àncore, "Inizio evento"/"Fine evento" su due giorni
+    ("riccione", 1, "2026-10-27", "Il Parco delle zucche: la magia dell'autunno a Villa Lodi Fé", "2026-10-24 10:00",
+     "2026-11-01 19:00", "Villa Lodi Fè", "Viale delle Magnolie, 2", "low", "other"),
 ]
 
 

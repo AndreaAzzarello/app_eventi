@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 USER_AGENT = "EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/app_eventi)"
 PATH = Path(__file__).parent / "sources" / "comuni.csv"
-COLUMNS = ["regione", "provincia", "comune", "codice_istat", "sito", "url_eventi", "cms", "stato",
+COLUMNS = ["regione", "provincia", "comune", "codice_istat", "sito", "url_eventi", "cms", "fornitore", "stato",
            "licenza", "robots_ok", "note"]
 PROTECTED = {"manuale", "attivo"}  # righe che gli script automatici non modificano
 

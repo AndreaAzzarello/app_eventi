@@ -22,7 +22,7 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 120  # stima: 30-60 min con ~100 comuni (4 host in parallelo, 1 richiesta/s ciascuno); limite GitHub 6 ore
     defaults:
       run:
         working-directory: tools/importer
@@ -39,12 +39,15 @@ jobs:
 
       - run: python -m pytest -q tests
 
-      # La cache del geocoding sopravvive tra le esecuzioni: meno richieste a Nominatim.
+      # Le cache sopravvivono tra le esecuzioni: meno richieste a Nominatim e ai siti dei Comuni
+      # (le pagine invariate rispondono 304 grazie a ETag/Last-Modified).
       - uses: actions/cache@v4
         with:
-          path: tools/importer/geocache.json
-          key: geocache-${{ github.run_id }}
-          restore-keys: geocache-
+          path: |
+            tools/importer/geocache.json
+            tools/importer/.httpcache
+          key: importer-cache-${{ github.run_id }}
+          restore-keys: importer-cache-
 
       - name: Importer
         env:

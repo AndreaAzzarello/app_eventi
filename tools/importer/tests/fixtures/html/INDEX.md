@@ -29,3 +29,4 @@ Richieste: 69 in totale (60 primo giro + 9 secondo giro), sopra il budget di ~60
 - Polinago [B]: nessun link a evento nella lista
 - Alfonsine [B]: i link sono pagine di categoria (eZ Publish/OpenPA), non eventi; cartella rimossa
 - Campione B: 12 candidati provati (non ~25) per il limite di richieste; fornitori diversi trovati: 3 (ComWeb, WordPress, ASP.NET), WordPress due volte
+| riccione | https://www.comune.riccione.rn.it/it/events | https://www.comune.riccione.rn.it/it/events/il-parco-delle-zucche-la-magia-dell-autunno-a-villa-lodi-fe ; https://www.comune.riccione.rn.it/it/events/mostra-vissi-d-arte-da-un-sogno-una-storia | Municipium (Maggioli); Bootstrap Italia | aggiunta a mano dopo il controllo a campione |

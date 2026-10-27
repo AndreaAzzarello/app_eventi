@@ -284,13 +284,26 @@ Il codice è in `tools/importer/`. Legge gli eventi pubblici dei comuni e li scr
 
 ### Come funziona
 
-1. **Adapter per fonte**: ogni fonte attiva ha un adapter per il suo CMS. Plone (`adapters/plone.py`) legge la API paginata (`++api++/@search`), con una richiesta al secondo. WordPress "Design Comuni Italia" (`adapters/wordpress.py`, CMS `wordpress-dci`) legge `/wp-json/wp/v2/eventi` con una sola richiesta; se l'endpoint manca cerca la route eventi nell'indice `/wp-json/`. Cesena, Ravenna e Serramazzoni non espongono eventi via REST: zero eventi e un avviso.
-2. **Normalizzazione** (`mapping.py`): categoria dalla tipologia o dal titolo, prezzo dal testo, fuso `Europe/Rome`, prossima occorrenza per gli eventi ricorrenti, orario reale dal campo `orari` quando quello inserito è fittizio. Si importano gli eventi in corso o che iniziano entro 60 giorni (`--horizon-days`).
+1. **Adapter per fonte**: ogni fonte attiva ha un adapter per il suo CMS. Plone (`adapters/plone.py`) legge la API paginata (`++api++/@search`), con una richiesta al secondo. WordPress "Design Comuni Italia" (`adapters/wordpress.py`, CMS `wordpress-dci`) legge `/wp-json/wp/v2/eventi` con una sola richiesta; se l'endpoint manca cerca la route eventi nell'indice `/wp-json/`. Cesena, Ravenna e Serramazzoni non espongono eventi via REST: zero eventi e un avviso. Design Comuni Italia senza API (CMS `design_comuni_html`) legge l'HTML: vedi la sezione seguente.
+2. **Normalizzazione** (`mapping.py`): categoria dalla tipologia o dal titolo (parole chiave italiane: kids, food, sport, music, market, culture), prezzo dal testo, fuso `Europe/Rome`, prossima occorrenza per gli eventi ricorrenti, orario reale dal campo `orari` quando quello inserito è fittizio. Si importano gli eventi in corso o che iniziano entro 60 giorni (`--horizon-days`).
 3. **Coordinate**: dal campo geolocalizzato della fonte. Se la fonte è fuori dalla provincia del comune, quelle coordinate vengono scartate. Altrimenti Nominatim sugli indirizzi, con comune e provincia nella query (es. "via X, Modena") e il riquadro della provincia come filtro. Se nessun indirizzo si trova, si usa il centro del comune con `approxLocation=true`: la webapp lo mostra come "Luogo da confermare". Cache in `geocache.json`, anche per i "non trovato".
 4. **Località su ogni evento**: `enrich()` in `geo.py` scrive `geohash` (precisione 10, stesso algoritmo di `geofire-common`), `city`, `citySlug`, `province` e `region`. Il reverse geocoding è cachato a circa 100 metri. Se Nominatim non risponde, vale la località della fonte.
 5. **Id e deduplica**: l'id è l'hash SHA-1 di `sourceUrl` (20 caratteri), quindi lo stesso evento aggiorna lo stesso documento. Due siti che pubblicano lo stesso evento si uniscono con la chiave titolo normalizzato (minuscole, senza accenti né punteggiatura) + giorno + comune.
 6. **Scrittura**: upsert in batch da 400. `createdAt` si conserva. Gli eventi con `source: "manual"` (modificati a mano dall'admin) non vengono mai sovrascritti.
 7. **Scadenza**: gli eventi `scraper` finiti da più di 7 giorni vengono eliminati. Gli eventi manuali restano.
+8. **Eventi spariti dalla fonte**: un evento `scraper` che non compare più nella lista di una fonte letta con successo (e inizia entro l'orizzonte) riceve `missingRuns`. Al 2° import consecutivo senza l'evento riceve `removedAt`: la webapp lo nasconde (`web/src/lib/server/firestore.ts`), non lo cancella. Se la fonte non risponde, il conteggio non cambia.
+
+Le fonti sono scaricate in parallelo (4 worker, `WORKERS` in `run.py`); geocoding e scrittura restano in sequenza.
+
+### Adapter HTML `design_comuni_html`
+
+Per i siti Design Comuni Italia senza API degli eventi (`adapters/design_comuni_html.py`). Analisi e fixture: `reports/design_comuni_analisi.md`, `tests/fixtures/html/`.
+
+- **Lista**: `url_eventi` del registro, poi `/vivere-il-comune/eventi/`, `/novita/eventi/`, `/eventi/`, `/evento/`; paginazione `rel=next` (al massimo 5 pagine). Le liste caricate via AJAX ("Carica altri risultati") non si seguono: la sitemap dichiarata in `robots.txt` integra la lista quando mancano eventi.
+- **Dettaglio**, in ordine di priorità: JSON-LD `schema.org/Event`, microdata, link "Aggiungi al calendario" (Google Calendar), `.point-list` e Dal/Al, testo libero.
+- **Limite**: al massimo 40 dettagli per comune a ogni import (`MAX_DETAILS`).
+- **Cortesia**: `robots.txt` prima di ogni richiesta, 1 richiesta al secondo per host, retry con backoff, cache ETag/Last-Modified in `tools/importer/.httpcache` (risposta 304 senza riscaricare).
+- **Limiti**: i feed `.ics` non sono letti. Drupal, Joomla, Halley e Maggioli non sono nei campioni analizzati.
 
 ### Comandi
 
@@ -306,6 +319,8 @@ python run.py --dry-run --source modena # una sola fonte (nome = slug del comune
 python run.py                           # scrive su Firestore
 python run.py --horizon-days 30         # orizzonte diverso (default 60)
 python geocode.py --clean               # ripulisce geocache.json, senza chiamare Nominatim
+python copertura.py                     # reports/copertura_er.md: stima su campione (1 pagina, sitemap, max 10 dettagli per comune), senza geocoding e senza scrivere
+python copertura.py --no-estimate       # solo i conteggi del registro
 ```
 
 Le credenziali per la scrittura arrivano solo da variabili d'ambiente (vedi sezione 5). Con `GOOGLE_APPLICATION_CREDENTIALS` il file sta fuori dal repository. `.gitignore` esclude i file `*serviceAccount*.json` e `*-firebase-adminsdk-*.json`.
@@ -332,7 +347,9 @@ python seed_demo.py
 
 - Esecuzione ogni giorno alle **06:17 ora italiana** (`cron` con `timezone: Europe/Rome`).
 - Avvio manuale: **Actions → Import eventi → Run workflow**, con l'opzione `dry_run`.
-- Prima dell'import gira `pytest`. La cache di `geocache.json` è salvata con `actions/cache`.
+- Prima dell'import gira `pytest`. `geocache.json` e `tools/importer/.httpcache` sono salvati con `actions/cache` (chiave per run, ripristino dall'ultima cache con `restore-keys`).
+- Durata: stima 30-60 minuti con circa 100 comuni; il timeout del job è 120 minuti (limite GitHub 6 ore).
+- Riepilogo per comune (eventi, senza coordinate, errore, comuni a zero) nel log e in `GITHUB_STEP_SUMMARY`.
 - Concorrenza: gruppo `import-events`, senza annullare l'esecuzione in corso.
 - Secret richiesto: **`FIREBASE_SERVICE_ACCOUNT`** (Settings → Secrets and variables → Actions). Il valore è l'intero JSON della chiave del service account.
 
@@ -342,7 +359,9 @@ Per generare la chiave: Console Firebase → Impostazioni progetto → Account d
 
 Il file è in UTF-8 con BOM, separatore `;`, si apre in Excel. Colonne:
 
-`regione;provincia;comune;codice_istat;sito;url_eventi;cms;stato;licenza;robots_ok;note`
+`regione;provincia;comune;codice_istat;sito;url_eventi;cms;fornitore;stato;licenza;robots_ok;note`
+
+`fornitore` è la piattaforma riconosciuta da `detect_cms.py` (WordPress, Drupal, ComWeb, ASP.NET, ecc.), vuota se non si capisce. Compare nel riepilogo `--report` e in `copertura.py`.
 
 Stati (colonna `stato`):
 
@@ -367,7 +386,7 @@ Di default prende l'Emilia-Romagna (`--regione` è ripetibile per altre regioni)
 
 - Rispetta `robots.txt` prima di ogni richiesta. Se il robots.txt non è raggiungibile (errore 5xx o rete), non visita nulla.
 - Al massimo 1 richiesta al secondo per sito. User-Agent identificativo (`EventiVicini-importer/1.0`).
-- Riconosce il CMS: `plone` (design-comuni-plone), `wordpress-dci` (design-comuni-italia o design-comuni-wordpress) oppure `altro`.
+- Riconosce il CMS: `plone` (design-comuni-plone), `wordpress-dci` (design-comuni-italia o design-comuni-wordpress), `design_comuni_html` (modello Design Comuni dai marcatori dell'HTML, senza API) oppure `altro`.
 - Cerca la pagina eventi e la pagina delle note legali, e ricava la licenza dal loro testo (o dal piè di pagina, come ripiego).
 - Non tocca mai le righe `attivo` o `manuale`. Non attiva nessuna fonte: al massimo propone `candidato`.
 
@@ -383,12 +402,12 @@ Solo fonti con licenza che consente il riuso (CC0, CC-BY, CC-BY-SA, IODL). Mai t
 
 ### Licenze: `licenses.py`
 
-`python licenses.py` verifica la licenza dei contenuti dei siti candidati (più Modena, Formigine, Sassuolo e Mirandola). Cerca le pagine di note legali e privacy, estrae la frase sulla licenza e scrive `reports/licenze_er.md`. Legge il `robots.txt` con `protego`, con 1 richiesta al secondo per sito. Aggiorna le colonne `licenza` e `note` di `comuni.csv`, mai `stato`; `--no-csv` non tocca il CSV. Le licenze "non chiara" o "non trovata" vanno lette a mano.
+`python licenses.py` verifica la licenza dei contenuti dei siti candidati (più Modena, Formigine, Sassuolo e Mirandola). Cerca le pagine di note legali e privacy, estrae la frase sulla licenza e scrive `reports/licenze_er.md`. Legge il `robots.txt` con `protego`, con 1 richiesta al secondo per sito. Aggiorna le colonne `licenza` e `note` di `comuni.csv`, mai `stato`; `--no-csv` non tocca il CSV. Le licenze "non chiara" o "non trovata" vanno lette a mano. Per tutti i comuni con un CMS: `python licenses.py --cms design_comuni_html --out reports/licenze_design_comuni.md` (non solo i candidati).
 
 ### Attivare una fonte
 
 1. Verifica a mano la pagina eventi, le note legali (licenza, obbligo di citare la fonte, uso non commerciale se previsto) e il `robots.txt`.
-2. Controlla che il CMS sia `plone` o `wordpress-dci`. L'importer legge solo i CMS con un adapter: una riga con un altro CMS viene saltata con un avviso.
+2. Controlla che il CMS sia `plone`, `wordpress-dci` o `design_comuni_html`. L'importer legge solo i CMS con un adapter: una riga con un altro CMS viene saltata con un avviso.
 3. Nel CSV imposta `stato` a `attivo` e compila le note con la verifica fatta.
 4. Prova con `python run.py --dry-run --source <slug>`. Lo slug è il nome del comune in minuscolo con trattini (es. `modena`).
 
@@ -404,7 +423,7 @@ Passi:
 
 `mapping.to_event()` è specifico per il formato Plone. Un nuovo adapter non lo riusa: produce il suo dict. Geocoding, località, geohash, deduplica e scrittura restano in `run.py`.
 
-**Stato attuale:** adapter per Plone (`plone`) e per WordPress Design Comuni Italia (`wordpress-dci`). Gli altri CMS non sono importabili.
+**Stato attuale:** adapter per Plone (`plone`), WordPress Design Comuni Italia (`wordpress-dci`) e Design Comuni HTML senza API (`design_comuni_html`). Gli altri CMS non sono importabili.
 
 ---
 
