@@ -20,9 +20,9 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
-from urllib.robotparser import RobotFileParser
 
 import httpx
+from protego import Protego
 
 from registry import PROTECTED, USER_AGENT, base_url, read_rows, write_rows
 
@@ -41,7 +41,7 @@ class RobotsUnknown(Exception):
 class Fetcher:
     def __init__(self, client: httpx.Client, min_interval: float = 1.0):
         self.client, self.min_interval = client, min_interval
-        self._robots: dict[str, RobotFileParser | None] = {}
+        self._robots: dict[str, Protego | None] = {}
         self._next: dict[str, float] = {}
         self._lock = threading.Lock()
 
@@ -53,18 +53,18 @@ class Fetcher:
         if at > now:
             time.sleep(at - now)
 
-    def _robots_for(self, origin: str) -> RobotFileParser | None:
+    def _robots_for(self, origin: str) -> Protego | None:
         with self._lock:
             if origin in self._robots:
                 return self._robots[origin]
-        rp: RobotFileParser | None = RobotFileParser()
+        rp: Protego | None
         try:
             self._wait(urlsplit(origin).netloc)
             res = self.client.get(origin + "/robots.txt")
             if res.status_code < 400:
-                rp.parse(res.text.splitlines())
+                rp = Protego.parse(res.text)
             elif res.status_code < 500:
-                rp.parse([])  # nessun robots.txt: tutto permesso (RFC 9309)
+                rp = Protego.parse("")  # nessun robots.txt: tutto permesso (RFC 9309)
             else:
                 rp = None
         except httpx.HTTPError:
@@ -78,7 +78,7 @@ class Fetcher:
         rp = self._robots_for(f"{p.scheme}://{p.netloc}")
         if rp is None:
             raise RobotsUnknown(url)
-        if not rp.can_fetch(USER_AGENT, url):
+        if not rp.can_fetch(url, USER_AGENT):
             raise Blocked(url)
         self._wait(p.netloc)
         return self.client.get(url)

@@ -2,4 +2,5 @@ httpx==0.28.1
 firebase-admin==6.9.0
 python-dateutil==2.9.0.post0
 tzdata==2025.2
+protego==0.7.0
 pytest==8.4.2

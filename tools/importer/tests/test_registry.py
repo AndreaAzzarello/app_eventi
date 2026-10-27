@@ -7,7 +7,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from adapters import load_sources  # noqa: E402
 from build_registry import merge, parse_ipa, parse_istat  # noqa: E402
-from detect_cms import Fetcher, apply, cms_of, detect, find_link, is_open, license_of  # noqa: E402
+from detect_cms import Blocked, Fetcher, apply, cms_of, detect, find_link, is_open, license_of  # noqa: E402
 from registry import COLUMNS, base_url, read_rows, write_rows  # noqa: E402
 
 
@@ -219,6 +219,14 @@ def test_detect_robots_vieta_solo_api_non_la_chiama():
     assert out["robots_ok"] == "no" and out["stato"] == "escluso"
 
 
+def test_robots_wildcard_protego():
+    f = make_fetcher({"/robots.txt": "User-agent: *\nDisallow: /*/eventi/*\nDisallow: /*.pdf$\n", "/it/info": "ok"})
+    assert f.get("https://www.c.it/it/info").status_code == 200
+    for bad in ("https://www.c.it/it/eventi/x", "https://www.c.it/a/b.pdf"):
+        with pytest.raises(Blocked):
+            f.get(bad)
+
+
 def test_detect_robots_500_irraggiungibile():
     calls = []
     out = detect(make_fetcher(plone_routes(robots=httpx.Response(500)), calls), "www.c.it")
@@ -263,7 +271,7 @@ def test_load_sources():
     rows = [
         row(comune="Modena", provincia="MO", regione="Emilia-Romagna", sito="www.comune.modena.it",
             cms="plone", stato="attivo"),
-        row(comune="Bologna", sito="bo.it", cms="wordpress-dci", stato="attivo"),  # niente adapter
+        row(comune="Bologna", sito="bo.it", cms="drupal", stato="attivo"),  # niente adapter
         row(comune="Parma", sito="pr.it", cms="plone", stato="candidato"),  # non attivo
         row(comune="Reggio nell'Emilia", sito="re.it", cms="plone", stato="manuale"),
     ]
