@@ -1,4 +1,4 @@
-"""Fonti attive, lette da sources/comuni.csv (righe con stato "attivo"). Vedi README, sezione Importer.
+"""Fonti attive, lette da sources/<regione>.csv (righe con stato "attivo"). Vedi README, sezione Importer.
 
 Aggiungere un CMS: una classe con l'interfaccia di adapters/base.py e un ramo in load_sources().
 """

@@ -1,8 +1,8 @@
 """Verifica la licenza dei CONTENUTI dei siti candidati (+ Modena, Formigine, Sassuolo, Mirandola).
 
-Uso:  python licenses.py                    # tutti i 27, scrive reports/licenze_er.md e aggiorna comuni.csv
+Uso:  python licenses.py                    # tutti i 27, scrive reports/licenze_er.md e aggiorna sources/*.csv
       python licenses.py --comune Imola     # solo alcuni (ripetibile; il report e il CSV coprono solo quelli)
-      python licenses.py --no-csv           # non tocca comuni.csv
+      python licenses.py --no-csv           # non tocca i CSV
 Per ogni sito cerca nella home (anche nel piè di pagina) e nei percorsi tipici le pagine "Note legali",
 "Termini d'uso", "Licenza", "Privacy", ne estrae la frase testuale sulla licenza e dice se riguarda i
 contenuti o solo il tema/software. Rispetta robots.txt (protego), 1 richiesta/s per host, UA del registro.
@@ -188,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--comune", action="append", help="solo questo comune (ripetibile)")
     p.add_argument("--cms", help="tutti i comuni con questo CMS (es. design_comuni_html), non solo i candidati")
     p.add_argument("--out", type=Path, default=REPORT, help="file del report")
-    p.add_argument("--no-csv", action="store_true", help="non aggiornare comuni.csv")
+    p.add_argument("--no-csv", action="store_true", help="non aggiornare i CSV")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
 

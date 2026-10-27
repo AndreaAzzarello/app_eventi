@@ -30,6 +30,24 @@ def test_round_trip_bom_e_separatore(tmp_path):
     assert back[1]["note"] == "a;b è"
 
 
+def test_un_file_per_regione(tmp_path):
+    rows = [row(regione="Emilia-Romagna", provincia="MO", comune="Modena"),
+            row(regione="Friuli-Venezia Giulia", provincia="TS", comune="Trieste"),
+            row(regione="Emilia-Romagna", provincia="BO", comune="Bologna")]
+    write_rows(rows, tmp_path)
+    assert sorted(f.name for f in tmp_path.iterdir()) == ["emilia-romagna.csv", "friuli-venezia-giulia.csv"]
+    assert [r["comune"] for r in read_rows(tmp_path / "emilia-romagna.csv")] == ["Bologna", "Modena"]
+    assert {r["comune"] for r in read_rows(tmp_path)} == {"Modena", "Bologna", "Trieste"}
+
+
+def test_registro_reale_un_file_per_regione():
+    from registry import SOURCES_DIR
+
+    assert not (SOURCES_DIR / "comuni.csv").exists()
+    for f in SOURCES_DIR.glob("*.csv"):
+        assert {slug for slug in (__import__("geo").slugify(r["regione"]) for r in read_rows(f))} == {f.stem}
+
+
 def test_read_rows_file_assente(tmp_path):
     assert read_rows(tmp_path / "no.csv") == []
 
@@ -60,6 +78,10 @@ def test_parse_istat_filtra_regione():
         {"regione": "Emilia-Romagna", "provincia": "MO", "comune": "Modena", "codice_istat": "036023"},
         {"regione": "Emilia-Romagna", "provincia": "BO", "comune": "Bologna", "codice_istat": "037006"},
     ]
+
+
+def test_parse_istat_tutte_le_regioni():
+    assert len(parse_istat(ISTAT, None)) == 3
 
 
 def test_parse_istat_intestazioni_spostate():

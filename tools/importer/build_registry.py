@@ -1,7 +1,7 @@
-"""Genera/aggiorna sources/comuni.csv dagli open data ISTAT (comuni) e IndicePA (siti istituzionali).
+"""Genera/aggiorna sources/<regione>.csv dagli open data ISTAT (comuni) e IndicePA (siti istituzionali).
 
-Uso:  python build_registry.py                        # Emilia-Romagna
-      python build_registry.py --regione Lombardia    # ripetibile
+Uso:  python build_registry.py --regione Lombardia    # ripetibile
+      python build_registry.py --tutte                # tutte le regioni italiane
 Le righe già nel CSV con stato attivo/manuale non vengono toccate; le altre aggiornano solo
 regione, provincia, comune e sito. I comuni nuovi entrano come da_verificare.
 Dati: ISTAT "Elenco dei comuni italiani" (CC-BY 3.0 IT) · IndicePA "Amministrazioni" (CC-BY 4.0).
@@ -26,17 +26,17 @@ IPA_URL = ("https://indicepa.gov.it/ipa-dati/dataset/502ff370-1b2c-4310-94c7-f39
 COMUNI_TYPE = "Comuni e loro Consorzi e Associazioni"
 
 
-def parse_istat(text: str, regions: set[str]) -> list[dict]:
+def parse_istat(text: str, regions: set[str] | None) -> list[dict]:
     """Colonne cercate per intestazione (l'ISTAT le sposta di anno in anno)."""
     rows = list(csv.reader(io.StringIO(text), delimiter=";"))
     head = [re.sub(r"\s+", " ", h).strip().lower() for h in rows[0]]
     col = lambda start: next(i for i, h in enumerate(head) if h.startswith(start))  # noqa: E731
     i_cod, i_name = col("codice comune formato alfanumerico"), col("denominazione in italiano")
     i_reg, i_sig = col("denominazione regione"), col("sigla automobilistica")
-    want = {r.lower() for r in regions}
+    want = {r.lower() for r in regions} if regions is not None else None  # None = tutte
     return [
         {"regione": r[i_reg], "provincia": r[i_sig], "comune": r[i_name], "codice_istat": r[i_cod]}
-        for r in rows[1:] if len(r) > i_sig and r[i_reg].lower() in want
+        for r in rows[1:] if len(r) > i_sig and (want is None or r[i_reg].lower() in want)
     ]
 
 
@@ -78,13 +78,16 @@ def merge(existing: list[dict], comuni: list[dict], sites: dict[tuple[str, str],
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--regione", action="append", help="regione (ripetibile); default Emilia-Romagna")
+    p.add_argument("--regione", action="append", help="regione (ripetibile)")
+    p.add_argument("--tutte", action="store_true", help="tutte le regioni")
     args = p.parse_args(argv)
+    if not args.regione and not args.tutte:
+        p.error("indica --regione <nome> (ripetibile) oppure --tutte")
     sys.stdout.reconfigure(encoding="utf-8")
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=120, follow_redirects=True) as client:
         istat = client.get(ISTAT_URL).raise_for_status().content.decode("cp1252")
         ipa = client.get(IPA_URL).raise_for_status().content.decode("utf-8-sig")
-    comuni = parse_istat(istat, set(args.regione or ["Emilia-Romagna"]))
+    comuni = parse_istat(istat, None if args.tutte else set(args.regione))
     sites = parse_ipa(ipa)
     rows = merge(read_rows(), comuni, sites)
     write_rows(rows)
