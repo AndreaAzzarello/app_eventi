@@ -103,15 +103,18 @@ def plaintext(blocks_field) -> str:
     return " ".join(p.strip() for p in parts if p and p.strip())
 
 
+def category_from_title(title: str) -> str | None:
+    return next((cat for cat, rx in KEYWORDS if re.search(rx, title, re.I)), None)
+
+
 def map_category(item: dict) -> str:
     t = item.get("tipologia_evento")
     token = t.get("token") if isinstance(t, dict) else None
     if token in CATEGORY_BY_TYPE and CATEGORY_BY_TYPE[token] != "other":
         return CATEGORY_BY_TYPE[token]
-    title = item.get("title", "")
-    for cat, rx in KEYWORDS:
-        if re.search(rx, title, re.I):
-            return cat
+    cat = category_from_title(item.get("title", ""))
+    if cat:
+        return cat
     if token in CULTURE_TYPES:
         return "culture"
     return CATEGORY_BY_TYPE.get(token, "other")

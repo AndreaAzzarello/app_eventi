@@ -12,8 +12,12 @@ from registry import base_url, read_rows
 
 from .base import Adapter, fallback_place
 from .plone import PloneAdapter
+from .wordpress import WordpressAdapter
 
 log = logging.getLogger("importer")
+
+
+CMS_ADAPTERS = {"plone": PloneAdapter, "wordpress-dci": WordpressAdapter}
 
 
 def load_sources(rows: list[dict] | None = None) -> dict[str, Adapter]:
@@ -21,11 +25,13 @@ def load_sources(rows: list[dict] | None = None) -> dict[str, Adapter]:
     for r in read_rows() if rows is None else rows:
         if r["stato"] != "attivo":
             continue
-        if r["cms"] != "plone":
-            log.warning("%s: nessun adapter per il CMS %r, saltato", r["comune"], r["cms"])
+        cls = CMS_ADAPTERS.get(r["cms"])
+        if cls is None:
+            log.warning("%s: nessun adapter per il CMS %r (supportati: %s), saltato",
+                        r["comune"], r["cms"], ", ".join(CMS_ADAPTERS))
             continue
         name = slugify(r["comune"])
-        out[name] = PloneAdapter(name, base_url(r["sito"]), r["comune"], r["provincia"], r["regione"],
+        out[name] = cls(name, base_url(r["sito"]), r["comune"], r["provincia"], r["regione"],
                                  PROVINCES.get(r["provincia"], ("", None))[1])
     return out
 
