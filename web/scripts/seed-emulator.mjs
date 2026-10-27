@@ -53,8 +53,9 @@ const events = [
 		title: 'Jazz in Piazza Grande',
 		shortDescription: 'Quartetto dal vivo sotto la Ghirlandina. Porta una sedia pieghevole!',
 		category: 'music',
-		startTime: at(0, 21),
-		endTime: at(0, 23),
+		// sempre in corso o di stasera: i test non dipendono dall'ora in cui girano
+		startTime: Math.min(at(0, 21), now - H),
+		endTime: Math.max(at(0, 23), now + 2 * H),
 		venueName: 'Piazza Grande',
 		address: 'Piazza Grande, 41121 Modena',
 		ticketUrl: 'https://example.org/biglietti',

@@ -88,11 +88,16 @@ firebase/
   .firebaserc          progetto di default: appeventi-1e860
 
 tools/importer/
-  run.py               importer: raccolta, geocoding, deduplica, scrittura
+  run.py               importer: raccolta, geocoding, deduplica, scrittura dei soli cambiamenti
+  cleanup.py           pulizia giornaliera del database (eventi e proposte scaduti)
+  activate.py          attivazione automatica delle fonti (regola approvata)
+  ci_report.py         matrice per regione e riepilogo unico del workflow
   migrate.py           migrazione una tantum degli eventi esistenti
   adapters/            fonti: base.py (interfaccia), plone.py, wordpress.py, __init__.py (registro)
-  sources/comuni.csv   registro delle fonti (comuni, CMS, licenza, stato)
+  sources/<regione>.csv   registro delle fonti, un file per regione (comuni, CMS, licenza, stato)
+  provinces.json       riquadri delle province (generato da build_provinces.py)
   build_registry.py    genera il registro da ISTAT e IndicePA
+  build_provinces.py   genera provinces.json da ISTAT e OpenStreetMap
   detect_cms.py        riconosce CMS, pagina eventi e licenza dei comuni
   geo.py, geocode.py, licenses.py, mapping.py, registry.py, db.py
   seed_demo.py         10 eventi demo (solo emulatore Firestore: vedi sezione 9)
@@ -289,8 +294,8 @@ Il codice è in `tools/importer/`. Legge gli eventi pubblici dei comuni e li scr
 3. **Coordinate**: dal campo geolocalizzato della fonte. Se la fonte è fuori dalla provincia del comune, quelle coordinate vengono scartate. Altrimenti Nominatim sugli indirizzi, con comune e provincia nella query (es. "via X, Modena") e il riquadro della provincia come filtro. Se nessun indirizzo si trova, si usa il centro del comune con `approxLocation=true`: la webapp lo mostra come "Luogo da confermare". Cache in `geocache.json`, anche per i "non trovato".
 4. **Località su ogni evento**: `enrich()` in `geo.py` scrive `geohash` (precisione 10, stesso algoritmo di `geofire-common`), `city`, `citySlug`, `province` e `region`. Il reverse geocoding è cachato a circa 100 metri. Se Nominatim non risponde, vale la località della fonte.
 5. **Id e deduplica**: l'id è l'hash SHA-1 di `sourceUrl` (20 caratteri), quindi lo stesso evento aggiorna lo stesso documento. Due siti che pubblicano lo stesso evento si uniscono con la chiave titolo normalizzato (minuscole, senza accenti né punteggiatura) + giorno + comune.
-6. **Scrittura**: upsert in batch da 400. `createdAt` si conserva. Gli eventi con `source: "manual"` (modificati a mano dall'admin) non vengono mai sovrascritti.
-7. **Scadenza**: gli eventi `scraper` finiti da più di 7 giorni vengono eliminati. Gli eventi manuali restano.
+6. **Scrittura dei soli cambiamenti**: ogni evento ha `contentHash` (sha256 dei campi normalizzati, senza `updatedAt` e campi di servizio) e `importRegion` (regione del registro). All'inizio dell'import una sola query di proiezione (`select`) legge id, `contentHash`, `removedAt`, `missingRuns` e pochi altri campi degli eventi `scraper` delle regioni in elaborazione. Si scrivono, in batch da 400, solo i documenti nuovi o con hash diverso (e quelli da ripristinare dopo un `removedAt`). `createdAt` si conserva. Gli eventi con `source: "manual"` (modificati a mano dall'admin) non vengono mai sovrascritti. A fine import il log riporta letture, scritti, invariati, nascosti. **Se le scritture stimate superano `--max-writes` (15.000) o le letture `--max-reads` (40.000) l'import si ferma prima di scrivere** (codice di uscita 2).
+7. **Scadenza e pulizia**: vedi "Pulizia automatica" qui sotto.
 8. **Eventi spariti dalla fonte**: un evento `scraper` che non compare più nella lista di una fonte letta con successo (e inizia entro l'orizzonte) riceve `missingRuns`. Al 2° import consecutivo senza l'evento riceve `removedAt`: la webapp lo nasconde (`web/src/lib/server/firestore.ts`), non lo cancella. Se la fonte non risponde, il conteggio non cambia.
 
 Le fonti sono scaricate in parallelo (4 worker, `WORKERS` in `run.py`); geocoding e scrittura restano in sequenza.
@@ -316,8 +321,13 @@ python -m pytest -q tests
 
 python run.py --dry-run                 # stampa, non scrive, non servono credenziali
 python run.py --dry-run --source modena # una sola fonte (nome = slug del comune)
-python run.py                           # scrive su Firestore
+python run.py --dry-run --regione lombardia --dump lombardia.json   # una regione, eventi in un file JSON
+python run.py --regione veneto          # scrive su Firestore solo gli eventi cambiati di una regione
+python run.py --stats-out stats.json    # statistiche dell'import (letture, scritture, invariati)
+python run.py --max-geocode 1500        # richieste nuove a Nominatim per giro (default 3000)
 python run.py --horizon-days 30         # orizzonte diverso (default 60)
+python cleanup.py --dry-run             # conta cosa verrebbe eliminato
+python cleanup.py                       # elimina eventi e proposte scaduti (al massimo 15.000 al giorno)
 python geocode.py --clean               # ripulisce geocache.json, senza chiamare Nominatim
 python copertura.py                     # reports/copertura_er.md: stima su campione (1 pagina, sitemap, max 10 dettagli per comune), senza geocoding e senza scrivere
 python copertura.py --no-estimate       # solo i conteggi del registro
@@ -346,18 +356,34 @@ python seed_demo.py
 `.github/workflows/import-events.yml`:
 
 - Esecuzione ogni giorno alle **06:17 ora italiana** (`cron` con `timezone: Europe/Rome`).
-- Avvio manuale: **Actions → Import eventi → Run workflow**, con l'opzione `dry_run`.
-- Prima dell'import gira `pytest`. `geocache.json` e `tools/importer/.httpcache` sono salvati con `actions/cache` (chiave per run, ripristino dall'ultima cache con `restore-keys`).
-- Durata: stima 30-60 minuti con circa 100 comuni; il timeout del job è 120 minuti (limite GitHub 6 ore).
-- Riepilogo per comune (eventi, senza coordinate, errore, comuni a zero) nel log e in `GITHUB_STEP_SUMMARY`.
+- Avvio manuale: **Actions → Import eventi → Run workflow**, con le opzioni `dry_run` e `regione` (slug, per esempio `lombardia`).
+- Job `plan`: gira `pytest` e `ci_report.py matrix`, che elenca le regioni con almeno una fonte attiva e divide le soglie di quota tra i job.
+- Job `import`: **una matrice per regione**, 2 in parallelo (`max-parallel: 2`), timeout 240 minuti. Ogni job ha `NOMINATIM_INTERVAL=2`, cioè 0,5 richieste al secondo: due job insieme restano a 1 richiesta al secondo in tutto, come chiede la policy di Nominatim. `geocache.json` e `.httpcache` sono salvati con `actions/cache` **per regione** (chiave `importer-<regione>-<run>`).
+- Job `cleanup`: gira dopo gli import, anche se una regione è fallita, ed esegue `cleanup.py`.
+- Un solo riepilogo in `GITHUB_STEP_SUMMARY` (job `cleanup`): eventi per regione, letture, scritture, invariati, richieste di geocoding, e le quote Spark usate.
+- Durata: i repository pubblici hanno minuti gratuiti sui runner standard; il limite di GitHub per job è 6 ore. Il tempo dominante sono le richieste ai siti dei comuni (1 al secondo per host) e il geocoding (vedi sezione 10).
 - Concorrenza: gruppo `import-events`, senza annullare l'esecuzione in corso.
 - Secret richiesto: **`FIREBASE_SERVICE_ACCOUNT`** (Settings → Secrets and variables → Actions). Il valore è l'intero JSON della chiave del service account.
 
 Per generare la chiave: Console Firebase → Impostazioni progetto → Account di servizio → Firebase Admin SDK → Genera nuova chiave privata. Il file va spostato fuori dal repository. Per revocarla: Google Cloud Console → IAM → Account di servizio → scheda Chiavi → elimina la chiave, poi aggiorna il secret.
 
-### Registro delle fonti: `sources/comuni.csv`
+### Pulizia automatica
 
-Il file è in UTF-8 con BOM, separatore `;`, si apre in Excel. Colonne:
+`cleanup.py` gira ogni giorno dopo l'import. Le query usano solo indici a campo singolo, con proiezione dei campi.
+
+| cosa | quando si elimina |
+|---|---|
+| eventi `scraper` | finiti da più di 7 giorni |
+| eventi con `removedAt` | da più di 30 giorni |
+| eventi `manual` e `user` | finiti da più di 30 giorni |
+| proposte rifiutate | `reviewedAt` da più di 90 giorni |
+| proposte approvate | `reviewedAt` da più di 30 giorni |
+
+Le cancellazioni sono a lotti da 400 e non superano `--max-deletes` (15.000 al giorno, la quota Spark è 20.000): il resto passa al giorno dopo. Le proposte `pending` non si toccano mai.
+
+### Registro delle fonti: `sources/<regione>.csv`
+
+Un file per regione (`emilia-romagna.csv`, `lombardia.csv`, …). `registry.read_rows()` li legge tutti; `write_rows()` li riscrive divisi per regione. Il file è in UTF-8 con BOM, separatore `;`, si apre in Excel. Colonne:
 
 `regione;provincia;comune;codice_istat;sito;url_eventi;cms;fornitore;stato;licenza;robots_ok;note`
 
@@ -370,7 +396,7 @@ Stati (colonna `stato`):
 | `da_verificare` | riga nuova o dubbia. Gli script la analizzano, ma non è attiva. |
 | `candidato` | CMS supportato, robots.txt consente l'accesso e la licenza è aperta. Serve la tua conferma. |
 | `escluso` | robots.txt vieta l'accesso, oppure la licenza è restrittiva (NC/ND, riservata). |
-| `attivo` | l'importer legge questa fonte. Lo imposti tu a mano. |
+| `attivo` | l'importer legge questa fonte. Lo imposta `activate.py` con la regola automatica (vedi sotto) o tu a mano. |
 | `manuale` | gestita a mano. Gli script automatici non la toccano mai. |
 
 Stato al momento della stesura (da `comuni.csv`, 330 comuni): 4 `attivo` (Formigine, Mirandola, Modena, Sassuolo, tutti Plone), 23 `candidato`, 274 `da_verificare`, 29 `escluso`. Per CMS: 52 `plone`, 21 `wordpress-dci`, 237 `altro`, 20 `irraggiungibile`.
@@ -380,7 +406,7 @@ Stato al momento della stesura (da `comuni.csv`, 330 comuni): 4 `attivo` (Formig
 - comuni da ISTAT, "Elenco dei comuni italiani" (CC-BY 3.0 IT);
 - siti istituzionali da IndicePA, "Amministrazioni" (CC-BY 4.0).
 
-Di default prende l'Emilia-Romagna (`--regione` è ripetibile per altre regioni). Le righe `attivo` e `manuale` non vengono toccate. Le altre aggiornano regione, provincia, comune e sito. I comuni nuovi entrano come `da_verificare`. Se il sito cambia, il rilevamento precedente viene azzerato.
+Si indica `--regione <nome>` (ripetibile) oppure `--tutte`; senza argomenti dà errore. Le righe `attivo` e `manuale` non vengono toccate. Le altre aggiornano regione, provincia, comune e sito. I comuni nuovi entrano come `da_verificare`. Se il sito cambia, il rilevamento precedente viene azzerato.
 
 **`detect_cms.py`** visita i siti del registro:
 
@@ -396,15 +422,37 @@ python detect_cms.py                  # righe non ancora analizzate
 python detect_cms.py --comune Modena  # una riga (ripetibile)
 python detect_cms.py --force          # rianalizza anche le righe già fatte
 python detect_cms.py --report         # solo il riepilogo, senza visitare nulla
+python detect_cms.py --regione lombardia --regione veneto   # solo queste regioni
 ```
+
+Usa la cache HTTP (`.httpcache`, risposte 304) e, a fine giro, riprova una volta i siti `irraggiungibili`.
 
 Solo fonti con licenza che consente il riuso (CC0, CC-BY, CC-BY-SA, IODL). Mai testate giornalistiche o siti commerciali.
 
 ### Licenze: `licenses.py`
 
-`python licenses.py` verifica la licenza dei contenuti dei siti candidati (più Modena, Formigine, Sassuolo e Mirandola). Cerca le pagine di note legali e privacy, estrae la frase sulla licenza e scrive `reports/licenze_er.md`. Legge il `robots.txt` con `protego`, con 1 richiesta al secondo per sito. Aggiorna le colonne `licenza` e `note` di `comuni.csv`, mai `stato`; `--no-csv` non tocca il CSV. Le licenze "non chiara" o "non trovata" vanno lette a mano. Per tutti i comuni con un CMS: `python licenses.py --cms design_comuni_html --out reports/licenze_design_comuni.md` (non solo i candidati).
+`python licenses.py` verifica la licenza dei contenuti dei siti candidati (più Modena, Formigine, Sassuolo e Mirandola). Cerca le pagine di note legali e privacy, estrae la frase sulla licenza e scrive `reports/licenze_er.md`. Legge il `robots.txt` con `protego`, con 1 richiesta al secondo per sito. Aggiorna le colonne `licenza` e `note` dei CSV, mai `stato`; `--no-csv` non tocca i CSV. `--regione` limita a una regione. La nota comincia con `licenza[attivare|da|escludere]` (la raccomandazione) e, se il sito contiene "esclusiva proprietà" o "tutti i diritti riservati", con `conflitto`: `activate.py` legge questi marcatori. Le etichette `CC-BY-NC` e `CC-BY-ND` sono distinte. Le licenze "non chiara" o "non trovata" vanno lette a mano. Per tutti i comuni con un CMS: `python licenses.py --cms design_comuni_html --out reports/licenze_design_comuni.md` (non solo i candidati).
 
-### Attivare una fonte
+### Attivazione automatica: `activate.py`
+
+Regola approvata, applicata a tutte le righe `da_verificare` e `candidato` (mai a `manuale`, `escluso` e `attivo`). Una riga diventa `attivo` **solo se**:
+
+- a) esiste un adapter per il suo CMS (`plone`, `wordpress-dci`, `design_comuni_html`);
+- b) `licenses.py` ha trovato la licenza dei **contenuti** (formula AGID sulle note legali): CC0 o CC-BY, senza NC, ND, SA, "esclusiva proprietà" o "tutti i diritti riservati";
+- c) il `robots.txt` permette i percorsi usati (colonna `robots_ok` e controllo di `licenses.py`);
+- d) il dry-run del comune produce almeno 1 evento futuro valido: titolo, date e coordinate dentro la provincia (se la fonte non dà le coordinate vale il centro del comune, una richiesta a Nominatim per comune).
+
+Le altre restano `da_verificare` con il motivo all'inizio della colonna `note` (`attivazione: …`). Ordine dei comandi per una regione nuova:
+
+```powershell
+python build_registry.py --regione Lombardia
+python detect_cms.py --regione lombardia
+python licenses.py --regione lombardia --out reports/licenze_lombardia.md
+python activate.py --regione lombardia --dry-run   # tabella senza scrivere
+python activate.py --regione lombardia
+```
+
+### Attivare una fonte a mano
 
 1. Verifica a mano la pagina eventi, le note legali (licenza, obbligo di citare la fonte, uso non commerciale se previsto) e il `robots.txt`.
 2. Controlla che il CMS sia `plone`, `wordpress-dci` o `design_comuni_html`. L'importer legge solo i CMS con un adapter: una riga con un altro CMS viene saltata con un avviso.
@@ -418,7 +466,7 @@ L'interfaccia è in `adapters/base.py`, un `Protocol` con gli attributi `name`, 
 Passi:
 
 1. Crea `adapters/<cms>.py` con una classe che implementa l'interfaccia. Imposta `id` (ad esempio `mapping.event_id(sourceUrl)`): `run.py` lo richiede. La docstring di `base.py` dice "senza id", ma `write()` usa `ev["id"]`.
-2. In `adapters/__init__.py`, in `load_sources()`, aggiungi un ramo per il valore `cms` del CSV, oltre a quello di `plone`.
+2. In `adapters/__init__.py`, in `load_sources()`, aggiungi un ramo per il valore `cms` del CSV, oltre a quello di `plone`, e il nome in `CMS_ADAPTERS` (lo legge anche `activate.py`).
 3. Scrivi un test con una fixture salvata, in `tests/`.
 
 `mapping.to_event()` è specifico per il formato Plone. Un nuovo adapter non lo riusa: produce il suo dict. Geocoding, località, geohash, deduplica e scrittura restano in `run.py`.
@@ -429,7 +477,36 @@ Passi:
 
 ## 10. Stima delle letture Firestore
 
-Quota del piano Spark: 50.000 letture al giorno. Stima ricavata dal codice (`web/src/lib/server/firestore.ts`, `cache.ts`, `geo.ts`, `api/events`). Nessuna misura reale: `readCount` esiste nel codice ma non viene scritto in nessun log.
+Quote del piano Spark al giorno: 50.000 letture, 20.000 scritture, 20.000 cancellazioni, 1 GB.
+
+### Misure sull'emulatore (`npm run test:reads`, dati di seed)
+
+| visita | letture | query |
+|---|---|---|
+| home (Modena, 25 km, cache miss) | 7 | 4 (intervalli di geohash, tutte con `geohash` ≥/≤, `endTime` e `limit`) |
+| `/citta/modena` | 3 | 2 |
+| `/regione/emilia-romagna` | 1 | 0 (lettura di un documento) |
+| scelta del luogo (`/api/places`) | 2 (una per regione) | 0 |
+| `/eventi/[slug]` | 1 | 0 |
+| qualsiasi ripetizione entro 5 minuti | 0 | cache in memoria |
+
+Con dati veri le letture di una home in cache miss sono pari agli eventi futuri nel raggio più 1 per query vuota. Il test controlla che nessuna query dell'home sia senza intervallo di geohash.
+
+### Import a regime (dry-run di Emilia-Romagna, Lombardia, Veneto, Toscana)
+
+| regione | comuni attivi | eventi | 1° import: letture / scritture | 2° giorno: letture / scritture |
+|---|---|---|---|---|
+| Emilia-Romagna | 66 | 505 | 506 / 506 | 506 / 1 |
+| Lombardia | 255 | 1.405 | 1.406 / 1.406 | 1.407 / 1 |
+| Veneto | 157 | 738 | 739 / 739 | 739 / 1 |
+| Toscana | 54 | 220 | 221 / 221 | 221 / 1 |
+| **Totale** | **532** | **2.868** | **2.872 / 2.872** | **2.873 / 4** |
+
+Le scritture del secondo giorno sono il documento `coverage/{regione}` (una per regione); in pratica si aggiungono gli eventi nuovi o modificati del giorno (qualche punto percento). Le letture dell'import sono gli eventi scraper della regione già presenti, compresi quelli finiti da meno di 7 giorni (circa +30%). Con la pulizia (alcune centinaia di letture e cancellazioni) siamo sotto il 10% della quota di letture e sotto il 5% di quella di scritture e cancellazioni. Il primo import di una regione grande va fatto a tappe (vedi `FINAL_REPORT.md`).
+
+### Stima dalle formule (traffico)
+
+Stima ricavata dal codice (`web/src/lib/server/firestore.ts`, `cache.ts`, `geo.ts`, `api/events`).
 
 **Come si legge una ricerca per raggio.** `eventsNear(centro, km)` chiama `radiusBounds`, che usa `geohashQueryBounds` di `geofire-common`. Questa funzione genera 9 punti (centro, quattro lati, quattro angoli) e li trasforma in intervalli di geohash, poi rimuove i duplicati. Quindi una ricerca fa da 1 a 9 query, ciascuna con `where geohash in [inizio, fine]` e `endTime >= ora`, limitata a `PER_CELL_LIMIT = 150` documenti.
 
@@ -492,6 +569,9 @@ Dove `Q` è il numero di intervalli dopo deduplica (da 1 a 9). Il `max(1, …)` 
 - **Importer WordPress: solo REST**. Cesena, Ravenna e Serramazzoni non espongono eventi via REST e non c'è un fallback iCal o RSS.
 - **Importer: nessun controllo robots.txt a ogni esecuzione**. Il controllo è fatto da `detect_cms.py` quando la riga viene analizzata. gli adapter non lo ripetono.
 - **Importer scrive con Admin SDK**: le regole Firestore non validano i dati scritti dall'importer.
+- **Geocoding in Lombardia**: il primo giro ha circa 1.440 richieste nuove a Nominatim; con il budget di 3.000 per giro entrano tutte, ma con `NOMINATIM_INTERVAL=2` (due job in parallelo) servono circa 50 minuti. Se il budget finisce, gli eventi senza geocoding restano col centro del comune (`approxLocation`) e si sistemano nei giorni dopo.
+- **Cache di Actions**: la cache HTTP pesa circa 1 MB per comune attivo; con 500 comuni sono centinaia di MB per giro e GitHub tiene al massimo 10 GB per repository (le più vecchie vengono eliminate).
+- **Nessun adapter per Drupal, Joomla, Halley, Maggioli**: restano `da_verificare`.
 - **Date legali**: la data di aggiornamento di `/privacy` e `/termini` è scritta a mano.
 
 ### Prossimi passi
@@ -499,5 +579,6 @@ Dove `Q` è il numero di intervalli dopo deduplica (da 1 a 9). Il `max(1, …)` 
 - Eseguire il primo deploy su Cloudflare Pages e verificare le variabili di produzione.
 - Configurare Authentication (Google e link via email) e i domini autorizzati, poi `npm run deploy:rules`.
 - Verificare le letture reali su Firebase per una settimana e rivedere la sezione 10.
-- Verificare le fonti in `comuni.csv` a mano e attivarne altre, dopo la verifica.
+- Controllare a campione le fonti attivate in automatico (`activate.py`) e rivedere i motivi di rifiuto nelle note, soprattutto "nessun evento futuro valido" (1.019 comuni nella prima ondata: molti sono fuori stagione, alcuni hanno liste che l'adapter non legge).
+- Prossime ondate di regioni: vedi `FINAL_REPORT.md`.
 - Impacchettare la webapp con **Capacitor** per Android e iOS (da valutare: il login Google e l'auth nativa richiedono una configurazione dedicata, e la policy delle tile OSM va rispettata anche nell'app).
