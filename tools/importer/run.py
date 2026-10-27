@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -27,11 +29,14 @@ log = logging.getLogger("importer")
 
 
 def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: datetime,
-            horizon_days: int) -> list[dict]:
+            horizon_days: int, stats: dict[str, dict] | None = None) -> list[dict]:
+    """stats (opzionale): per fonte {"events", "skipped", "error"}; "error" None = la fonte ha risposto."""
     events: dict[tuple, dict] = {}
+    stats = {} if stats is None else stats
     for name in names:
         source: Adapter = SOURCES[name]
         kept = skipped = 0
+        stats[name] = {"events": 0, "skipped": 0, "error": None}
         try:
             for ev in source.events(client, now, horizon_days):
                 locate(ev, source, geocoder)
@@ -43,7 +48,9 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
                 events.setdefault(dedupe_key(ev), ev)
                 kept += 1
         except httpx.HTTPError as e:
+            stats[name]["error"] = str(e) or type(e).__name__
             log.error("%s: fonte non raggiungibile (%s), la salto", name, e)
+        stats[name] |= {"events": kept, "skipped": skipped}
         log.info("%s: %d eventi, %d senza coordinate", name, kept, skipped)
     return list(events.values())
 
@@ -84,7 +91,29 @@ def place_of(geocoder: Geocoder, ev: dict) -> dict | None:
         return None
 
 
-def write(events: list[dict], now: datetime) -> None:
+MISSING_RUNS_TO_REMOVE = 2
+
+
+def stale_updates(docs: dict[str, dict], seen_ids: set[str], ok_hosts: set[str], now_ms: int,
+                  horizon_ms: int) -> dict[str, dict]:
+    """Aggiornamenti per gli eventi scraper non ancora finiti che la loro fonte non pubblica più.
+
+    docs: id → campi (source, sourceUrl, startTime, missingRuns, removedAt). Solo le fonti che in questo
+    giro hanno risposto (ok_hosts) contano, e solo gli eventi che iniziano entro l'orizzonte (gli altri
+    non erano nella lista letta). Al 2° import consecutivo senza l'evento: removedAt (nascosto, non cancellato).
+    """
+    out: dict[str, dict] = {}
+    for doc_id, d in docs.items():
+        if doc_id in seen_ids or d.get("source") != "scraper" or d.get("removedAt"):
+            continue
+        if urlsplit(d.get("sourceUrl") or "").netloc not in ok_hosts or (d.get("startTime") or 0) > now_ms + horizon_ms:
+            continue
+        missing = (d.get("missingRuns") or 0) + 1
+        out[doc_id] = {"missingRuns": missing} | ({"removedAt": now_ms} if missing >= MISSING_RUNS_TO_REMOVE else {})
+    return out
+
+
+def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, horizon_days: int = 60) -> None:
     from google.cloud.firestore_v1.base_query import FieldFilter
 
     from db import client as firestore_client  # solo qui: il dry-run non richiede credenziali
@@ -93,7 +122,8 @@ def write(events: list[dict], now: datetime) -> None:
     coll = db.collection("events")
     now_ms = int(now.timestamp() * 1000)
     # Legge solo i documenti che sta per scrivere, non l'intera collezione.
-    refs = [coll.document(ev["id"]) for ev in events]
+    seen_ids = {ev["id"] for ev in events}
+    refs = [coll.document(i) for i in seen_ids]
     existing = {d.id: d.to_dict() or {} for d in db.get_all(refs, field_paths=["source", "createdAt"]) if d.exists}
 
     batch, n, written, kept_manual = db.batch(), 0, 0, 0
@@ -114,6 +144,19 @@ def write(events: list[dict], now: datetime) -> None:
     if n:
         batch.commit()
 
+    live = {d.id: d.to_dict() or {} for d in coll.where(filter=FieldFilter("endTime", ">=", now_ms)).select(
+        ["source", "sourceUrl", "startTime", "missingRuns", "removedAt"]).stream()}
+    stale = stale_updates(live, seen_ids, ok_hosts or set(), now_ms, horizon_days * 86_400_000)
+    for i, (doc_id, fields) in enumerate(stale.items()):
+        if i % 400 == 0:
+            if i:
+                b.commit()
+            b = db.batch()
+        b.update(coll.document(doc_id), fields)
+    if stale:
+        b.commit()
+    removed = sum(1 for f in stale.values() if "removedAt" in f)
+
     cutoff = int((now - EXPIRED_AFTER).timestamp() * 1000)
     # Filtro su source in Python: evita un indice composito endTime+source.
     expired = [d.reference for d in coll.where(filter=FieldFilter("endTime", "<", cutoff)).select(["source"]).stream()
@@ -123,8 +166,26 @@ def write(events: list[dict], now: datetime) -> None:
         for ref in expired[i:i + 400]:
             b.delete(ref)
         b.commit()
-    log.info("Scritti %d eventi, %d lasciati al manuale, %d scaduti eliminati",
-             written, kept_manual, len(expired))
+    log.info("Scritti %d eventi, %d lasciati al manuale, %d scaduti eliminati, %d spariti dalla fonte "
+             "(%d nascosti con removedAt)", written, kept_manual, len(expired), len(stale), removed)
+
+
+def summary(stats: dict[str, dict], sources: dict) -> str:
+    """Tabella eventi per comune, errori e comuni a zero; va anche nel riepilogo del job GitHub."""
+    lines = ["| comune | eventi | senza coordinate | errore |", "|---|---|---|---|"]
+    for name, st in sorted(stats.items()):
+        lines.append(f"| {sources[name].city} | {st['events']} | {st['skipped']} | {st['error'] or ''} |")
+    zero = [sources[n].city for n, st in sorted(stats.items()) if st["events"] == 0]
+    errors = [sources[n].city for n, st in sorted(stats.items()) if st["error"]]
+    lines += ["", f"Totale: {sum(st['events'] for st in stats.values())} eventi da {len(stats)} comuni",
+              f"Comuni a zero ({len(zero)}): {', '.join(zero) or '-'}",
+              f"Comuni con errori ({len(errors)}): {', '.join(errors) or '-'}"]
+    text = "\n".join(lines)
+    print(text)
+    if path := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(text + "\n")
+    return text
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -141,10 +202,12 @@ def main(argv: list[str] | None = None) -> int:
     names = args.source or list(SOURCES)
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30, follow_redirects=True) as client:
         geocoder = Geocoder(client, HERE / "geocache.json")
+        stats: dict[str, dict] = {}
         try:
-            events = collect(client, geocoder, names, now, args.horizon_days)
+            events = collect(client, geocoder, names, now, args.horizon_days, stats)
         finally:
             geocoder.save()
+    summary(stats, SOURCES)
     log.info("Totale dopo deduplica: %d (richieste Nominatim: %d)", len(events), geocoder.requests)
     if not events:
         log.error("Nessun evento raccolto: controlla le fonti")
@@ -156,7 +219,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{start:%d/%m %H:%M}  {ev['category']:<8} {ev['priceType']:<7} "
                   f"{ev['title'][:55]:<55}  {ev['city'][:18]:<18} {ev['province']:<2} {ev['geohash']}")
         return 0
-    write(events, now)
+    ok_hosts = {urlsplit(SOURCES[n].base).netloc for n, st in stats.items() if st["error"] is None}
+    write(events, now, ok_hosts, args.horizon_days)
     return 0
 
 

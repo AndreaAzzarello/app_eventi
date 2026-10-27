@@ -102,3 +102,24 @@ def test_indirizzi_da_ripulire():
     assert geocode_queries("sedi varie", "Sedi diverse", "Modena") == []
     assert geocode_queries("Largo X, 337", "Museo Civico, Palazzo", "Modena") == [
         "Largo X, 337, Modena", "Largo X, Modena", "Museo Civico, Modena"]
+
+
+def test_eventi_spariti_dalla_fonte_due_import_poi_removed():
+    from run import stale_updates
+
+    day = 86_400_000
+    now = 1_800_000_000_000
+    url = "https://www.comune.sassuolo.mo.it/eventi/generare-valore-condiviso"
+    old = {"source": "scraper", "sourceUrl": url, "startTime": now + day}
+    ok = {"www.comune.sassuolo.mo.it"}
+
+    first = stale_updates({"g": old}, set(), ok, now, 60 * day)
+    assert first == {"g": {"missingRuns": 1}}  # primo import senza l'evento: solo conteggio
+    second = stale_updates({"g": old | {"missingRuns": 1}}, set(), ok, now, 60 * day)
+    assert second == {"g": {"missingRuns": 2, "removedAt": now}}
+
+    assert stale_updates({"g": old}, {"g"}, ok, now, 60 * day) == {}  # ancora nella fonte
+    assert stale_updates({"g": old}, set(), set(), now, 60 * day) == {}  # fonte non raggiungibile: non si sa
+    assert stale_updates({"g": old | {"startTime": now + 90 * day}}, set(), ok, now, 60 * day) == {}  # oltre l'orizzonte
+    assert stale_updates({"g": old | {"source": "manual"}}, set(), ok, now, 60 * day) == {}
+    assert stale_updates({"g": old | {"removedAt": 1}}, set(), ok, now, 60 * day) == {}

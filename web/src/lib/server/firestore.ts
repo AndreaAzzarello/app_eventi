@@ -29,6 +29,8 @@ export function decode(v: Value): unknown {
 }
 const decodeFields = (f: Record<string, Value> = {}) =>
 	Object.fromEntries(Object.entries(f).map(([k, v]) => [k, decode(v)]));
+// removedAt: l'importer ha marcato l'evento come sparito dalla fonte (dopo 2 import); non si cancella subito.
+const visible = (d: Doc) => !d.fields?.removedAt;
 const toEvent = (d: Doc) => fromData(d.name.slice(d.name.lastIndexOf('/') + 1), decodeFields(d.fields));
 
 function root() {
@@ -85,7 +87,7 @@ async function runQuery(where: Filter[], orderBy: string[], limit: number): Prom
 	});
 	const docs = (rows ?? []).flatMap((r) => (r.document ? [r.document] : []));
 	readCount += Math.max(docs.length, 1); // una query vuota costa comunque una lettura
-	return docs.map(toEvent);
+	return docs.filter(visible).map(toEvent);
 }
 
 /** Minuto corrente: rende stabili le chiavi di cache. */
@@ -143,7 +145,7 @@ export function getEvent(id: string): Promise<Event | null> {
 	return cached(`event:${id}`, async () => {
 		readCount++;
 		const doc = await call<Doc>(`/events/${id}`);
-		return doc ? toEvent(doc) : null;
+		return doc && visible(doc) ? toEvent(doc) : null;
 	});
 }
 
@@ -156,5 +158,5 @@ export async function getEvents(ids: string[]): Promise<Event[]> {
 		documents: valid.map((id) => `${r.name}/events/${id}`)
 	});
 	readCount += valid.length;
-	return (rows ?? []).flatMap((x) => (x.found ? [toEvent(x.found)] : []));
+	return (rows ?? []).flatMap((x) => (x.found && visible(x.found) ? [toEvent(x.found)] : []));
 }

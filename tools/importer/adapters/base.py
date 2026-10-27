@@ -11,6 +11,8 @@ import httpx
 
 class Adapter(Protocol):
     name: str
+    #: origine del sito (https://host), per sapere quali eventi in archivio appartengono alla fonte
+    base: str
     #: comune/provincia/regione della fonte, usati se il reverse geocoding non risponde
     city: str
     province: str

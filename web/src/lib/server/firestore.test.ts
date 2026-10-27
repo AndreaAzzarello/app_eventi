@@ -66,3 +66,13 @@ describe('eventsNear: cella densa', () => {
 		expect(ids.slice(0, 3)).toEqual(['e0', 'e1', 'e2']);
 	});
 });
+
+describe('eventi rimossi dalla fonte', () => {
+	it('un evento con removedAt non compare nei risultati', async () => {
+		const gone = doc(1, Date.now() + H);
+		(gone.fields as Record<string, unknown>).removedAt = { integerValue: String(Date.now()) };
+		fakeFirestore([gone, doc(2, Date.now() + 2 * H)]);
+		const ids = (await eventsNear({ lat: 44.65, lng: 10.93 }, 5)).map((e) => e.id);
+		expect(ids).toEqual(['e2']);
+	});
+});
