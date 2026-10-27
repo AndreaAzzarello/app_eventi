@@ -45,7 +45,7 @@ KEYWORDS = [
     ("culture", r"\b(teatr\w*|mostra|spettacol\w*|cinema|film|proiezion\w*|libr\w*|museo|visita guidata|laboratorio|conferenza|convegno|presentazione|lettur\w*|incontro|commemorazion\w*|cerimonia|arte|storia)\b"),
 ]
 KIDS_RE = re.compile(r"bambin|bimb|ragazz|famigli|\b\d{1,2}\s*-\s*\d{1,2}\s*anni|piccoli|kids", re.I)
-FREE_RE = re.compile(r"gratuit|gratis|gratutio|libero|free", re.I)
+FREE_RE = re.compile(r"gratuit|gratis|gratutio|libero|free|non\s+(?:sono\s+)?previst\w+\s+cost|senza\s+costi|nessun\s+costo", re.I)
 EURO_RE = re.compile(r"(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro)|€\s*(\d+(?:[.,]\d{1,2})?)", re.I)
 
 PREMIUM_FROM_EUR = 25

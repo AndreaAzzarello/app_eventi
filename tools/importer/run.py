@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
+from concurrent.futures import ThreadPoolExecutor
 
 from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox
@@ -25,6 +26,7 @@ from registry import USER_AGENT
 
 HERE = Path(__file__).parent
 EXPIRED_AFTER = timedelta(days=7)
+WORKERS = 4  # fonti scaricate in parallelo
 log = logging.getLogger("importer")
 
 
@@ -33,23 +35,32 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
     """stats (opzionale): per fonte {"events", "skipped", "error"}; "error" None = la fonte ha risposto."""
     events: dict[tuple, dict] = {}
     stats = {} if stats is None else stats
-    for name in names:
+
+    def fetch(name: str) -> tuple[list[dict], str | None]:
+        """Solo rete (un host per fonte, 1 richiesta/s ciascuno): può girare in parallelo."""
+        try:
+            return list(SOURCES[name].events(client, now, horizon_days)), None
+        except httpx.HTTPError as e:
+            return [], str(e) or type(e).__name__
+
+    with ThreadPoolExecutor(WORKERS) as pool:
+        fetched = list(pool.map(fetch, names))
+    # Geocoding (Nominatim, 1 richiesta/s in tutto) in sequenza.
+    for name, (found, error) in zip(names, fetched):
         source: Adapter = SOURCES[name]
         kept = skipped = 0
-        stats[name] = {"events": 0, "skipped": 0, "error": None}
-        try:
-            for ev in source.events(client, now, horizon_days):
-                locate(ev, source, geocoder)
-                if ev["lat"] is None:
-                    skipped += 1
-                    log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
-                    continue
-                enrich(ev, place_of(geocoder, ev), fallback_place(source))
-                events.setdefault(dedupe_key(ev), ev)
-                kept += 1
-        except httpx.HTTPError as e:
-            stats[name]["error"] = str(e) or type(e).__name__
-            log.error("%s: fonte non raggiungibile (%s), la salto", name, e)
+        stats[name] = {"events": 0, "skipped": 0, "error": error}
+        if error:
+            log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
+        for ev in found:
+            locate(ev, source, geocoder)
+            if ev["lat"] is None:
+                skipped += 1
+                log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
+                continue
+            enrich(ev, place_of(geocoder, ev), fallback_place(source))
+            events.setdefault(dedupe_key(ev), ev)
+            kept += 1
         stats[name] |= {"events": kept, "skipped": skipped}
         log.info("%s: %d eventi, %d senza coordinate", name, kept, skipped)
     return list(events.values())

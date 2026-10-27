@@ -71,6 +71,11 @@ class Fetcher:
         rp = self._robots_for(f"{p.scheme}://{p.netloc}")
         return None if rp is None else rp.can_fetch(url, USER_AGENT)
 
+    def sitemaps(self, origin: str) -> list[str]:
+        """Indirizzi "Sitemap:" dichiarati nel robots.txt (già scaricato per i controlli)."""
+        rp = self._robots_for(origin)
+        return list(rp.sitemaps) if rp else []
+
     def get(self, url: str) -> httpx.Response:
         ok = self.allowed(url)
         if ok is None:
