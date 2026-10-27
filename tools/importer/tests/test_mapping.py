@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from mapping import ROME, dedupe_key, event_id, map_category, map_price, parse_hours, to_event  # noqa: E402
+from mapping import ROME, category_from_title, dedupe_key, event_id, map_category, map_price, parse_hours, to_event  # noqa: E402
 
 FIXTURE = Path(__file__).parent / "fixtures" / "plone_events.json"
 NOW = datetime(2026, 10, 26, 12, 0, tzinfo=ROME)
@@ -104,3 +104,13 @@ def test_dedupe_key_ignora_maiuscole_e_punteggiatura():
     a = {"title": "Concerto: Jazz!", "citySlug": "modena", "startTime": 1_793_000_000_000}
     b = {"title": "concerto jazz", "citySlug": "modena", "startTime": 1_793_000_000_000 + 3_600_000}
     assert dedupe_key(a) == dedupe_key(b)
+
+
+@pytest.mark.parametrize("title,expected", [
+    ("Sagra della polenta", "food"), ("Concerto di Natale", "music"), ("Torneo di tennis", "sport"),
+    ("Mercatino dell'antiquariato", "market"), ("Spettacolo teatrale in piazza", "culture"),
+    ("Mostra fotografica", "culture"), ("Burattini per bambini", "kids"), ("Presentazione del libro", "culture"),
+    ("Consiglio comunale", None),
+])
+def test_category_from_title_italian_keywords(title, expected):
+    assert category_from_title(title) == expected

@@ -85,6 +85,8 @@ def place_of(geocoder: Geocoder, ev: dict) -> dict | None:
 
 
 def write(events: list[dict], now: datetime) -> None:
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
     from db import client as firestore_client  # solo qui: il dry-run non richiede credenziali
 
     db = firestore_client()
@@ -114,7 +116,7 @@ def write(events: list[dict], now: datetime) -> None:
 
     cutoff = int((now - EXPIRED_AFTER).timestamp() * 1000)
     # Filtro su source in Python: evita un indice composito endTime+source.
-    expired = [d.reference for d in coll.where("endTime", "<", cutoff).select(["source"]).stream()
+    expired = [d.reference for d in coll.where(filter=FieldFilter("endTime", "<", cutoff)).select(["source"]).stream()
                if (d.to_dict() or {}).get("source") == "scraper"]
     for i in range(0, len(expired), 400):
         b = db.batch()
