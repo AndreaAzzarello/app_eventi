@@ -1,3 +1,4 @@
+import { allDay, romeParts } from './dates';
 import type { Event } from './event';
 
 const enc = new TextEncoder();
@@ -27,6 +28,16 @@ const esc = (s: string) =>
 
 const utc = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
+const ymd = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d)).toISOString().slice(0, 10).replace(/-/g, '');
+
+/** DTSTART/DTEND: per gli eventi senza orario date intere nel fuso italiano, con fine esclusiva (RFC 5545). */
+function when(e: Event): string[] {
+	if (!allDay(e.startTime, e.endTime)) return [`DTSTART:${utc(e.startTime)}`, `DTEND:${utc(Math.max(e.endTime, e.startTime))}`];
+	const s = romeParts(e.startTime);
+	const l = romeParts(e.endTime);
+	return [`DTSTART;VALUE=DATE:${ymd(s.year, s.month, s.day)}`, `DTEND;VALUE=DATE:${ymd(l.year, l.month, l.day + 1)}`];
+}
+
 /** File iCalendar con un solo evento. */
 export function buildIcs(e: Event, url: string, now = Date.now()): string {
 	const location = [e.venueName, e.address].filter(Boolean).join(', ');
@@ -41,8 +52,7 @@ export function buildIcs(e: Event, url: string, now = Date.now()): string {
 			'BEGIN:VEVENT',
 			`UID:${e.id}@eventi-vicini`,
 			`DTSTAMP:${utc(now)}`,
-			`DTSTART:${utc(e.startTime)}`,
-			`DTEND:${utc(Math.max(e.endTime, e.startTime))}`,
+			...when(e),
 			`SUMMARY:${esc(e.title)}`,
 			description && `DESCRIPTION:${esc(description)}`,
 			location && `LOCATION:${esc(location)}`,

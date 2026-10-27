@@ -156,6 +156,7 @@
 	}
 	.desc {
 		white-space: pre-line;
+		overflow-wrap: anywhere;
 	}
 	dl {
 		display: grid;

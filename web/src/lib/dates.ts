@@ -71,7 +71,7 @@ const sameDay = (a: number, b: number) => {
 	const y = romeParts(b);
 	return x.year === y.year && x.month === y.month && x.day === y.day;
 };
-const allDay = (start: number, end: number) => {
+export const allDay = (start: number, end: number) => {
 	const s = romeParts(start);
 	const e = romeParts(end);
 	return s.hour === 0 && s.minute === 0 && e.hour === 23 && e.minute === 59;

@@ -6,6 +6,7 @@ Funzioni pure: niente rete, così si testano con le fixture salvate.
 from __future__ import annotations
 
 import hashlib
+import html
 import logging
 import re
 import unicodedata
@@ -56,6 +57,41 @@ MAX_EVENT_DAYS = 365
 #: oltre questa durata l'evento è "longRunning" (mostra, rassegna): resta in lista ma dopo gli eventi puntuali
 LONG_RUNNING_DAYS = 14
 MAX_DESCRIPTION = 300
+
+
+_BLOCK_END = re.compile(r"</(?:p|div|h[1-6]|tr|table|ul|ol|blockquote|section|article)\s*>", re.I)
+
+
+def html_to_text(s: str | None) -> str:
+    """HTML → testo semplice: a capo da <br> e blocchi, "• " per le liste, entità decodificate, niente tag.
+
+    Idempotente sul testo già pulito. Gestisce anche l'HTML scritto come entità (&lt;div&gt;), che alcune
+    fonti mettono in meta description / JSON-LD.
+    """
+    if not s:
+        return ""
+    if re.search(r"&lt;/?[a-z]", s, re.I):
+        s = html.unescape(s)
+    s = re.sub(r"(?is)<(script|style)\b.*?</\1\s*>", " ", s)
+    s = re.sub(r"(?i)<br\s*/?>", "\n", s)
+    s = _BLOCK_END.sub("\n", s)
+    s = re.sub(r"(?i)<li\b[^>]*>", "\n• ", s)
+    s = re.sub(r"</?[a-zA-Z][^>]*>", "", s)  # tag restanti; "a < b" e "<3" restano
+    s = html.unescape(s).replace("\xa0", " ")
+    lines = [" ".join(line.split()) for line in s.split("\n")]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
+
+def one_line(s: str | None) -> str:
+    """Titolo, luogo, indirizzo: testo pulito su una riga."""
+    return " ".join(html_to_text(s).split())
+
+
+def shorten(text: str) -> str:
+    """Descrizione breve: al massimo MAX_DESCRIPTION caratteri, tagliata su una parola."""
+    if len(text) <= MAX_DESCRIPTION:
+        return text
+    return text[: MAX_DESCRIPTION - 1].rsplit(" ", 1)[0].rstrip() + "…"
 
 
 def too_long(start: datetime, end: datetime, url: str) -> bool:
@@ -223,9 +259,7 @@ def to_event(item: dict, source: dict, now: datetime, horizon_days: int = 60) ->
     street = (item.get("street") or venue.get("street") or "").strip()
     address = ", ".join(p for p in [street, f"{item.get('zip_code') or ''} {city}".strip()] if p)
 
-    description = (item.get("description") or "").strip() or plaintext(item.get("descrizione_estesa"))
-    if len(description) > MAX_DESCRIPTION:
-        description = description[: MAX_DESCRIPTION - 1].rsplit(" ", 1)[0] + "…"
+    description = shorten(html_to_text(item.get("description")) or html_to_text(plaintext(item.get("descrizione_estesa"))))
 
     audience = " ".join([title, plaintext(item.get("descrizione_destinatari"))])
     image = item.get("image") or {}

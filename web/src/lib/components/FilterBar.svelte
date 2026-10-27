@@ -99,6 +99,9 @@
 	.row::-webkit-scrollbar {
 		display: none;
 	}
+	.select-chip {
+		position: relative; /* contiene il testo visually-hidden: fuori dallo scroller allargherebbe la pagina */
+	}
 	.select-chip select {
 		min-height: 40px;
 		width: auto;

@@ -123,3 +123,11 @@ def test_eventi_spariti_dalla_fonte_due_import_poi_removed():
     assert stale_updates({"g": old | {"startTime": now + 90 * day}}, set(), ok, now, 60 * day) == {}  # oltre l'orizzonte
     assert stale_updates({"g": old | {"source": "manual"}}, set(), ok, now, 60 * day) == {}
     assert stale_updates({"g": old | {"removedAt": 1}}, set(), ok, now, 60 * day) == {}
+
+
+def test_migrate_texts_ripulisce_solo_se_serve():
+    from migrate import text_updates
+
+    docs = [("a", {"title": "Dolcetto &amp; scherzetto", "shortDescription": "<div>Ciao<br>mondo</div>", "address": "via Roma"}),
+            ("b", {"title": "Pulito", "shortDescription": "Già a posto", "venueName": ""})]
+    assert text_updates(docs) == [("a", {"title": "Dolcetto & scherzetto", "shortDescription": "Ciao\nmondo"})]

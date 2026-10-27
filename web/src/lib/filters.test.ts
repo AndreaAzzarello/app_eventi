@@ -35,6 +35,16 @@ describe('applyFilter', () => {
 	it('gratis', () => expect(ids({ free: true })).toEqual(['sabato']));
 	it('bambini (categoria o tag family)', () => expect(ids({ kids: true })).toEqual(['sagra', 'bimbi']));
 	it('mostre ed eventi in corso', () => expect(ids({ running: true })).toEqual(['mostra']));
+	it('ricerca e chip trovano una mostra lunga (caso Doisneau, Modena 25 km)', () => {
+		const doisneau = ev('doisneau', {
+			title: 'Robert Doisneau in mostra a Modena', category: 'culture',
+			startTime: romeTime(2026, 9, 24, 10), endTime: romeTime(2027, 1, 24, 18)
+		});
+		expect(doisneau.longRunning).toBe(true); // ricavato dalla durata anche senza il flag
+		const f = { ...EMPTY_FILTER, radiusKm: 25 };
+		expect(applyFilter([doisneau], { ...f, q: 'Doisneau' }, now, origin)).toHaveLength(1);
+		expect(applyFilter([doisneau], { ...f, running: true }, now, origin)).toHaveLength(1);
+	});
 	it('categoria', () => expect(ids({ category: 'food' })).toEqual(['sagra']));
 	it('ricerca senza accenti', () => expect(ids({ q: 'gnòcco' })).toEqual(['sagra']));
 	it('Roma resta fuori anche a 100 km', () => expect(ids({ radiusKm: 100 })).not.toContain('lontano'));

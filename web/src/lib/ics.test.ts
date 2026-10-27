@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fromData } from './event';
+import { romeTime } from './dates';
 import { buildIcs, foldLine } from './ics';
 
 const bytes = (s: string) => new TextEncoder().encode(s).length;
@@ -45,5 +46,35 @@ describe('buildIcs', () => {
 		expect(ics).toContain('SUMMARY:Concerto\\; jazz\\, blues');
 		expect(ics).toContain('DESCRIPTION:Riga 1\\nRiga 2');
 		expect(ics).toContain('UID:abc@eventi-vicini');
+	});
+});
+
+describe('buildIcs, orari e giorni interi', () => {
+	const mk = (startTime: number, endTime: number) =>
+		buildIcs(fromData('x', { title: 'T', startTime, endTime, lat: 44, lng: 10 }), 'https://x.it/e', 0);
+	it('un giorno intero: fine esclusiva', () => {
+		const ics = mk(romeTime(2026, 11, 14), romeTime(2026, 11, 14, 23, 59));
+		expect(ics).toContain('DTSTART;VALUE=DATE:20261114');
+		expect(ics).toContain('DTEND;VALUE=DATE:20261115');
+	});
+	it('più giorni interi, a cavallo di fine mese', () => {
+		const ics = mk(romeTime(2026, 11, 28), romeTime(2026, 11, 30, 23, 59));
+		expect(ics).toContain('DTSTART;VALUE=DATE:20261128');
+		expect(ics).toContain('DTEND;VALUE=DATE:20261201');
+	});
+	it('con orario: UTC con Z', () => {
+		const ics = mk(romeTime(2026, 7, 1, 21), romeTime(2026, 7, 1, 23));
+		expect(ics).toContain('DTSTART:20260701T190000Z');
+		expect(ics).toContain('DTEND:20260701T210000Z');
+	});
+	it('cambio ora legale (25 ott 2026): giorno intero senza slittamenti', () => {
+		const ics = mk(romeTime(2026, 10, 25), romeTime(2026, 10, 25, 23, 59));
+		expect(ics).toContain('DTSTART;VALUE=DATE:20261025');
+		expect(ics).toContain('DTEND;VALUE=DATE:20261026');
+	});
+	it('a cavallo del cambio ora con orario', () => {
+		const ics = mk(romeTime(2026, 10, 24, 22), romeTime(2026, 10, 25, 4));
+		expect(ics).toContain('DTSTART:20261024T200000Z');
+		expect(ics).toContain('DTEND:20261025T030000Z');
 	});
 });

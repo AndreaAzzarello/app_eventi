@@ -96,25 +96,44 @@ const nowMinute = () => Math.floor(Date.now() / 60_000) * 60_000;
 /** Esportato per i test. */
 export const PER_CELL_LIMIT = 150;
 
+/** Limite per la query dedicata agli eventi lunghi (mostre, rassegne): sono pochi rispetto ai puntuali. */
+const LONG_LIMIT = 100;
+const TRUE: Value = { booleanValue: true };
+
+/**
+ * Eventi longRunning: i limiti delle query ordinano per fine più vicina e in una cella densa taglierebbero
+ * proprio le mostre che finiscono tardi. Query a parte; se l'indice non c'è ancora (firestore.indexes.json
+ * non pubblicato) si degrada al comportamento precedente invece di rompere la lista.
+ */
+async function longRunningQuery(where: Filter[], orderBy: string[]): Promise<Event[]> {
+	try {
+		return await runQuery([...where, f('longRunning', 'EQUAL', TRUE)], orderBy, LONG_LIMIT);
+	} catch (err) {
+		console.warn('query longRunning non riuscita (indice mancante?):', err);
+		return [];
+	}
+}
+
 /** Eventi non finiti entro km dal centro: una query per intervallo di geohash, mai l'intera collezione. */
 export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 	return cached(`near:${center.lat},${center.lng},${km}`, async () => {
 		const now = nowMinute();
 		const batches = await Promise.all(
-			radiusBounds(center, km).map(([start, end]) =>
-				runQuery(
-					[
-						f('geohash', 'GREATER_THAN_OR_EQUAL', { stringValue: start }),
-						f('geohash', 'LESS_THAN_OR_EQUAL', { stringValue: end }),
-						f('endTime', 'GREATER_THAN_OR_EQUAL', int(now))
-					],
+			radiusBounds(center, km).flatMap(([start, end]) => {
+				const where = [
+					f('geohash', 'GREATER_THAN_OR_EQUAL', { stringValue: start }),
+					f('geohash', 'LESS_THAN_OR_EQUAL', { stringValue: end }),
+					f('endTime', 'GREATER_THAN_OR_EQUAL', int(now))
+				];
+				return [
 					// Cella densa: il limite taglia per fine più vicina (imminenti e in corso), non per geohash.
 					// Richiede l'indice (endTime, geohash) in firestore.indexes.json.
 					// shortcut: a parità di endTime vale il geohash, non la distanza vera dal centro.
-					['endTime', 'geohash'],
-					PER_CELL_LIMIT
-				)
-			)
+					runQuery(where, ['endTime', 'geohash'], PER_CELL_LIMIT),
+					// Indice (longRunning, endTime, geohash).
+					longRunningQuery(where, ['endTime', 'geohash'])
+				];
+			})
 		);
 		const seen = new Set<string>();
 		return batches
@@ -125,13 +144,13 @@ export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 }
 
 export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
-	return cached(`city:${citySlug}`, () =>
-		runQuery(
-			[f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))],
-			['endTime'],
-			limit
-		).then((list) => list.sort(compareEvents(Date.now())))
-	);
+	return cached(`city:${citySlug}`, async () => {
+		const where = [f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))];
+		// Indice (citySlug, longRunning, endTime) per la seconda query.
+		const [list, long] = await Promise.all([runQuery(where, ['endTime'], limit), longRunningQuery(where, ['endTime'])]);
+		const seen = new Set<string>();
+		return [...list, ...long].filter((e) => !seen.has(e.id) && seen.add(e.id)).sort(compareEvents(Date.now()));
+	});
 }
 
 export function upcomingEvents(limit: number): Promise<Event[]> {

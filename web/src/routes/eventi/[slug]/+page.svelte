@@ -226,6 +226,7 @@
 		font-size: 1.08rem;
 		line-height: 1.7;
 		white-space: pre-line;
+		overflow-wrap: anywhere;
 	}
 	.where {
 		margin-top: 2rem;

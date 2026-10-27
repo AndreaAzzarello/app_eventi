@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from mapping import ROME, category_from_title, dedupe_key, is_long_running, event_id, map_category, map_price, parse_hours, to_event  # noqa: E402
+from mapping import ROME, category_from_title, dedupe_key, html_to_text, is_long_running, shorten, event_id, map_category, map_price, parse_hours, to_event  # noqa: E402
 
 FIXTURE = Path(__file__).parent / "fixtures" / "plone_events.json"
 NOW = datetime(2026, 10, 26, 12, 0, tzinfo=ROME)
@@ -130,3 +130,31 @@ def test_is_long_running_oltre_14_giorni():
     day = 86_400_000
     assert not is_long_running({"startTime": 0, "endTime": 14 * day})
     assert is_long_running({"startTime": 0, "endTime": 14 * day + 1})
+
+
+def test_html_to_text_minerbio_dolcetto():
+    raw = ("<div>Anche quest'anno tornano i festeggiamenti di <b>Halloween</b> a <b>Minerbio!!</b><br><br>"
+           "Preparatevi per una serata da brividi!</div><div>L'evento seguirà questi orari:<br><br>"
+           "<b> 16:00 - Chiusura</b></div>")
+    assert html_to_text(raw) == ("Anche quest'anno tornano i festeggiamenti di Halloween a Minerbio!!\n\n"
+                                 "Preparatevi per una serata da brividi!\nL'evento seguirà questi orari:\n\n16:00 - Chiusura")
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("<ul><li>Uno</li><li>Due &amp; tre</li></ul>", "• Uno\n• Due & tre"),
+    ("Caff&egrave; &amp; torta&nbsp;buona", "Caffè & torta buona"),
+    ("&lt;b&gt;Ciao&lt;/b&gt;&lt;br&gt;mondo", "Ciao\nmondo"),  # HTML scritto come entità
+    ("<p>Uno</p><p>Due</p>", "Uno\nDue"),
+    ("a < b e 3 > 2, ti <3", "a < b e 3 > 2, ti <3"),
+    ("<script>alert(1)</script>Testo<style>x{}</style>", "Testo"),
+    ("  spazi   multipli \n\n\n\n e righe  ", "spazi multipli\n\ne righe"),
+    (None, ""),
+])
+def test_html_to_text(raw, expected):
+    assert html_to_text(raw) == expected
+    assert html_to_text(expected) == expected  # idempotente
+
+
+def test_shorten_non_taglia_dentro_un_tag():
+    out = shorten(html_to_text("<div><b>" + "parola " * 80 + "</b></div>"))
+    assert len(out) <= 300 and out.endswith("…") and "<" not in out

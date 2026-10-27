@@ -25,6 +25,24 @@
       ]
     },
     {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "longRunning", "order": "ASCENDING" },
+        { "fieldPath": "endTime", "order": "ASCENDING" },
+        { "fieldPath": "geohash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "citySlug", "order": "ASCENDING" },
+        { "fieldPath": "longRunning", "order": "ASCENDING" },
+        { "fieldPath": "endTime", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "submissions",
       "queryScope": "COLLECTION",
       "fields": [

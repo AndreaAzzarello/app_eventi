@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox
 from geocode import Geocoder
-from mapping import ROME, dedupe_key, is_long_running
+from mapping import ROME, dedupe_key, html_to_text, is_long_running, one_line
 from registry import USER_AGENT
 
 HERE = Path(__file__).parent
@@ -60,6 +60,7 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
                 log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
                 continue
             enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
+            clean_texts(ev)
             if is_long_running(ev):
                 ev["longRunning"] = True
             events.setdefault(dedupe_key(ev), ev)
@@ -67,6 +68,13 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
         stats[name] |= {"events": kept, "skipped": skipped}
         log.info("%s: %d eventi, %d senza coordinate", name, kept, skipped)
     return list(events.values())
+
+
+def clean_texts(ev: dict) -> None:
+    """Ultimo controllo su tutti gli adapter: niente tag né entità HTML nei testi (la descrizione tiene gli a capo)."""
+    ev["shortDescription"] = html_to_text(ev["shortDescription"])
+    for k in ("title", "venueName", "address"):
+        ev[k] = one_line(ev[k])
 
 
 def locate(ev: dict, source: Adapter, geocoder: Geocoder) -> None:

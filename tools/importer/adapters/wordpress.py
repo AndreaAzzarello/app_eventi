@@ -17,8 +17,8 @@ from typing import Iterator
 
 import httpx
 
-from mapping import (KIDS_RE, MAX_DESCRIPTION, ROME, category_from_title, event_id, geocode_queries,
-                     map_price, too_long)
+from mapping import (KIDS_RE, ROME, category_from_title, event_id, geocode_queries, html_to_text, map_price,
+                     shorten, too_long)
 
 log = logging.getLogger("importer")
 
@@ -88,10 +88,8 @@ class WordpressAdapter:
         venue = _text(luogo.get("descrizione") or "")
         street = _text(luogo.get("indirizzo") or "")
         coord = _coord(luogo.get("gps"))
-        description = _text(item.get("descrizione_breve")) or _text(item.get("sottotitolo")) \
-            or _text(item.get("descrizione_completa"))
-        if len(description) > MAX_DESCRIPTION:
-            description = description[: MAX_DESCRIPTION - 1].rsplit(" ", 1)[0] + "…"
+        description = shorten(html_to_text(item.get("descrizione_breve")) or html_to_text(item.get("sottotitolo"))
+                              or html_to_text(item.get("descrizione_completa")))
         costs = " ".join(c.get("titolo_costo", "") for c in item.get("costi") or [] if isinstance(c, dict))
 
         return {

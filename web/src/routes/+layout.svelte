@@ -151,6 +151,14 @@
 		text-decoration: none;
 		font: 650 1.2rem/1 var(--font-display);
 		white-space: nowrap;
+		min-width: 0;
+	}
+	.brand span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.brand svg {
+		flex-shrink: 0;
 	}
 	.brand em,
 	.foot-brand em {
@@ -161,6 +169,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.15rem;
+		flex-shrink: 0;
 	}
 	.nav-link {
 		position: relative;
@@ -233,6 +242,18 @@
 		}
 		:global(:root:not([data-theme='light'])) .theme .moon {
 			display: inline;
+		}
+	}
+	@media (max-width: 419px) {
+		.brand {
+			font-size: 1.05rem;
+			gap: 0.4rem;
+		}
+		nav[aria-label='Principale'] {
+			gap: 0;
+		}
+		.nav-link {
+			padding: 0;
 		}
 	}
 	@media (min-width: 720px) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatTime, romeParts, shortDate, shortDay } from '$lib/dates';
+	import { allDay, formatTime, romeParts, shortDate, shortDay } from '$lib/dates';
 	import { CATEGORIES, eventPath, isForKids, isFree, runningLabel, type Event } from '$lib/event';
 	import { distanceKm, type LatLng } from '$lib/geo';
 	import FavoriteButton from './FavoriteButton.svelte';
@@ -38,7 +38,7 @@
 	<div class="body">
 		<p class="when">
 			{#if ongoing}<span class="live">In corso</span> ·{/if}
-			{shortDay(event.startTime, now)} · {formatTime(event.startTime)}{#if running === 'Mostra'} · fino al {shortDate(event.endTime)}{/if}
+			{shortDay(event.startTime, now)} · {allDay(event.startTime, event.endTime) ? 'Tutto il giorno' : formatTime(event.startTime)}{#if running === 'Mostra'} · fino al {shortDate(event.endTime)}{/if}
 		</p>
 		<h3><a href={eventPath(event)} class="stretched">{event.title}</a></h3>
 		<p class="where">

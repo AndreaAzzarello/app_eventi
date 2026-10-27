@@ -23,8 +23,8 @@ import httpx
 from selectolax.lexbor import LexborHTMLParser
 
 from fetch import CACHE_DIR, Blocked, Fetcher, RobotsUnknown
-from mapping import (KIDS_RE, LONG_RUNNING_DAYS, MAX_DESCRIPTION, ROME, category_from_title, event_id, geocode_queries,
-                     map_price, parse_hours, too_long)
+from mapping import (KIDS_RE, LONG_RUNNING_DAYS, ROME, category_from_title, event_id, geocode_queries, html_to_text,
+                     map_price, parse_hours, shorten, too_long)
 
 log = logging.getLogger("importer")
 
@@ -253,7 +253,7 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
     ld = jsonld_event(tree) or microdata_event(tree)
     venue, street = _place(tree)
     meta = tree.css_first('meta[name="description"]')
-    desc = _clean(meta.attributes.get("content")) if meta else ""
+    desc = html_to_text(meta.attributes.get("content")) if meta else ""
     when = None
     if ld:  # (a)/(b)
         when = from_structured(ld, today)
@@ -264,7 +264,7 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
         addr = addr.get("streetAddress", "") if isinstance(addr, dict) else (addr if isinstance(addr, str) else "")
         venue, street = venue or _clean(loc.get("name")), street or _clean(addr)
         title = _clean(ld.get("name")) or title
-        desc = _clean(ld.get("description")) or desc
+        desc = html_to_text(ld.get("description")) or desc
     if when is None:  # (c)
         when = from_calendar_link(tree)
     main = tree.css_first("main") or tree.body
@@ -295,7 +295,7 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
         tipo = _clean(c.text())
     sec = _section(tree, "cos-e", "cos-", "descrizione")
     if sec is not None and (not desc or desc.startswith("Sito ufficiale")):
-        desc = _text_of(sec)
+        desc = html_to_text(sec.html)
     return {"title": title, "start": when[0], "end": when[1], "venue": venue, "street": street, "description": desc,
             "price_text": price_text or (_clean(str(ld.get("isAccessibleForFree"))) if ld and ld.get("isAccessibleForFree") else ""),
             "tipo": tipo, "image": _image(tree, url), "url": urljoin(url, canonical), "recurring": bool(RECUR_RE.search(main_text))}
@@ -430,9 +430,7 @@ class DesignComuniHtmlAdapter:
         if end < now or start > now + timedelta(days=horizon_days) or end < start or too_long(start, end, d["url"]):
             return None
         street = ADDRESS_TAIL.sub("", d["street"]).strip(" ,")
-        description = d["description"]
-        if len(description) > MAX_DESCRIPTION:
-            description = description[: MAX_DESCRIPTION - 1].rsplit(" ", 1)[0] + "…"
+        description = shorten(d["description"])
         return {
             "id": event_id(d["url"]),
             "title": d["title"],

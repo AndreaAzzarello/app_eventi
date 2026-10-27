@@ -22,18 +22,26 @@ const doc = (i: number, endTime: number) => ({
 
 /** Finto Firestore: applica orderBy e limit della query come farebbe il server. */
 function fakeFirestore(docs: ReturnType<typeof doc>[]) {
-	const queries: { orderBy: string[]; limit: number }[] = [];
+	const queries: { orderBy: string[]; limit: number; long: boolean }[] = [];
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async (_url: string, init: { body: string }) => {
 			const q = JSON.parse(init.body).structuredQuery;
 			const orderBy: string[] = q.orderBy.map((o: { field: { fieldPath: string } }) => o.field.fieldPath);
-			queries.push({ orderBy, limit: q.limit });
+			// Filtro longRunning == true: il finto server restituisce solo i documenti con il flag.
+			const filters: { fieldFilter: { field: { fieldPath: string } } }[] = q.where.compositeFilter
+				? q.where.compositeFilter.filters
+				: [q.where];
+			const long = filters.some((x) => x.fieldFilter.field.fieldPath === 'longRunning');
+			queries.push({ orderBy, limit: q.limit, long });
+			const pool = long
+				? docs.filter((d) => (d.fields as Record<string, { booleanValue?: boolean }>).longRunning?.booleanValue)
+				: docs;
 			const val = (d: ReturnType<typeof doc>, k: string) => {
 				const v = (d.fields as Record<string, { stringValue?: string; integerValue?: string }>)[k];
 				return v.stringValue ?? Number(v.integerValue);
 			};
-			const rows = [...docs]
+			const rows = [...pool]
 				.sort((a, b) => {
 					for (const k of orderBy) {
 						const [x, y] = [val(a, k), val(b, k)];
@@ -58,12 +66,36 @@ describe('eventsNear: cella densa', () => {
 		// Il più imminente ha il geohash "ultimo": col vecchio ordine sarebbe stato tagliato.
 		const queries = fakeFirestore(dense);
 		const ids = (await eventsNear(center, 1.234)).map((e) => e.id);
-		expect(queries.every((q) => q.limit === PER_CELL_LIMIT && q.orderBy[0] === 'endTime')).toBe(true);
+		expect(queries.filter((q) => !q.long).every((q) => q.limit === PER_CELL_LIMIT && q.orderBy[0] === 'endTime')).toBe(true);
 		expect(ids).toContain('e0');
 		expect(ids).toContain(`e${PER_CELL_LIMIT - 1}`);
 		expect(ids).not.toContain(`e${PER_CELL_LIMIT}`);
 		// L'ordine finale resta per inizio crescente.
 		expect(ids.slice(0, 3)).toEqual(['e0', 'e1', 'e2']);
+	});
+});
+
+describe('eventsNear: mostre in una cella densa', () => {
+	it('una mostra che finisce tardi non viene tagliata dal limite per cella', async () => {
+		const now = Date.now();
+		const dense = Array.from({ length: PER_CELL_LIMIT * 2 }, (_, i) => doc(i, now + (i + 1) * H));
+		// Come "Robert Doisneau in mostra a Modena": finisce tra mesi, dopo tutti gli altri.
+		const mostra = doc(9000, now + 120 * 24 * H);
+		(mostra.fields as Record<string, unknown>).longRunning = { booleanValue: true };
+		fakeFirestore([...dense, mostra]);
+		const ids = (await eventsNear(center, 2.345)).map((e) => e.id);
+		expect(ids).toContain('e9000');
+		expect(ids).not.toContain(`e${PER_CELL_LIMIT}`); // i puntuali restano limitati
+	});
+
+	it('senza indice la lista funziona comunque (solo la query lunga fallisce)', async () => {
+		const now = Date.now();
+		const base = fakeFirestore([doc(1, now + H)]);
+		const ok = globalThis.fetch;
+		vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) =>
+			init.body.includes('longRunning') ? new Response('missing index', { status: 400 }) : ok(url, init)));
+		void base;
+		expect((await eventsNear(center, 3.456)).map((e) => e.id)).toEqual(['e1']);
 	});
 });
 
