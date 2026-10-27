@@ -8,6 +8,7 @@ Uso:  python run.py --dry-run            # stampa senza scrivere
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -203,6 +204,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--dry-run", action="store_true", help="stampa gli eventi senza scrivere")
     p.add_argument("--source", action="append", choices=sorted(SOURCES), help="fonte (ripetibile)")
+    p.add_argument("--dump", type=Path, help="con --dry-run: scrive gli eventi in questo file JSON (per i controlli)")
     p.add_argument("--horizon-days", type=int, default=60, help="importa eventi che iniziano entro N giorni")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
@@ -225,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.dry_run:
+        if args.dump:
+            args.dump.write_text(json.dumps(events, ensure_ascii=False, indent=1), encoding="utf-8")
         for ev in sorted(events, key=lambda e: e["startTime"]):
             start = datetime.fromtimestamp(ev["startTime"] / 1000, ROME)
             print(f"{start:%d/%m %H:%M}  {ev['category']:<8} {ev['priceType']:<7} "
