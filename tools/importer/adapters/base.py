@@ -19,7 +19,7 @@ class Adapter(Protocol):
     viewbox: str | None
 
     def events(self, client: httpx.Client, now: datetime, horizon_days: int) -> Iterable[dict]:
-        """Eventi nel modello dell'app, senza id né località normalizzate.
+        """Eventi nel modello dell'app, con "id" (event_id(url)) ma senza geohash né località normalizzate.
 
         Campi: title, shortDescription, category, priceType, startTime, endTime (ms), venueName, address,
         lat, lng (None se da geocodificare), imageUrl, ticketUrl, tags, source="scraper", sourceUrl e
