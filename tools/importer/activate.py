@@ -84,6 +84,8 @@ def fetch_events(row: dict, client: httpx.Client, now: datetime) -> tuple[list[d
         return [], "dry-run: robots.txt vieta i percorsi usati"
     except (RobotsUnknown, httpx.HTTPError) as e:
         return [], f"dry-run: fonte non raggiungibile ({str(e) or type(e).__name__})"
+    except Exception as e:  # un sito difettoso (URL non valido, HTML inatteso) non ferma le altre centinaia
+        return [], f"dry-run: errore imprevisto ({type(e).__name__}: {str(e)[:80]})"
 
 
 def select(rows: list[dict], regions: set[str]) -> list[dict]:
@@ -120,7 +122,16 @@ def main(argv: list[str] | None = None) -> int:
 
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30, follow_redirects=True) as client:
         with ThreadPoolExecutor(args.workers) as pool:
-            fetched = list(pool.map(lambda r: fetch_events(r, client, now), candidates))
+            done = []
+
+            def work(r: dict) -> tuple[list[dict], str | None]:
+                out = fetch_events(r, client, now)
+                done.append(r["comune"])
+                if len(done) % 25 == 0:
+                    print(f"  scaricati {len(done)}/{len(candidates)}", flush=True)
+                return out
+
+            fetched = list(pool.map(work, candidates))
         geocoder = Geocoder(client, HERE / "geocache.json")
         try:
             for r, (events, error) in zip(candidates, fetched):

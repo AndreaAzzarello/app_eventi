@@ -73,3 +73,15 @@ def test_motivo_nelle_note_e_idempotente():
     assert n.startswith("attivazione: dry-run: nessun evento futuro valido | licenza[attivare]")
     assert note_with_reason(r | {"note": n}, "altro motivo") == "attivazione: altro motivo | licenza[attivare]: x"
     assert note_with_reason(r | {"note": n}, None) == "licenza[attivare]: x"
+
+
+def test_errore_imprevisto_in_un_sito_non_ferma_le_altre(monkeypatch):
+    import activate
+
+    class Boom:
+        def events(self, *a):
+            raise ValueError("unknown url type: '/robots.txt'")
+
+    monkeypatch.setattr(activate, "load_sources", lambda rows: {"lecco": Boom()})
+    events, reason = activate.fetch_events(row(), None, None)
+    assert events == [] and reason.startswith("dry-run: errore imprevisto (ValueError")
