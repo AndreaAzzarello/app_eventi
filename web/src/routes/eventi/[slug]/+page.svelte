@@ -7,6 +7,7 @@
 	import { siteUrl } from '$lib/config';
 	import { formatWhen } from '$lib/dates';
 	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, isForKids, isFree } from '$lib/event';
+	import { imageSources } from '$lib/images';
 	import { buildIcs } from '$lib/ics';
 	import { eventJsonLd, safeJson } from '$lib/jsonld';
 	import { toast } from '$lib/toast.svelte';
@@ -75,7 +76,20 @@
 	{/if}
 
 	{#if e.imageUrl}
-		<img class="hero" src={e.imageUrl} alt="" width="760" height="380" fetchpriority="high" referrerpolicy="no-referrer" />
+		{@const img = imageSources(e.imageUrl)}
+		<img
+			class="hero"
+			src={img.src}
+			srcset={img.srcset}
+			sizes="(min-width: 800px) 760px, 100vw"
+			alt=""
+			width="760"
+			height="380"
+			loading="eager"
+			decoding="async"
+			fetchpriority="high"
+			referrerpolicy="no-referrer"
+		/>
 	{/if}
 
 	<div class="tags">
@@ -95,7 +109,7 @@
 			<dt><Icon name="pin" /><span class="visually-hidden">Dove</span></dt>
 			<dd>
 				{#if e.venueName}<strong>{e.venueName}</strong><br />{/if}
-				{e.address}
+				{#if e.approxLocation}<span class="approx">Luogo da confermare</span>{:else}{e.address}{/if}
 				{#if e.citySlug}<br /><a href={cityPath(e.citySlug)}>Altri eventi a {e.city}</a>{/if}
 			</dd>
 		</div>
@@ -123,7 +137,12 @@
 				<Icon name="external" size={16} /> Apri in Maps
 			</a>
 		</div>
-		<PinMap lat={e.lat} lng={e.lng} label={`Mappa: ${e.venueName || e.address}`} />
+		{#if e.approxLocation}
+			<!-- Posizione solo al centro del comune: niente mappa, un pin preciso sarebbe falso. -->
+			<p class="muted">Il luogo esatto non è ancora noto: verifica sul sito della fonte.</p>
+		{:else}
+			<PinMap lat={e.lat} lng={e.lng} label={`Mappa: ${e.venueName || e.address}`} />
+		{/if}
 	</section>
 
 	<p class="source muted">
@@ -217,6 +236,10 @@
 	}
 	.where-head h2 {
 		margin: 0;
+	}
+	.approx {
+		font-style: italic;
+		color: var(--muted);
 	}
 	.source {
 		margin-top: 1.5rem;

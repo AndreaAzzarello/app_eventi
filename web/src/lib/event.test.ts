@@ -35,6 +35,11 @@ describe('validateEvent', () => {
 	])('%s non valido', (field, over, msg) => {
 		expect(validateEvent(sample(over as Partial<EventInput>))[field as keyof EventInput]).toBe(msg);
 	});
+	it('approxLocation: default false, true solo se booleano true', () => {
+		expect(fromData('x', {}).approxLocation).toBe(false);
+		expect(fromData('x', { approxLocation: 'true' }).approxLocation).toBe(false);
+		expect(fromData('x', { approxLocation: true }).approxLocation).toBe(true);
+	});
 	it('coordinate mancanti o comune sconosciuto', () => {
 		expect(validateEvent(sample({ lat: 0, lng: 0 })).place).toMatch(/posizione/);
 		expect(validateEvent(sample({ geohash: '' })).place).toMatch(/posizione/);

@@ -52,6 +52,8 @@ export interface Event extends EventInput {
 	id: string;
 	source: 'manual' | 'scraper' | 'user';
 	sourceUrl: string;
+	/** true = posizione approssimata al centro del comune (scritta dall'importer). */
+	approxLocation: boolean;
 	createdAt?: number;
 	updatedAt?: number;
 }
@@ -87,6 +89,7 @@ export function fromData(id: string, m: Record<string, unknown>): Event {
 		region: str(m.region),
 		source: (['manual', 'scraper', 'user'].includes(source) ? source : 'manual') as Event['source'],
 		sourceUrl: safeUrl(str(m.sourceUrl)),
+		approxLocation: m.approxLocation === true,
 		createdAt: m.createdAt == null ? undefined : num(m.createdAt),
 		updatedAt: m.updatedAt == null ? undefined : num(m.updatedAt)
 	};

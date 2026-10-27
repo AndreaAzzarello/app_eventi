@@ -63,6 +63,11 @@ describe('events', () => {
     await assertSucceeds(updateDoc(doc(fs, 'events', 'x'), { title: 'Nuovo titolo' }));
     await assertSucceeds(deleteDoc(doc(fs, 'events', 'x')));
   });
+  it('approxLocation: booleano ammesso, altri tipi no', async () => {
+    const fs = db('adm', ADMIN);
+    await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { approxLocation: true }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { approxLocation: 'si' }));
+  });
   it.each([
     ['link javascript:', { ticketUrl: 'javascript:alert(1)' }],
     ["fine prima dell'inizio", { endTime: 1 }],

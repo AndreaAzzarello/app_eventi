@@ -41,7 +41,11 @@
 		</p>
 		<h3><a href={eventPath(event)} class="stretched">{event.title}</a></h3>
 		<p class="where">
-			{event.venueName || event.address}{#if event.city && !(event.venueName || event.address).includes(event.city)}, {event.city}{/if}
+			{#if event.approxLocation}
+				{event.venueName ? `${event.venueName} · ` : ''}<span class="approx">Luogo da confermare</span>{#if event.city}, {event.city}{/if}
+			{:else}
+				{event.venueName || event.address}{#if event.city && !(event.venueName || event.address).includes(event.city)}, {event.city}{/if}
+			{/if}
 			{#if km != null}<span class="km"> · {km < 1 ? '< 1' : Math.round(km)} km</span>{/if}
 		</p>
 		<div class="tags">
@@ -147,6 +151,9 @@
 		font-size: 0.9rem;
 		color: var(--muted);
 		overflow-wrap: anywhere;
+	}
+	.approx {
+		font-style: italic;
 	}
 	.km {
 		white-space: nowrap;

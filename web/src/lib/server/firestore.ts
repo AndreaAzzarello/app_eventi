@@ -74,12 +74,12 @@ const f = (field: string, op: string, value: Value): Filter => ({
 });
 const int = (n: number): Value => ({ integerValue: String(n) });
 
-async function runQuery(where: Filter[], orderBy: string, limit: number): Promise<Event[]> {
+async function runQuery(where: Filter[], orderBy: string[], limit: number): Promise<Event[]> {
 	const rows = await call<{ document?: Doc }[]>(':runQuery', {
 		structuredQuery: {
 			from: [{ collectionId: 'events' }],
 			where: where.length === 1 ? where[0] : { compositeFilter: { op: 'AND', filters: where } },
-			orderBy: [{ field: { fieldPath: orderBy }, direction: 'ASCENDING' }],
+			orderBy: orderBy.map((fieldPath) => ({ field: { fieldPath }, direction: 'ASCENDING' })),
 			limit
 		}
 	});
@@ -91,6 +91,7 @@ async function runQuery(where: Filter[], orderBy: string, limit: number): Promis
 /** Minuto corrente: rende stabili le chiavi di cache. */
 const nowMinute = () => Math.floor(Date.now() / 60_000) * 60_000;
 
+/** Esportato per i test. */
 export const PER_CELL_LIMIT = 150;
 
 /** Eventi non finiti entro km dal centro: una query per intervallo di geohash, mai l'intera collezione. */
@@ -105,7 +106,10 @@ export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 						f('geohash', 'LESS_THAN_OR_EQUAL', { stringValue: end }),
 						f('endTime', 'GREATER_THAN_OR_EQUAL', int(now))
 					],
-					'geohash',
+					// Cella densa: il limite taglia per fine più vicina (imminenti e in corso), non per geohash.
+					// Richiede l'indice (endTime, geohash) in firestore.indexes.json.
+					// shortcut: a parità di endTime vale il geohash, non la distanza vera dal centro.
+					['endTime', 'geohash'],
 					PER_CELL_LIMIT
 				)
 			)
@@ -122,7 +126,7 @@ export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
 	return cached(`city:${citySlug}`, () =>
 		runQuery(
 			[f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))],
-			'endTime',
+			['endTime'],
 			limit
 		).then((list) => list.sort((a, b) => a.startTime - b.startTime))
 	);
@@ -130,7 +134,7 @@ export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
 
 export function upcomingEvents(limit: number): Promise<Event[]> {
 	return cached(`upcoming:${limit}`, () =>
-		runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], 'endTime', limit)
+		runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], ['endTime'], limit)
 	);
 }
 
