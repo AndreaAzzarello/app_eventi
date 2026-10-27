@@ -19,8 +19,8 @@ from adapters import SOURCES, Adapter, fallback_place
 from geo import enrich
 from geocode import Geocoder
 from mapping import ROME, dedupe_key
+from registry import USER_AGENT
 
-USER_AGENT = "EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/app_eventi)"
 HERE = Path(__file__).parent
 EXPIRED_AFTER = timedelta(days=7)
 log = logging.getLogger("importer")

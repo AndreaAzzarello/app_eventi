@@ -1,24 +1,38 @@
-"""Registro delle fonti. Nuove fonti: vedi adapters/base.py e il README (sezione Importer)."""
+"""Fonti attive, lette da sources/comuni.csv (righe con stato "attivo"). Vedi README, sezione Importer.
+
+Aggiungere un CMS: una classe con l'interfaccia di adapters/base.py e un ramo in load_sources().
+"""
 
 from __future__ import annotations
+
+import logging
+
+from geo import slugify
+from registry import base_url, read_rows
 
 from .base import Adapter, fallback_place
 from .plone import PloneAdapter
 
+log = logging.getLogger("importer")
+
 # Provincia di Modena (lon_min, lat_max, lon_max, lat_min): scarta omonimie in altre regioni.
-MODENA_VIEWBOX = "10.40,45.00,11.40,44.10"
-_ER = "Emilia-Romagna"
+PROVINCE_VIEWBOX = {"MO": "10.40,45.00,11.40,44.10"}
 
-# Siti design-comuni-plone: API REST pubblica (++api++), robots.txt senza Disallow.
-# Termini: riuso consentito citando la fonte (l'app mostra il link "Fonte").
-SOURCES: dict[str, Adapter] = {
-    a.name: a
-    for a in [
-        PloneAdapter("modena", "https://www.comune.modena.it", "Modena", "MO", _ER, MODENA_VIEWBOX),
-        PloneAdapter("formigine", "https://www.comune.formigine.mo.it", "Formigine", "MO", _ER, MODENA_VIEWBOX),
-        PloneAdapter("sassuolo", "https://www.comune.sassuolo.mo.it", "Sassuolo", "MO", _ER, MODENA_VIEWBOX),
-        PloneAdapter("mirandola", "https://www.comune.mirandola.mo.it", "Mirandola", "MO", _ER, MODENA_VIEWBOX),
-    ]
-}
 
-__all__ = ["Adapter", "SOURCES", "fallback_place"]
+def load_sources(rows: list[dict] | None = None) -> dict[str, Adapter]:
+    out: dict[str, Adapter] = {}
+    for r in read_rows() if rows is None else rows:
+        if r["stato"] != "attivo":
+            continue
+        if r["cms"] != "plone":
+            log.warning("%s: nessun adapter per il CMS %r, saltato", r["comune"], r["cms"])
+            continue
+        name = slugify(r["comune"])
+        out[name] = PloneAdapter(name, base_url(r["sito"]), r["comune"], r["provincia"], r["regione"],
+                                 PROVINCE_VIEWBOX.get(r["provincia"]))
+    return out
+
+
+SOURCES = load_sources()
+
+__all__ = ["Adapter", "SOURCES", "fallback_place", "load_sources"]

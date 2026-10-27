@@ -1,0 +1,331 @@
+﻿regione;provincia;comune;codice_istat;sito;url_eventi;cms;stato;licenza;robots_ok;note
+Emilia-Romagna;BO;Alto Reno Terme;037062;https://www.comune.altorenoterme.bo.it;https://www.comune.altorenoterme.bo.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Anzola dell'Emilia;037001;https://www.comune.anzoladellemilia.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Argelato;037002;https://www.comune.argelato.bo.it;https://www.comune.argelato.bo.it/vivere-argelato/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 38 eventi; note legali non trovate"
+Emilia-Romagna;BO;Baricella;037003;https://www.comune.baricella.bo.it;https://www.comune.baricella.bo.it/it-it/vivere-il-comune/eventi/oggi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Bentivoglio;037005;https://www.comune.bentivoglio.bo.it;https://www.comune.bentivoglio.bo.it/vivere-bentivoglio/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 43 eventi; note legali non trovate"
+Emilia-Romagna;BO;Bologna;037006;https://www.comune.bologna.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Borgo Tossignano;037007;https://www.comune.borgotossignano.bo.it;https://www.comune.borgotossignano.bo.it/vivere-borgo-tossignano/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 238 eventi; note legali non trovate"
+Emilia-Romagna;BO;Budrio;037008;https://www.comune.budrio.bo.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;BO;Calderara di Reno;037009;https://www.comune.calderaradireno.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Camugnano;037010;https://www.comune.camugnano.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Casalecchio di Reno;037011;https://www.comune.casalecchiodireno.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Casalfiumanese;037012;https://www.comune.casalfiumanese.bo.it;https://www.comune.casalfiumanese.bo.it/vivere-casalfiumanese/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 0 eventi; note legali non trovate"
+Emilia-Romagna;BO;Castel Guelfo di Bologna;037016;https://www.comune.castelguelfo.bo.it;https://www.comune.castelguelfo.bo.it/vivere-castel-guelfo/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 20 eventi; note legali non trovate"
+Emilia-Romagna;BO;Castel Maggiore;037019;https://www.comune.castel-maggiore.bo.it;https://www.comune.castel-maggiore.bo.it/vivere-castel-maggiore/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 303 eventi; note legali non trovate"
+Emilia-Romagna;BO;Castel San Pietro Terme;037020;https://www.comune.castelsanpietroterme.bo.it;https://www.comune.castelsanpietroterme.bo.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Castel d'Aiano;037013;https://www.comune.casteldaiano.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Castel del Rio;037014;https://www.comune.casteldelrio.bo.it;https://www.comune.casteldelrio.bo.it/it/vivere-castel-del-rio/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 89 eventi; note legali non trovate"
+Emilia-Romagna;BO;Castel di Casio;037015;https://www.comune.casteldicasio.bo.it;https://www.comune.casteldicasio.bo.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Castello d'Argile;037017;https://www.comune.castello-d-argile.bo.it;https://www.comune.castello-d-argile.bo.it/vivere-castello-dargile/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 9 eventi; note legali non trovate"
+Emilia-Romagna;BO;Castenaso;037021;https://www.comune.castenaso.bo.it;https://www.comune.castenaso.bo.it/it-it/vivere-il-comune/eventi/oggi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Castiglione dei Pepoli;037022;https://www.comune.castiglionedeipepoli.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Crevalcore;037024;https://www.comune.crevalcore.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Dozza;037025;https://www.comune.dozza.bo.it;https://www.comune.dozza.bo.it/vivere-dozza/eventi;plone;da_verificare;non trovata;si;auto: API Plone ok, 67 eventi
+Emilia-Romagna;BO;Fontanelice;037026;https://www.comune.fontanelice.bo.it;https://www.comune.fontanelice.bo.it/vivere-fontanelice/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 3 eventi; note legali non trovate"
+Emilia-Romagna;BO;Gaggio Montano;037027;https://www.comune.gaggio-montano.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Galliera;037028;https://www.comune.galliera.bo.it;https://www.comune.galliera.bo.it/vivere-galliera/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 70 eventi; note legali non trovate"
+Emilia-Romagna;BO;Granarolo dell'Emilia;037030;https://www.comune.granarolo-dellemilia.bo.it;https://www.comune.granarolo-dellemilia.bo.it/it-it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Grizzana Morandi;037031;https://www.comune.grizzanamorandi.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Imola;037032;https://www.comune.imola.bo.it;https://www.comune.imola.bo.it/vivere-imola/eventi;plone;candidato;CC-BY-4.0;si;auto: API Plone ok, 363 eventi
+Emilia-Romagna;BO;Lizzano in Belvedere;037033;https://www.comune.lizzano.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Loiano;037034;https://www.comune.loiano.bologna.it;https://www.comune.loiano.bologna.it/it-it/vivere-il-comune/eventi/oggi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Malalbergo;037035;https://www.comune.malalbergo.bo.it;https://www.comune.malalbergo.bo.it/it-it/vivere-il-comune/eventi/oggi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Marzabotto;037036;https://www.comune.marzabotto.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Medicina;037037;https://www.comune.medicina.bo.it;https://www.comune.medicina.bo.it/vivere-medicina/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Minerbio;037038;https://www.comune.minerbio.bo.it;https://www.comune.minerbio.bo.it/it-it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Molinella;037039;https://www.comune.molinella.bo.it;https://www.comune.molinella.bo.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Monghidoro;037040;https://www.comune.monghidoro.bo.it;https://www.comune.monghidoro.bo.it/it-it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Monte San Pietro;037042;https://www.comune.montesanpietro.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Monterenzio;037041;https://www.comune.monterenzio.bologna.it;https://comune.monterenzio.bologna.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Monzuno;037044;https://www.comune.monzuno.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Mordano;037045;https://www.comune.mordano.bo.it;https://www.comune.mordano.bo.it/vivere-mordano/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 1 eventi; note legali non trovate"
+Emilia-Romagna;BO;Ozzano dell'Emilia;037046;https://www.comune.ozzano.bo.it;https://www.comune.ozzano.bo.it/it-it/vivere-il-comune/eventi/oggi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Pianoro;037047;https://www.comune.pianoro.bo.it;https://www.comune.pianoro.bo.it/it-it/vivere-il-comune/eventi/oggi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;BO;Pieve di Cento;037048;https://www.comune.pievedicento.bo.it;https://www.comune.pievedicento.bo.it/vivere-pieve-di-cento/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 191 eventi; note legali non trovate"
+Emilia-Romagna;BO;Sala Bolognese;037050;https://www.comune.sala-bolognese.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;San Benedetto Val di Sambro;037051;https://www.comune.sanbenedettovaldisambro.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;San Giorgio di Piano;037052;https://www.comune.san-giorgio-di-piano.bo.it;https://www.comune.san-giorgio-di-piano.bo.it/vivere-san-giorgio-di-piano/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 68 eventi; note legali non trovate"
+Emilia-Romagna;BO;San Giovanni in Persiceto;037053;https://www.comunepersiceto.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;San Lazzaro di Savena;037054;https://www.comune.sanlazzaro.bo.it;https://www.comune.sanlazzaro.bo.it/vivere-san-lazzaro-di-savena/eventi;plone;candidato;CC-BY-4.0;si;auto: API Plone ok, 1795 eventi
+Emilia-Romagna;BO;San Pietro in Casale;037055;https://www.comune.san-pietro-in-casale.bo.it;https://www.comune.san-pietro-in-casale.bo.it/vivere-il-comune/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 6 eventi; note legali non trovate"
+Emilia-Romagna;BO;Sant'Agata Bolognese;037056;https://www.comune.santagatabolognese.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Sasso Marconi;037057;https://www.comune.sassomarconi.bologna.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Valsamoggia;037061;https://www.comune.valsamoggia.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Vergato;037059;https://www.comune.vergato.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;BO;Zola Predosa;037060;https://www.comune.zolapredosa.bo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Bagno di Romagna;040001;https://www.comune.bagnodiromagna.fc.it;https://www.comune.bagnodiromagna.fc.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FC;Bertinoro;040003;https://www.comune.bertinoro.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Borghi;040004;https://www.comune.borghi.fc.it;https://www.comune.borghi.fc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FC;Castrocaro Terme e Terra del Sole;040005;https://www.comune.castrocarotermeeterradelsole.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Cesena;040007;https://www.comune.cesena.fc.it;https://www.comune.cesena.fc.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FC;Cesenatico;040008;https://www.comune.cesenatico.fc.it;;altro;da_verificare;non trovata;si;
+Emilia-Romagna;FC;Civitella di Romagna;040009;https://www.comune.civitella-di-romagna.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Dovadola;040011;https://www.comune.dovadola.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Forlimpopoli;040013;https://www.comune.forlimpopoli.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Forlì;040012;https://www.comune.forli.fc.it;https://www.comune.forli.fc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FC;Galeata;040014;https://www.comune.galeata.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Gambettola;040015;https://www.comune.gambettola.fc.it;https://www.comune.gambettola.fc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FC;Gatteo;040016;https://www.comune.gatteo.fc.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;FC;Longiano;040018;https://www.comune.longiano.fc.it;https://www.comune.longiano.fc.it/servizi/Menu/menu_redirect.aspx?url=%2fservizi%2feventi%2fcerca_fase02.aspx&ID=20577&idCat=20577&TipoElemento=categoria;altro;da_verificare;non trovata;si;
+Emilia-Romagna;FC;Meldola;040019;https://www.comune.meldola.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Mercato Saraceno;040020;https://www.comune.mercatosaraceno.fc.it;https://www.comune.mercatosaraceno.fc.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FC;Modigliana;040022;https://www.comune.modigliana.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Montiano;040028;https://www.comune.montiano.fc.it;https://www.comune.montiano.fc.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FC;Portico e San Benedetto;040031;https://www.comune.portico-e-san-benedetto.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Predappio;040032;https://www.comune.predappio.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Premilcuore;040033;https://www.comune.premilcuore.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Rocca San Casciano;040036;https://www.comune.roccasancasciano.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Roncofreddo;040037;https://www.comune.roncofreddo.fc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;FC;San Mauro Pascoli;040041;https://www.comune.sanmauropascoli.fc.it;https://www.comune.sanmauropascoli.fc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FC;Santa Sofia;040043;https://www.comune.santa-sofia.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Sarsina;040044;https://www.comune.sarsina.fc.it;https://www.comune.sarsina.fc.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FC;Savignano sul Rubicone;040045;https://www.comune.savignano-sul-rubicone.fc.it;https://www.comune.savignano-sul-rubicone.fc.it/servizi/Menu/menu_redirect.aspx?url=http%3a%2f%2fwww.comune.savignano-sul-rubicone.fc.it%2fservizi%2feventi%2fcerca_fase02.aspx&ID=17313&idCat=17313&TipoElemento=categoria;altro;da_verificare;non trovata;si;
+Emilia-Romagna;FC;Sogliano al Rubicone;040046;https://www.comune.sogliano.fc.it;;altro;da_verificare;non trovata;si;
+Emilia-Romagna;FC;Tredozio;040049;https://www.comune.tredozio.fc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;FC;Verghereto;040050;https://www.comune.verghereto.fc.it;https://www.comune.verghereto.fc.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Argenta;038001;https://www.comune.argenta.fe.it;https://www.comune.argenta.fe.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Bondeno;038003;https://www.comune.bondeno.fe.it;https://www.comune.bondeno.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Cento;038004;https://www.comune.cento.fe.it;https://www.comune.cento.fe.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Codigoro;038005;https://www.comune.codigoro.fe.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;FE;Comacchio;038006;https://www.comune.comacchio.fe.it;https://www.comune.comacchio.fe.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Copparo;038007;https://www.comune.copparo.fe.it;https://www.comune.copparo.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Ferrara;038008;https://www.comune.ferrara.it;https://www.comune.ferrara.it/vivere-il-comune/tutti-gli-eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Fiscaglia;038027;https://www.comune.fiscaglia.fe.it;https://www.comune.fiscaglia.fe.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Goro;038025;https://www.comune.goro.fe.it;https://www.comune.goro.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Jolanda di Savoia;038010;https://www.comune.jolandadisavoia.fe.it;https://www.comune.jolandadisavoia.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Lagosanto;038011;https://www.comune.lagosanto.fe.it;https://www.comune.lagosanto.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Masi Torello;038012;https://www.comune.masitorello.fe.it;https://www.comune.masitorello.fe.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Mesola;038014;https://www.comune.mesola.fe.it;https://www.comune.mesola.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Ostellato;038017;https://www.comune.ostellato.fe.it;https://www.comune.ostellato.fe.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Poggio Renatico;038018;https://www.comune.poggiorenatico.fe.it;https://www.comune.poggiorenatico.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Portomaggiore;038019;https://www.comune.portomaggiore.fe.it;https://www.comune.portomaggiore.fe.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;FE;Riva del Po;038029;https://www.comune.rivadelpo.fe.it;https://www.comune.rivadelpo.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Terre del Reno;038028;https://www.comune.terredelreno.fe.it;https://www.comune.terredelreno.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Tresignana;038030;https://www.comune.tresignana.fe.it;https://www.comune.tresignana.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Vigarano Mainarda;038022;https://www.comune.vigarano.fe.it;https://www.comune.vigarano.fe.it/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;FE;Voghiera;038023;https://www.comune.voghiera.fe.it;https://www.comune.voghiera.fe.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;MO;Bastiglia;036001;https://www.comune.bastiglia.mo.it;https://www.comune.bastiglia.mo.it/vivere-bastiglia/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 0 eventi; note legali non trovate"
+Emilia-Romagna;MO;Bomporto;036002;https://www.comune.bomporto.mo.it;https://www.comune.bomporto.mo.it/vivere-bomporto/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 40 eventi; note legali non trovate"
+Emilia-Romagna;MO;Campogalliano;036003;https://www.comune.campogalliano.mo.it;https://www.comune.campogalliano.mo.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Camposanto;036004;https://www.comune.camposanto.mo.it;https://www.comune.camposanto.mo.it/vivere-camposanto/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 0 eventi; note legali non trovate"
+Emilia-Romagna;MO;Carpi;036005;https://www.comune.carpi.mo.it;https://www.comune.carpi.mo.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Castelfranco Emilia;036006;https://www.comune.castelfranco-emilia.mo.it;https://www.comune.castelfranco-emilia.mo.it/vivere-castelfranco-emilia/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 0 eventi; note legali non trovate"
+Emilia-Romagna;MO;Castelnuovo Rangone;036007;https://www.comune.castelnuovo-rangone.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Castelvetro di Modena;036008;https://www.comune.castelvetro-di-modena.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Cavezzo;036009;https://www.comune.cavezzo.mo.it;https://www.comune.cavezzo.mo.it/vivere-cavezzo/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 169 eventi; note legali non trovate"
+Emilia-Romagna;MO;Concordia sulla Secchia;036010;https://www.comune.concordia.mo.it;https://www.comune.concordia.mo.it/vivere-concordia/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 42 eventi; note legali non trovate"
+Emilia-Romagna;MO;Fanano;036011;https://www.comune.fanano.mo.it;https://www.comune.fanano.mo.it/evento/;altro;escluso;CC-BY-NC/ND-3.0;si;
+Emilia-Romagna;MO;Finale Emilia;036012;https://www.comune.finale.mo.it;https://www.comune.finale.mo.it/vivere-il-comune/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 583 eventi; note legali non trovate"
+Emilia-Romagna;MO;Fiorano Modenese;036013;https://www.comune.fiorano-modenese.mo.it;https://www.comune.fiorano-modenese.mo.it/vivere-fiorano-modenese/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 45 eventi; note legali non trovate"
+Emilia-Romagna;MO;Fiumalbo;036014;https://www.comune.fiumalbo.mo.it;https://www.comune.fiumalbo.mo.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Formigine;036015;https://www.comune.formigine.mo.it;;plone;attivo;;si;"già in uso prima del registro; licenza e robots da riverificare con detect_cms --force"
+Emilia-Romagna;MO;Frassinoro;036016;https://www.comune.frassinoro.mo.it;https://www.comune.frassinoro.mo.it/vivere-frassinoro/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 3 eventi; note legali non trovate"
+Emilia-Romagna;MO;Guiglia;036017;https://www.comune.guiglia.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Lama Mocogno;036018;https://www.comune.lamamocogno.mo.it;https://www.comune.lamamocogno.mo.it/evento/;altro;escluso;CC-BY-NC/ND-3.0;si;
+Emilia-Romagna;MO;Maranello;036019;https://www.comune.maranello.mo.it;https://www.comune.maranello.mo.it/vivere-maranello/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 25 eventi; note legali non trovate"
+Emilia-Romagna;MO;Marano sul Panaro;036020;https://www.comune.marano-sul-panaro.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Medolla;036021;https://www.comune.medolla.mo.it;https://www.comune.medolla.mo.it/vivere-il-comune/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 2 eventi; note legali non trovate"
+Emilia-Romagna;MO;Mirandola;036022;https://www.comune.mirandola.mo.it;;plone;attivo;;si;"già in uso prima del registro; licenza e robots da riverificare con detect_cms --force"
+Emilia-Romagna;MO;Modena;036023;https://www.comune.modena.it;;plone;attivo;;si;"già in uso prima del registro; licenza e robots da riverificare con detect_cms --force"
+Emilia-Romagna;MO;Montecreto;036024;https://www.comune.montecreto.mo.it;https://www.comune.montecreto.mo.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Montefiorino;036025;https://www.comune.montefiorino.mo.it;;plone;da_verificare;non trovata;si;"auto: API Plone ok, 8 eventi; note legali non trovate"
+Emilia-Romagna;MO;Montese;036026;https://www.comune.montese.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Nonantola;036027;https://www.comune.nonantola.mo.it;https://www.comune.nonantola.mo.it/vivere-nonantola/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 14 eventi; note legali non trovate"
+Emilia-Romagna;MO;Novi di Modena;036028;https://www.comune.novi.mo.it;https://www.comune.novi.mo.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Palagano;036029;https://www.comune.palagano.mo.it;https://www.comune.palagano.mo.it/vivere-palagano/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 14 eventi; note legali non trovate"
+Emilia-Romagna;MO;Pavullo nel Frignano;036030;https://www.comune.pavullo-nel-frignano.mo.it;https://www.comune.pavullo-nel-frignano.mo.it/evento/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Pievepelago;036031;https://www.comune.pievepelago.mo.it;https://www.comune.pievepelago.mo.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Polinago;036032;https://www.comune.polinago.mo.it;https://www.comune.polinago.mo.it/Eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Prignano sulla Secchia;036033;https://www.comune.prignano.mo.it;https://www.comune.prignano.mo.it/vivere-prignano-sulla-secchia/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 114 eventi; note legali non trovate"
+Emilia-Romagna;MO;Ravarino;036034;https://www.comune.ravarino.mo.it;https://www.comune.ravarino.mo.it/vivere-ravarino/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 24 eventi; note legali non trovate"
+Emilia-Romagna;MO;Riolunato;036035;https://www.comune.riolunato.mo.it;https://www.comune.riolunato.mo.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;San Cesario sul Panaro;036036;https://www.comune.sancesariosulpanaro.mo.it;https://www.comune.sancesariosulpanaro.mo.it/vivere-san-cesario-sul-panaro/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 37 eventi; note legali non trovate"
+Emilia-Romagna;MO;San Felice sul Panaro;036037;https://www.comunesanfelice.net;https://www.comune.sanfelice.mo.it/vivere-il-comune/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 95 eventi; note legali non trovate"
+Emilia-Romagna;MO;San Possidonio;036038;https://www.comune.sanpossidonio.mo.it;https://www.comune.sanpossidonio.mo.it/vivere-il-comune/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 5 eventi; note legali non trovate"
+Emilia-Romagna;MO;San Prospero;036039;https://www.comune.sanprospero.mo.it;https://www.comune.sanprospero.mo.it/vivere-san-prospero/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 29 eventi; note legali non trovate"
+Emilia-Romagna;MO;Sassuolo;036040;https://www.comune.sassuolo.mo.it;;plone;attivo;;si;"già in uso prima del registro; licenza e robots da riverificare con detect_cms --force"
+Emilia-Romagna;MO;Savignano sul Panaro;036041;https://www.comune.savignano-sul-panaro.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Serramazzoni;036042;https://www.comune.serramazzoni.mo.it;https://www.comune.serramazzoni.mo.it/vivere-il-comune/eventi/;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;MO;Sestola;036043;https://www.comune.sestola.mo.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;MO;Soliera;036044;https://www.comune.soliera.mo.it;https://www.comune.soliera.mo.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;MO;Spilamberto;036045;https://www.comune.spilamberto.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Vignola;036046;https://www.comune.vignola.mo.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;MO;Zocca;036047;https://www.comunezocca.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PC;Agazzano;033001;https://www.comune.agazzano.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Alseno;033002;https://www.comune.alseno.pc.it;https://www.comune.alseno.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Alta Val Tidone;033049;https://www.comunealtavaltidone.pc.it;https://www.comune.altavaltidone.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Besenzone;033003;https://www.comune.besenzone.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Bettola;033004;https://www.comune.bettola.pc.it;https://www.comune.bettola.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Bobbio;033005;https://www.comune.bobbio.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Borgonovo Val Tidone;033006;https://www.comune.borgonovo.pc.it;https://www.comune.borgonovo.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Cadeo;033007;https://www.comune.cadeo.pc.it;https://www.comune.cadeo.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Calendasco;033008;https://www.comune.calendasco.pc.it;https://www.comune.calendasco.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Caorso;033010;https://www.comune.caorso.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Carpaneto Piacentino;033011;https://www.comune.carpaneto.pc.it;https://www.comune.carpaneto.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Castel San Giovanni;033013;https://www.comune.castelsangiovanni.pc.it;https://www.comune.castelsangiovanni.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Castell'Arquato;033012;https://www.comune.castellarquato.pc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PC;Castelvetro Piacentino;033014;https://www.comune.castelvetro.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Cerignale;033015;https://www.comune.cerignale.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Coli;033016;https://www.comune.coli.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Corte Brugnatella;033017;https://www.comune.cortebrugnatella.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Cortemaggiore;033018;https://www.comune.cortemaggiore.pc.it;https://www.comune.cortemaggiore.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Farini;033019;https://www.comune.farini.pc.it;https://www.comune.farini.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Ferriere;033020;https://www.comune.ferriere.pc.it;https://www.comune.ferriere.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Fiorenzuola d'Arda;033021;https://www.comune.fiorenzuola.pc.it;https://www.comune.fiorenzuola.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Gazzola;033022;https://www.comune.gazzola.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Gossolengo;033023;https://www.comune.gossolengo.pc.it;https://www.comune.gossolengo.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Gragnano Trebbiense;033024;https://www.comune.gragnanotrebbiense.pc.it;https://www.comune.gragnanotrebbiense.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Gropparello;033025;https://www.comune.gropparello.pc.it;https://www.comune.gropparello.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Lugagnano Val d'Arda;033026;https://www.comune.lugagnano.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Monticelli d'Ongina;033027;http://www.comune.monticelli.pc.it;https://www.comune.monticelli.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Morfasso;033028;https://www.comune.morfasso.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Ottone;033030;https://www.comune.ottone.pc.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PC;Piacenza;033032;https://www.comune.piacenza.it;https://www.comune.piacenza.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Pianello Val Tidone;033033;https://www.comunepianellovaltidone.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Piozzano;033034;https://www.comune.piozzano.pc.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PC;Podenzano;033035;https://www.comune.podenzano.pc.it;https://www.comune.podenzano.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Ponte dell'Olio;033036;https://www.comune.pontedellolio.pc.it;https://www.comune.pontedellolio.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Pontenure;033037;https://www.comune.pontenure.pc.it;;altro;da_verificare;non trovata;si;
+Emilia-Romagna;PC;Rivergaro;033038;https://www.comune.rivergaro.pc.it;https://www.comune.rivergaro.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Rottofreno;033039;https://www.comune.rottofreno.pc.it;https://www.comune.rottofreno.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;San Giorgio Piacentino;033040;https://www.comune.sangiorgiopiacentino.pc.it;https://www.comune.sangiorgiopiacentino.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;San Pietro in Cerro;033041;https://www.comune.sanpietroincerro.pc.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PC;Sarmato;033042;https://www.comune.sarmato.pc.it;https://www.comune.sarmato.pc.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Travo;033043;https://www.comune.travo.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Vernasca;033044;https://www.comune.vernasca.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Vigolzone;033045;https://www.comune.vigolzone.pc.it;https://www.comune.vigolzone.pc.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PC;Villanova sull'Arda;033046;https://www.comune.villanova.pc.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PC;Zerba;033047;https://www.comune.zerba.pc.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PC;Ziano Piacentino;033048;https://www.comune.ziano.pc.it;https://www.comune.ziano.pc.it/categorie/eventi/;altro;da_verificare;non trovata;si;
+Emilia-Romagna;PR;Albareto;034001;https://www.comune.albareto.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Bardi;034002;https://www.comune.bardi.pr.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PR;Bedonia;034003;https://www.comune.bedonia.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Berceto;034004;https://www.comune.berceto.pr.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PR;Bore;034005;https://www.comune.bore.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Borgo Val di Taro;034006;https://www.comune.borgo-val-di-taro.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Busseto;034007;https://www.comune.busseto.pr.it;https://comune.busseto.pr.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Calestano;034008;https://www.comune.calestano.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Collecchio;034009;https://www.comune.collecchio.pr.it;https://www.comune.collecchio.pr.it/novita/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Colorno;034010;https://www.comune.colorno.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Compiano;034011;https://www.comune.compiano.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Corniglio;034012;https://www.comune.corniglio.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Felino;034013;https://www.comune.felino.pr.it;https://www.comune.felino.pr.it/novita/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Fidenza;034014;https://www.comune.fidenza.pr.it;https://www.comune.fidenza.pr.it/evento/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Fontanellato;034015;https://www.comune.fontanellato.pr.it;https://www.comune.fontanellato.pr.it/novita/notizie/eventi-aprile-2025/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Fontevivo;034016;https://www.comune.fontevivo.pr.it;https://www.comune.fontevivo.pr.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Fornovo di Taro;034017;https://www.comune.fornovo-di-taro.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Langhirano;034018;https://www.comune.langhirano.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Lesignano de' Bagni;034019;https://www.comune.lesignano-debagni.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Medesano;034020;https://www.comune.medesano.pr.it;https://www.comune.medesano.pr.it/vivere-medesano/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Monchio delle Corti;034022;https://www.comune.monchio-delle-corti.pr.it;https://www.comune.monchio-delle-corti.pr.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Montechiarugolo;034023;https://www.comune.montechiarugolo.pr.it;https://www.comune.montechiarugolo.pr.it/novita/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Neviano degli Arduini;034024;https://www.comune.neviano-degli-arduini.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Noceto;034025;https://www.comune.noceto.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Palanzano;034026;https://www.comune.palanzano.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Parma;034027;https://www.comune.parma.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PR;Pellegrino Parmense;034028;https://www.comune.pellegrino-parmense.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Polesine Zibello;034050;https://www.comune.polesine-zibello.pr.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PR;Roccabianca;034030;https://www.comune.roccabianca.pr.it;https://www.comune.roccabianca.pr.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Sala Baganza;034031;https://www.comune.sala-baganza.pr.it;https://www.comune.sala-baganza.pr.it/novita/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Salsomaggiore Terme;034032;https://www.comune.salsomaggiore-terme.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;San Secondo Parmense;034033;https://www.comune.san-secondo-parmense.pr.it;https://www.comune.san-secondo-parmense.pr.it/novita/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Sissa Trecasali;034049;https://www.comune.sissatrecasali.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Solignano;034035;https://www.comune.solignano.pr.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;PR;Soragna;034036;https://www.comune.soragna.pr.it;https://www.comune.soragna.pr.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Sorbolo Mezzani;034051;https://www.comune.sorbolomezzani.pr.it;https://www.comune.sorbolomezzani.pr.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Terenzo;034038;https://www.comune.terenzo.pr.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PR;Tizzano Val Parma;034039;https://www.comune.tizzano-val-parma.pr.it;https://www.comune.tizzano-val-parma.pr.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Tornolo;034040;https://www.comune.tornolo.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Torrile;034041;https://www.comune.torrile.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Traversetolo;034042;https://www.comune.traversetolo.pr.it;https://www.comune.traversetolo.pr.it/novita/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;PR;Valmozzola;034044;https://www.comune.valmozzola.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;PR;Varano de' Melegari;034045;https://www.comune.varano.demelegari.pr.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;PR;Varsi;034046;https://www.comune.varsi.pr.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RA;Alfonsine;039001;https://www.comune.alfonsine.ra.it;https://www.comune.alfonsine.ra.it/Vivere-il-comune/Eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RA;Bagnacavallo;039002;https://www.comune.bagnacavallo.ra.it;https://www.comune.bagnacavallo.ra.it/Vivere-il-comune/Eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RA;Bagnara di Romagna;039003;https://www.comune.bagnaradiromagna.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Brisighella;039004;https://www.comune.brisighella.ra.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RA;Casola Valsenio;039005;https://www.comune.casolavalsenio.ra.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RA;Castel Bolognese;039006;https://www.comune.castelbolognese.ra.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RA;Cervia;039007;https://www.comune.cervia.ra.it;https://www.comune.cervia.ra.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RA;Conselice;039008;https://www.comune.conselice.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Cotignola;039009;https://www.comune.cotignola.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Faenza;039010;https://www.comune.faenza.ra.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RA;Fusignano;039011;https://www.comune.fusignano.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Lugo;039012;https://www.comune.lugo.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Massa Lombarda;039013;https://www.comune.massalombarda.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Ravenna;039014;https://www.comune.ra.it;https://comune.ravenna.it/vivere-il-comune/eventi;wordpress-dci;candidato;CC-BY-4.0;si;auto: adapter WordPress da scrivere
+Emilia-Romagna;RA;Riolo Terme;039015;https://www.comune.rioloterme.ra.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RA;Russi;039016;https://www.comune.russi.ra.it;https://www.comune.russi.ra.it/vivere-russi/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 586 eventi; note legali non trovate"
+Emilia-Romagna;RA;Sant'Agata sul Santerno;039017;https://www.comune.santagatasulsanterno.ra.it;;altro;escluso;;no;auto: robots.txt vieta la home
+Emilia-Romagna;RA;Solarolo;039018;https://www.comune.solarolo.ra.it;;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RE;Albinea;035001;https://www.comune.albinea.re.it;https://www.comune.albinea.re.it/eventi/;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RE;Bagnolo in Piano;035002;https://comune.bagnolo.re.it;https://comune.bagnolo.re.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Baiso;035003;https://comune.baiso.re.it;https://comune.baiso.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Bibbiano;035004;https://www.comune.bibbiano.re.it;https://www.comune.bibbiano.re.it/vivere-bibbiano/eventi;plone;escluso;CC-BY-NC/ND;si;"auto: API Plone ok, 217 eventi; licenza dal piè di pagina, non dalle note legali; note legali non trovate"
+Emilia-Romagna;RE;Boretto;035005;https://www.comune.boretto.re.it;https://www.comune.boretto.re.it/home/vivere/eventi.html;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Brescello;035006;https://www.comune.brescello.re.it;https://www.comune.brescello.re.it/Vivere-il-comune/Eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Cadelbosco di Sopra;035008;https://comune.cadelbosco-di-sopra.re.it;https://comune.cadelbosco-di-sopra.re.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Campagnola Emilia;035009;https://www.comune.campagnola-emilia.re.it;https://www.comune.campagnola-emilia.re.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Campegine;035010;https://www.comune.campegine.re.it;https://www.comune.campegine.re.it/vivere-campegine/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 45 eventi; note legali non trovate"
+Emilia-Romagna;RE;Canossa;035018;https://www.comune.canossa.re.it;https://www.comune.canossa.re.it/vivere-canossa/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 10 eventi; note legali non trovate"
+Emilia-Romagna;RE;Carpineti;035011;https://www.comune.carpineti.re.it;https://www.comune.carpineti.re.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Casalgrande;035012;https://www.comune.casalgrande.re.it;https://www.comune.casalgrande.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Casina;035013;https://www.comune.casina.re.it;https://www.comune.casina.re.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Castellarano;035014;https://www.comune.castellarano.re.it;https://www.comune.castellarano.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Castelnovo di Sotto;035015;https://comune.castelnovo-di-sotto.re.it;https://comune.castelnovo-di-sotto.re.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Castelnovo ne' Monti;035016;https://www.comune.castelnovo-nemonti.re.it;https://www.comune.castelnovo-nemonti.re.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Cavriago;035017;https://comune.cavriago.re.it;https://www.comune.cavriago.re.it/vivere-cavriago/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 47 eventi; note legali non trovate"
+Emilia-Romagna;RE;Correggio;035020;https://www.comune.correggio.re.it;https://www.comune.correggio.re.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Fabbrico;035021;https://www.comune.fabbrico.re.it;https://www.comune.fabbrico.re.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Gattatico;035022;https://www.comune.gattatico.re.it;https://www.comune.gattatico.re.it/vivere-gattatico/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 5 eventi; note legali non trovate"
+Emilia-Romagna;RE;Gualtieri;035023;https://www.comune.gualtieri.re.it;https://www.comune.gualtieri.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Guastalla;035024;https://www.comune.guastalla.re.it;https://www.comune.guastalla.re.it/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Luzzara;035026;https://www.comune.luzzara.re.it;https://www.comune.luzzara.re.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Montecchio Emilia;035027;https://www.comune.montecchio-emilia.re.it;https://www.comune.montecchio-emilia.re.it/vivere-montecchio-emilia/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 1 eventi; note legali non trovate"
+Emilia-Romagna;RE;Novellara;035028;https://www.comune.novellara.re.it;https://www.comune.novellara.re.it/vivere-novellara/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 606 eventi; note legali non trovate"
+Emilia-Romagna;RE;Poviglio;035029;https://www.comune.poviglio.re.it;https://www.comune.poviglio.re.it/vivere-il-comune/eventi/;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Quattro Castella;035030;https://www.comune.quattro-castella.re.it;https://www.comune.quattro-castella.re.it/vivi-quattro-castella/eventi-e-manifestazioni-2/;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RE;Reggio nell'Emilia;035033;https://www.comune.reggioemilia.it;https://www.comune.reggioemilia.it/vivere-reggio-emilia/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Reggiolo;035032;https://www.comune.reggiolo.re.it;https://www.comune.reggiolo.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Rio Saliceto;035034;https://www.comune.riosaliceto.re.it;https://www.comune.riosaliceto.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Rolo;035035;https://www.comune.rolo.re.it;https://www.comune.rolo.re.it/vivere-rolo/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 6 eventi; note legali non trovate"
+Emilia-Romagna;RE;Rubiera;035036;https://www.comune.rubiera.re.it;https://www.comune.rubiera.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;San Martino in Rio;035037;https://comune.sanmartinoinrio.re.it;https://www.comune.sanmartinoinrio.re.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;San Polo d'Enza;035038;https://www.comune.sanpolodenza.re.it;https://www.comune.sanpolodenza.re.it/vivere-san-polo-denza/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 16 eventi; note legali non trovate"
+Emilia-Romagna;RE;Sant'Ilario d'Enza;035039;https://www.comune.santilariodenza.re.it;https://www.comune.santilariodenza.re.it/vivere-silario-e-calerno/eventi;plone;da_verificare;non trovata;si;"auto: API Plone ok, 3 eventi; note legali non trovate"
+Emilia-Romagna;RE;Scandiano;035040;https://www.comune.scandiano.re.it;https://www.comune.scandiano.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Toano;035041;https://www.comune.toano.re.it;https://www.comune.toano.re.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Ventasso;035046;https://www.comune.ventasso.re.it;https://www.comune.ventasso.re.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Vetto;035042;https://www.comune.vetto.re.it;https://www.comune.vetto.re.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Vezzano sul Crostolo;035043;https://www.comune.vezzano-sul-crostolo.re.it;https://www.comune.vezzano-sul-crostolo.re.it/eventi/;altro;da_verificare;non trovata;si;auto: note legali non trovate
+Emilia-Romagna;RE;Viano;035044;https://www.comune.viano.re.it;https://www.comune.viano.re.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RE;Villa Minozzo;035045;https://www.comune.villa-minozzo.re.it;https://www.comune.villa-minozzo.re.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Bellaria-Igea Marina;099001;https://www.comune.bellaria-igea-marina.rn.it;https://www.comune.bellaria-igea-marina.rn.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Casteldelci;099021;https://www.comune.casteldelci.rn.it;https://www.comune.casteldelci.rn.it/vivere-il-comune;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Cattolica;099002;https://www.cattolica.net;https://www.cattolica.net/retecivica-citta-di-cattolica/eventi-nella-citta-di-cattolica;altro;da_verificare;non trovata;si;
+Emilia-Romagna;RN;Coriano;099003;https://www.comune.coriano.rn.it;https://comune.coriano.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Gemmano;099004;https://www.comune.gemmano.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Maiolo;099022;https://www.comune.maiolo.rn.it;https://www.comune.maiolo.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Misano Adriatico;099005;https://www.comune.misano-adriatico.rn.it;https://www.comune.misano-adriatico.rn.it/it-it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Mondaino;099006;https://www.mondaino.com;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Montecopiolo;099030;https://www.comune.montecopiolo.rn.it;https://comune.montecopiolo.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Montefiore Conca;099008;https://www.comune.montefiore-conca.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Montegridolfo;099009;https://www.montegridolfo.eu;https://comune.montegridolfo.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Montescudo-Monte Colombo;099029;https://www.comune-montescudo-montecolombo.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Morciano di Romagna;099011;https://www.comune.morcianodiromagna.rn.it;https://comune.morcianodiromagna.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Novafeltria;099023;https://www.comune.novafeltria.rn.it;https://www.comune.novafeltria.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Pennabilli;099024;https://www.comune.pennabilli.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Poggio Torriana;099028;https://www.comune.poggiotorriana.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Riccione;099013;https://www.comune.riccione.rn.it;https://www.comune.riccione.rn.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Rimini;099014;https://www.comune.rimini.it;https://www.comune.rimini.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Saludecio;099015;https://comune.saludecio.rn.it;https://comune.saludecio.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;San Clemente;099016;https://comune.sanclemente.rn.it;https://comune.sanclemente.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;San Giovanni in Marignano;099017;https://comune.san-giovanni-in-marignano.rn.it;https://comune.san-giovanni-in-marignano.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;San Leo;099025;https://www.comune.san-leo.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
+Emilia-Romagna;RN;Sant'Agata Feltria;099026;https://www.comune.santagatafeltria.rn.it;https://comune.santagatafeltria.rn.it/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Santarcangelo di Romagna;099018;https://www.comune.santarcangelo.rn.it;https://www.comune.santarcangelo.rn.it/it/events;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Sassofeltrio;099031;https://www.comune.sassofeltrio.rn.it;https://comune.sassofeltrio.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Talamello;099027;https://www.comune.talamello.rn.it;https://www.comune.talamello.rn.it/vivere-il-comune/eventi;altro;da_verificare;CC-BY-4.0;si;
+Emilia-Romagna;RN;Verucchio;099020;https://www.comune.verucchio.rn.it;;irraggiungibile;da_verificare;;;auto: robots.txt non raggiungibile
