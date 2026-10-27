@@ -3,12 +3,13 @@
 	import { page } from '$app/state';
 	import EventList from '$lib/components/EventList.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import { compareEvents } from '$lib/event';
 
 	let { data } = $props();
 	let now = $state(Date.now());
 	onMount(() => (now = Date.now()));
 	const where = $derived(data.province ? `${data.city} (${data.province})` : data.city);
-	const visible = $derived(data.events.filter((e) => e.endTime >= now));
+	const visible = $derived(data.events.filter((e) => e.endTime >= now).sort(compareEvents(now)));
 </script>
 
 <Seo

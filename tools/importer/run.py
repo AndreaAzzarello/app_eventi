@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox
 from geocode import Geocoder
-from mapping import ROME, dedupe_key
+from mapping import ROME, dedupe_key, is_long_running
 from registry import USER_AGENT
 
 HERE = Path(__file__).parent
@@ -60,6 +60,8 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
                 log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
                 continue
             enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
+            if is_long_running(ev):
+                ev["longRunning"] = True
             events.setdefault(dedupe_key(ev), ev)
             kept += 1
         stats[name] |= {"events": kept, "skipped": skipped}

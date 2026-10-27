@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Event } from '$lib/event';
+	import { compareEvents, type Event } from '$lib/event';
 	import { favorites, session } from '$lib/session.svelte';
 	import EventList from './EventList.svelte';
 
@@ -41,7 +41,7 @@
 
 	// Togliere un preferito lo nasconde subito senza ricaricare.
 	const shown = $derived(
-		events.filter((e) => favorites.has(e.id)).sort((a, b) => (a.endTime < now ? 1 : 0) - (b.endTime < now ? 1 : 0) || a.startTime - b.startTime)
+		events.filter((e) => favorites.has(e.id)).sort((a, b) => (a.endTime < now ? 1 : 0) - (b.endTime < now ? 1 : 0) || compareEvents(now)(a, b))
 	);
 </script>
 

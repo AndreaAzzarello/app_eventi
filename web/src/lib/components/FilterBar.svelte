@@ -11,7 +11,7 @@
 	const setQ = debounce((v: string) => onchange({ ...filter, q: v }), 250);
 	const set = (patch: Partial<Filter>) => onchange({ ...filter, ...patch });
 	const active = $derived(
-		filter.q !== '' || filter.when !== 'any' || filter.free || filter.kids || filter.category !== null
+		filter.q !== '' || filter.when !== 'any' || filter.free || filter.kids || filter.running || filter.category !== null
 	);
 
 	function reset() {
@@ -39,6 +39,7 @@
 		<button type="button" class="chip" aria-pressed={filter.when === 'weekend'} onclick={() => set({ when: filter.when === 'weekend' ? 'any' : 'weekend' })}>Weekend</button>
 		<button type="button" class="chip" aria-pressed={filter.free} onclick={() => set({ free: !filter.free })}>Gratis</button>
 		<button type="button" class="chip" aria-pressed={filter.kids} onclick={() => set({ kids: !filter.kids })}>Bambini</button>
+		<button type="button" class="chip" aria-pressed={filter.running} onclick={() => set({ running: !filter.running })}>Mostre ed eventi in corso</button>
 		<label class="select-chip">
 			<span class="visually-hidden">Categoria</span>
 			<select

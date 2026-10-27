@@ -145,3 +145,11 @@ def test_robots_non_raggiungibile_o_lista_assente_e_un_errore_non_zero_eventi():
     ok = DesignComuniHtmlAdapter("x", "https://x.it", "X", "BO", "Emilia-Romagna", None, "https://x.it/eventi/",
                                  fetcher=Fetcher(client(200, 200), min_interval=0, backoff=0))
     assert list(ok.events(None, now, 60)) == []
+
+
+def test_mostra_lunga_importata_e_long_running():
+    from mapping import is_long_running
+
+    ev = event("riccione", 2, "2026-10-27")  # Mostra "Vissi d'arte": dal 18 ottobre al 15 novembre
+    assert ev["title"].startswith("Mostra") and (ev["start"], ev["end"]) == ("2026-10-18 09:00", "2026-11-15 19:00")
+    assert is_long_running(ev)

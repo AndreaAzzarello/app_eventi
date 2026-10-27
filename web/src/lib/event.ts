@@ -1,6 +1,8 @@
 // Modello Event: stessi campi della versione Flutter + geohash e località normalizzate.
 // I limiti coincidono con firebase/firestore.rules (validEventFields).
 
+import { romeParts, shortDate } from './dates';
+
 export const CATEGORIES = {
 	music: 'Musica',
 	food: 'Cibo e sagre',
@@ -56,9 +58,13 @@ export interface Event extends EventInput {
 	approxLocation: boolean;
 	/** Frazione (es. "Sant'Agostino"), scritta dall'importer; city resta il comune. Solo da mostrare: mai per URL o raggruppamenti. */
 	locality: string;
+	/** true = dura più di LONG_RUNNING_DAYS giorni (mostre, rassegne). Non è nel form: si ricava dalle date. */
+	longRunning: boolean;
 	createdAt?: number;
 	updatedAt?: number;
 }
+
+export const LONG_RUNNING_DAYS = 14;
 
 const str = (v: unknown, fallback = '') => (v == null ? fallback : String(v));
 const num = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
@@ -66,6 +72,7 @@ const num = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 /** Documento Firestore → Event. Ignora i campi interni (submittedBy). Default come Event.fromMap in Dart. */
 export function fromData(id: string, m: Record<string, unknown>): Event {
 	const start = num(m.startTime);
+	const endMs = m.endTime == null ? start : num(m.endTime);
 	const category = str(m.category, 'other');
 	const priceType = str(m.priceType, 'free');
 	const source = str(m.source, 'manual');
@@ -76,7 +83,7 @@ export function fromData(id: string, m: Record<string, unknown>): Event {
 		category: (category in CATEGORIES ? category : 'other') as Category,
 		priceType: (priceType in PRICE_TYPES ? priceType : 'free') as PriceType,
 		startTime: start,
-		endTime: m.endTime == null ? start : num(m.endTime),
+		endTime: endMs,
 		venueName: str(m.venueName),
 		address: str(m.address),
 		lat: num(m.lat),
@@ -93,6 +100,7 @@ export function fromData(id: string, m: Record<string, unknown>): Event {
 		sourceUrl: safeUrl(str(m.sourceUrl)),
 		approxLocation: m.approxLocation === true,
 		locality: str(m.locality),
+		longRunning: m.longRunning === true || endMs - start > LONG_RUNNING_DAYS * 86_400_000,
 		createdAt: m.createdAt == null ? undefined : num(m.createdAt),
 		updatedAt: m.updatedAt == null ? undefined : num(m.updatedAt)
 	};
@@ -175,3 +183,24 @@ export function validateEvent(e: EventInput): EventErrors {
 	else if (!e.city.trim() || !e.citySlug) err.place = 'Non riesco a capire il comune: sposta il segnaposto';
 	return err;
 }
+
+/** Badge per mostre e eventi lunghi: "Mostra" o "In corso fino al 12 nov"; null se l'evento non è lungo. */
+export function runningLabel(e: Pick<Event, 'longRunning' | 'category' | 'title' | 'tags' | 'endTime'>): string | null {
+	if (!e.longRunning) return null;
+	if (e.category === 'culture' && (/mostra/i.test(e.title) || e.tags.includes('mostra'))) return 'Mostra';
+	return `In corso fino al ${shortDate(e.endTime)}`;
+}
+
+const dayKey = (ms: number) => {
+	const p = romeParts(ms);
+	return p.year * 10_000 + p.month * 100 + p.day;
+};
+
+/** Ordine delle liste: giorno (Roma) di max(inizio, adesso), a parità prima i puntuali poi i lunghi, poi inizio e titolo. */
+export const compareEvents =
+	(now: number) =>
+	(a: Pick<Event, 'startTime' | 'longRunning' | 'title'>, b: typeof a): number =>
+		dayKey(Math.max(a.startTime, now)) - dayKey(Math.max(b.startTime, now)) ||
+		Number(a.longRunning) - Number(b.longRunning) ||
+		a.startTime - b.startTime ||
+		a.title.localeCompare(b.title, 'it');

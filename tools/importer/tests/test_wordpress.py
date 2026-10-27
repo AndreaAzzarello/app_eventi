@@ -96,11 +96,10 @@ def test_bambini_dal_pubblico():
     assert any(e["tags"] == ["kids"] for e in evs)
 
 
-def test_eventi_lunghi_scartati():
+def test_eventi_lunghi_importati_fino_al_tetto():
     now = datetime(2024, 11, 1, tzinfo=ROME)
-    assert "Webinar per genitori" not in by_title(run("mesola", now=now)[0])  # 50 giorni
-    # senza soglia sarebbe attivo: 3 giorni di margine sul limite di 45
-    assert run("mesola", now=datetime(2025, 2, 1, tzinfo=ROME))[0]  # incontri di 23 giorni restano
+    e = by_title(run("mesola", now=now)[0])["Webinar per genitori"]  # 50 giorni: prima scartato
+    assert e["endTime"] - e["startTime"] > 45 * 86_400_000
 
 
 def test_finiti_scartati():

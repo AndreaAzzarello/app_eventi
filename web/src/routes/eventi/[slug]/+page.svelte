@@ -6,7 +6,7 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { siteUrl } from '$lib/config';
 	import { formatWhen } from '$lib/dates';
-	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, isForKids, isFree } from '$lib/event';
+	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, isForKids, isFree, runningLabel } from '$lib/event';
 	import { imageSources } from '$lib/images';
 	import { buildIcs } from '$lib/ics';
 	import { eventJsonLd, safeJson } from '$lib/jsonld';
@@ -17,6 +17,7 @@
 	const url = $derived(siteUrl() + eventPath(e));
 	let now = $state(Date.now());
 	onMount(() => (now = Date.now()));
+	const running = $derived(runningLabel(e));
 	const ended = $derived(e.endTime < now);
 	const mapsUrl = $derived(`https://www.google.com/maps/search/?api=1&query=${e.lat},${e.lng}`);
 	const description = $derived(
@@ -94,6 +95,7 @@
 
 	<div class="tags">
 		<span class="badge badge-brand">{CATEGORIES[e.category]}</span>
+		{#if running}<span class="badge">{running}</span>{/if}
 		<span class="badge" class:badge-free={isFree(e)}>{PRICE_TYPES[e.priceType]}</span>
 		{#if isForKids(e) && e.category !== 'kids'}<span class="badge">Per bambini</span>{/if}
 	</div>

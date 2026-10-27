@@ -6,6 +6,7 @@ Funzioni pure: niente rete, così si testano con le fixture salvate.
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import unicodedata
 from datetime import datetime, time, timedelta
@@ -14,6 +15,7 @@ from zoneinfo import ZoneInfo
 from dateutil.rrule import rrulestr
 
 ROME = ZoneInfo("Europe/Rome")
+log = logging.getLogger("importer")
 
 # Token di tipologia_evento (vocabolario design-comuni-plone) → categoria dell'app.
 CATEGORY_BY_TYPE = {
@@ -49,9 +51,23 @@ FREE_RE = re.compile(r"gratuit|gratis|gratutio|libero|free|non\s+(?:sono\s+)?pre
 EURO_RE = re.compile(r"(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro)|€\s*(\d+(?:[.,]\d{1,2})?)", re.I)
 
 PREMIUM_FROM_EUR = 25
-#: oltre questa durata è un progetto/una mostra permanente, non un evento (vale per tutti gli adapter)
-MAX_EVENT_DAYS = 45
+#: tetto di sicurezza (tutti gli adapter): oltre è un dato palesemente sbagliato (anno errato, evento permanente)
+MAX_EVENT_DAYS = 365
+#: oltre questa durata l'evento è "longRunning" (mostra, rassegna): resta in lista ma dopo gli eventi puntuali
+LONG_RUNNING_DAYS = 14
 MAX_DESCRIPTION = 300
+
+
+def too_long(start: datetime, end: datetime, url: str) -> bool:
+    """True (e log) se la durata supera il tetto di sicurezza."""
+    if end - start <= timedelta(days=MAX_EVENT_DAYS):
+        return False
+    log.warning("  durata di %d giorni (oltre %d), scartato: %s", (end - start).days, MAX_EVENT_DAYS, url)
+    return True
+
+
+def is_long_running(ev: dict) -> bool:
+    return ev["endTime"] - ev["startTime"] > LONG_RUNNING_DAYS * 86_400_000
 
 
 def event_id(source_url: str) -> str:
@@ -197,7 +213,7 @@ def to_event(item: dict, source: dict, now: datetime, horizon_days: int = 60) ->
     if times is None:
         return None
     start, end = times
-    if end < now or start > now + timedelta(days=horizon_days) or end - start > timedelta(days=MAX_EVENT_DAYS):
+    if end < now or start > now + timedelta(days=horizon_days) or too_long(start, end, url):
         return None
 
     venues = item.get("luoghi_correlati") or []

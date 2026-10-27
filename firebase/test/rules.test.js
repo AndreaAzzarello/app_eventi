@@ -75,6 +75,11 @@ describe('events', () => {
     await assertFails(updateDoc(doc(fs, 'events', 'e1'), { locality: 'a'.repeat(81) }));
     await assertFails(updateDoc(doc(fs, 'events', 'e1'), { locality: 5 }));
   });
+  it('longRunning: booleano ammesso, altri tipi no', async () => {
+    const fs = db('adm', ADMIN);
+    await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { longRunning: true }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { longRunning: 'si' }));
+  });
   it.each([
     ['link javascript:', { ticketUrl: 'javascript:alert(1)' }],
     ["fine prima dell'inizio", { endTime: 1 }],
@@ -138,6 +143,7 @@ describe('submissions', () => {
   it('rifiuta ownerId di un altro', () => assertFails(submit(db('alice'), 'alice', 's1', { ownerId: 'bob' })));
   it('rifiuta dati non validi', () => assertFails(submit(db('alice'), 'alice', 's1', { imageUrl: 'data:image/png;base64,AAA' })));
   it('rifiuta locality (solo importer/admin)', () => assertFails(submit(db('alice'), 'alice', 's1', { locality: 'Frazione' })));
+  it('rifiuta longRunning (solo importer/admin)', () => assertFails(submit(db('alice'), 'alice', 's1', { longRunning: true })));
   it('rifiuta campi interni (submittedBy)', () => assertFails(submit(db('alice'), 'alice', 's1', { submittedBy: 'alice' })));
   it('massimo 5 pending', async () => {
     const fs = db('alice');

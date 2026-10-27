@@ -1,5 +1,5 @@
 // Operazioni dell'admin. Le regole Firestore le ricontrollano tutte (email admin verificata).
-import { fromData, type Event, type EventInput } from './event';
+import { LONG_RUNNING_DAYS, fromData, type Event, type EventInput } from './event';
 import { session } from './session.svelte';
 import { fromSnap, type Submission } from './submissions';
 
@@ -29,6 +29,9 @@ export async function saveEvent(id: string | null, input: EventInput): Promise<s
 	const ref = id ? fs.doc(db, 'events', id) : fs.doc(fs.collection(db, 'events'));
 	const old = id ? (await fs.getDoc(ref)).data() : undefined;
 	const now = Date.now();
+	// longRunning: si tiene solo se le date non sono cambiate, altrimenti si ricalcola dalla durata.
+	const sameDates = old?.startTime === input.startTime && old?.endTime === input.endTime;
+	const long = (sameDates && old?.longRunning === true) || input.endTime - input.startTime > LONG_RUNNING_DAYS * 86_400_000;
 	const source = !old || old.source === 'scraper' ? 'manual' : old.source;
 	await fs.setDoc(ref, {
 		...input,
@@ -38,6 +41,7 @@ export async function saveEvent(id: string | null, input: EventInput): Promise<s
 		updatedAt: now,
 		// La frazione vale solo se l'admin non ha spostato il luogo in un altro comune.
 		...(old?.locality && input.city === old.city ? { locality: old.locality } : {}),
+		...(long ? { longRunning: true } : {}),
 		...(old?.submittedBy ? { submittedBy: old.submittedBy } : {})
 	});
 	return ref.id;

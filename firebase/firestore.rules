@@ -61,12 +61,13 @@ service cloud.firestore {
       allow create, update: if isAdmin()
         && request.resource.data.keys().hasAll(eventKeys().concat(['source']))
         && request.resource.data.keys().hasOnly(eventKeys().concat(
-             ['source', 'sourceUrl', 'approxLocation', 'locality', 'createdAt', 'updatedAt', 'submittedBy']))
+             ['source', 'sourceUrl', 'approxLocation', 'locality', 'longRunning', 'createdAt', 'updatedAt', 'submittedBy']))
         && validEventFields(request.resource.data)
         && request.resource.data.source in ['manual', 'scraper', 'user']
         && optUrl(request.resource.data.get('sourceUrl', ''))
         && request.resource.data.get('approxLocation', false) is bool
         && str(request.resource.data.get('locality', ''), 0, 80)
+        && request.resource.data.get('longRunning', false) is bool
         && request.resource.data.get('createdAt', 0) is int
         && request.resource.data.get('updatedAt', 0) is int
         && request.resource.data.get('submittedBy', '') is string;

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatTime, romeParts, shortDay } from '$lib/dates';
-	import { CATEGORIES, eventPath, isForKids, isFree, type Event } from '$lib/event';
+	import { formatTime, romeParts, shortDate, shortDay } from '$lib/dates';
+	import { CATEGORIES, eventPath, isForKids, isFree, runningLabel, type Event } from '$lib/event';
 	import { distanceKm, type LatLng } from '$lib/geo';
 	import FavoriteButton from './FavoriteButton.svelte';
 
@@ -21,6 +21,7 @@
 	const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
 	const start = $derived(romeParts(Math.max(event.startTime, Math.min(now, event.endTime))));
 	const ongoing = $derived(event.startTime < now && event.endTime > now);
+	const running = $derived(runningLabel(event));
 	const km = $derived(origin ? distanceKm(origin, event) : null);
 </script>
 
@@ -37,7 +38,7 @@
 	<div class="body">
 		<p class="when">
 			{#if ongoing}<span class="live">In corso</span> ·{/if}
-			{shortDay(event.startTime, now)} · {formatTime(event.startTime)}
+			{shortDay(event.startTime, now)} · {formatTime(event.startTime)}{#if running === 'Mostra'} · fino al {shortDate(event.endTime)}{/if}
 		</p>
 		<h3><a href={eventPath(event)} class="stretched">{event.title}</a></h3>
 		<p class="where">
@@ -50,6 +51,7 @@
 		</p>
 		<div class="tags">
 			<span class="badge badge-brand">{CATEGORIES[event.category]}</span>
+			{#if running}<span class="badge">{running}</span>{/if}
 			{#if isFree(event)}<span class="badge badge-free">Gratis</span>{/if}
 			{#if isForKids(event) && event.category !== 'kids'}<span class="badge">Per bambini</span>{/if}
 		</div>

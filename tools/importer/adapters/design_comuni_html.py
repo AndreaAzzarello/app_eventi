@@ -23,8 +23,8 @@ import httpx
 from selectolax.lexbor import LexborHTMLParser
 
 from fetch import CACHE_DIR, Blocked, Fetcher, RobotsUnknown
-from mapping import (KIDS_RE, MAX_DESCRIPTION, MAX_EVENT_DAYS, ROME, category_from_title, event_id, geocode_queries, map_price,
-                     parse_hours)
+from mapping import (KIDS_RE, LONG_RUNNING_DAYS, MAX_DESCRIPTION, ROME, category_from_title, event_id, geocode_queries,
+                     map_price, parse_hours, too_long)
 
 log = logging.getLogger("importer")
 
@@ -423,12 +423,11 @@ class DesignComuniHtmlAdapter:
         if d is None:
             return None
         start, end = d["start"], d["end"]
-        if d["recurring"] and end - start > timedelta(days=MAX_EVENT_DAYS):
+        if d["recurring"] and end - start > timedelta(days=LONG_RUNNING_DAYS):  # "tutti i sabati": la prossima data
             day = next_weekday(_clean(d["description"]), start.date(), end.date(), now.astimezone(ROME).date())
             if day:
                 start, end = _dt(day, start.timetz().replace(tzinfo=None)), _dt(day, end.timetz().replace(tzinfo=None))
-        if end < now or start > now + timedelta(days=horizon_days) or end - start > timedelta(days=MAX_EVENT_DAYS) \
-                or end < start:
+        if end < now or start > now + timedelta(days=horizon_days) or end < start or too_long(start, end, d["url"]):
             return None
         street = ADDRESS_TAIL.sub("", d["street"]).strip(" ,")
         description = d["description"]

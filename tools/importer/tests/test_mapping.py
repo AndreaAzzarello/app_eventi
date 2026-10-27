@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from mapping import ROME, category_from_title, dedupe_key, event_id, map_category, map_price, parse_hours, to_event  # noqa: E402
+from mapping import ROME, category_from_title, dedupe_key, is_long_running, event_id, map_category, map_price, parse_hours, to_event  # noqa: E402
 
 FIXTURE = Path(__file__).parent / "fixtures" / "plone_events.json"
 NOW = datetime(2026, 10, 26, 12, 0, tzinfo=ROME)
@@ -116,9 +116,17 @@ def test_category_from_title_italian_keywords(title, expected):
     assert category_from_title(title) == expected
 
 
-def test_scarta_eventi_piu_lunghi_di_45_giorni():
-    base = {"@id": "https://x/e", "title": "Mostra permanente"}
-    lunga = {**base, "start": "2026-10-01T10:00:00Z", "end": "2027-02-01T10:00:00Z"}
-    assert to_event(lunga, SOURCE, NOW) is None
-    ok = {**base, "start": "2026-10-01T10:00:00Z", "end": "2026-11-10T10:00:00Z"}  # 40 giorni
-    assert to_event(ok, SOURCE, NOW) is not None
+def test_durata_tetto_365_giorni_e_long_running(caplog):
+    base = {"@id": "https://x/e", "title": "Mostra"}
+    mostra = {**base, "start": "2026-10-01T10:00:00Z", "end": "2027-02-01T10:00:00Z"}  # 123 giorni: si importa
+    assert to_event(mostra, SOURCE, NOW) is not None
+    assurda = {**base, "start": "2026-10-01T10:00:00Z", "end": "2028-01-01T10:00:00Z"}  # oltre 365: scartata e loggata
+    with caplog.at_level("WARNING", logger="importer"):
+        assert to_event(assurda, SOURCE, NOW) is None
+    assert "scartato: https://x/e" in caplog.text
+
+
+def test_is_long_running_oltre_14_giorni():
+    day = 86_400_000
+    assert not is_long_running({"startTime": 0, "endTime": 14 * day})
+    assert is_long_running({"startTime": 0, "endTime": 14 * day + 1})

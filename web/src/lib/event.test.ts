@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { eventPath, fromData, idFromSlug, parseTags, safeUrl, slugify, validateEvent, type EventInput } from './event';
+import { romeTime } from './dates';
+import { compareEvents, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, validateEvent, type EventInput } from './event';
 
 const sample = (over: Partial<EventInput> = {}): EventInput => ({
 	title: 'Concerto in piazza',
@@ -72,5 +73,44 @@ describe('fromData', () => {
 		const e = fromData('x', { title: 'T', startTime: 10, submittedBy: 'uid-segreto', ticketUrl: 'javascript:x' });
 		expect(e).toMatchObject({ id: 'x', category: 'other', priceType: 'free', endTime: 10, source: 'manual', ticketUrl: '' });
 		expect('submittedBy' in e).toBe(false);
+	});
+});
+
+describe('longRunning e ordinamento', () => {
+	const now = romeTime(2026, 10, 28, 12);
+	const day = 86_400_000;
+	const ev = (id: string, start: number, end: number, over: Record<string, unknown> = {}) =>
+		fromData(id, { title: id, startTime: start, endTime: end, ...over });
+	const order = (list: ReturnType<typeof ev>[]) => list.sort(compareEvents(now)).map((e) => e.id);
+
+	it('longRunning dal flag o dalla durata', () => {
+		expect(ev('a', now, now + 3600_000).longRunning).toBe(false);
+		expect(ev('b', now, now + 3600_000, { longRunning: true }).longRunning).toBe(true);
+		expect(ev('c', now, now + 15 * day).longRunning).toBe(true);
+		expect(ev('d', now, now + 14 * day).longRunning).toBe(false);
+	});
+	it('mostra iniziata 3 settimane fa dopo il concerto di oggi', () => {
+		const mostra = ev('mostra', now - 21 * day, now + 30 * day);
+		const concerto = ev('concerto', romeTime(2026, 10, 28, 21), romeTime(2026, 10, 28, 23));
+		expect(order([mostra, concerto])).toEqual(['concerto', 'mostra']);
+	});
+	it('stesso giorno: per inizio, poi titolo', () => {
+		const a = ev('b', romeTime(2026, 10, 29, 20), romeTime(2026, 10, 29, 22));
+		const b = ev('a', romeTime(2026, 10, 29, 20), romeTime(2026, 10, 29, 22));
+		const c = ev('c', romeTime(2026, 10, 29, 18), romeTime(2026, 10, 29, 19));
+		expect(order([a, b, c])).toEqual(['c', 'a', 'b']);
+	});
+	it('evento futuro lungo: per il suo giorno, non sempre in fondo', () => {
+		const lungo = ev('lungo', romeTime(2026, 10, 30, 9), romeTime(2026, 12, 30, 9));
+		const prima = ev('prima', romeTime(2026, 10, 29, 20), romeTime(2026, 10, 29, 22));
+		const dopo = ev('dopo', romeTime(2026, 10, 30, 20), romeTime(2026, 10, 30, 22));
+		expect(order([dopo, lungo, prima])).toEqual(['prima', 'dopo', 'lungo']);
+	});
+	it('runningLabel', () => {
+		const end = romeTime(2026, 11, 12, 18);
+		expect(runningLabel(ev('x', now, now + 2 * day))).toBeNull();
+		expect(runningLabel(ev('x', now - 20 * day, end))).toBe('In corso fino al 12 nov');
+		expect(runningLabel(ev('Mostra di foto', now - 20 * day, end, { category: 'culture' }))).toBe('Mostra');
+		expect(runningLabel(ev('x', now - 20 * day, end, { category: 'culture', tags: ['mostra'] }))).toBe('Mostra');
 	});
 });

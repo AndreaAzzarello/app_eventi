@@ -17,8 +17,8 @@ from typing import Iterator
 
 import httpx
 
-from mapping import (KIDS_RE, MAX_DESCRIPTION, MAX_EVENT_DAYS, ROME, category_from_title, event_id, geocode_queries,
-                     map_price)
+from mapping import (KIDS_RE, MAX_DESCRIPTION, ROME, category_from_title, event_id, geocode_queries,
+                     map_price, too_long)
 
 log = logging.getLogger("importer")
 
@@ -80,11 +80,10 @@ class WordpressAdapter:
             return None
         if not title or not item.get("post_name") or end < start:
             return None
-        if end < now or start > now + timedelta(days=horizon_days) or end - start > timedelta(days=MAX_EVENT_DAYS):
-            return None
-
         # URL canonico verificato su Bondeno, Copparo, Goro, Mesola (/eventi/<slug>/ a volte finisce altrove)
         url = f"{self.base}/vivere-il-comune/eventi/{item['post_name']}/"
+        if end < now or start > now + timedelta(days=horizon_days) or too_long(start, end, url):
+            return None
         luogo = item.get("luogo") if isinstance(item.get("luogo"), dict) else {}
         venue = _text(luogo.get("descrizione") or "")
         street = _text(luogo.get("indirizzo") or "")

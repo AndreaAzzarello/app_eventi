@@ -62,6 +62,8 @@ const dayYearFmt = new Intl.DateTimeFormat('it-IT', {
 	year: 'numeric'
 });
 const shortDayFmt = new Intl.DateTimeFormat('it-IT', { timeZone: TZ, day: 'numeric', month: 'short' });
+/** "12 nov". */
+export const shortDate = (ms: number) => shortDayFmt.format(ms);
 const timeFmt = new Intl.DateTimeFormat('it-IT', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
 
 const sameDay = (a: number, b: number) => {

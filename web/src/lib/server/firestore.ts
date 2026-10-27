@@ -2,7 +2,7 @@
 // La collezione events è a lettura pubblica (firestore.rules), quindi basta la API key web.
 import { env } from '$env/dynamic/private';
 import { env as pub } from '$env/dynamic/public';
-import { fromData, type Event } from '$lib/event';
+import { compareEvents, fromData, type Event } from '$lib/event';
 import { distanceKm, radiusBounds, type LatLng } from '$lib/geo';
 
 type Value = {
@@ -120,7 +120,7 @@ export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 		return batches
 			.flat()
 			.filter((e) => !seen.has(e.id) && seen.add(e.id) && distanceKm(center, e) <= km)
-			.sort((a, b) => a.startTime - b.startTime);
+			.sort(compareEvents(now));
 	});
 }
 
@@ -130,7 +130,7 @@ export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
 			[f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))],
 			['endTime'],
 			limit
-		).then((list) => list.sort((a, b) => a.startTime - b.startTime))
+		).then((list) => list.sort(compareEvents(Date.now())))
 	);
 }
 
