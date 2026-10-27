@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -235,6 +236,49 @@ def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, h
     return stats
 
 
+def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[tuple[str, str], tuple[float, float]],
+                 now_ms: int) -> dict:
+    """Documento coverage/{regione}: i comuni coperti (fonti attive) con centro e numero di eventi di oggi.
+
+    Lo legge la webapp per la scelta regione → comune e per le pagine /regione/[slug]; un comune senza centro
+    geocodificato non si può scegliere e resta fuori.
+    """
+    counts = Counter(ev["citySlug"] for ev in events if ev["importRegion"] == slugify(region))
+    comuni = []
+    for s in sorted(sources, key=lambda s: s.city):
+        slug = slugify(s.city)
+        if (region, slug) in centers:
+            lat, lng = centers[(region, slug)]
+            comuni.append({"name": s.city, "slug": slug, "province": s.province, "lat": round(lat, 4),
+                           "lng": round(lng, 4), "events": counts.get(slug, 0)})
+    return {"name": region, "updatedAt": now_ms, "comuni": comuni}
+
+
+def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], tuple[float, float]]:
+    """Centro di ogni comune coperto, (regione, slug) → (lat, lng): dalla cache del geocoder, 1 richiesta la prima volta."""
+    centers = {}
+    for n in names:
+        s = SOURCES[n]
+        try:
+            hit = geocoder.lookup(f"{s.city}, {PROVINCES.get(s.province, (s.province,))[0]}", s.viewbox, essential=True)
+        except httpx.HTTPError as e:
+            log.warning("  centro di %s non trovato (%s)", s.city, e)
+            hit = None
+        if hit:
+            centers[(s.region, slugify(s.city))] = hit
+    return centers
+
+
+def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_ms: int) -> int:
+    """Una scrittura al giorno per regione (coverage/{slug})."""
+    by_region: dict[str, list] = {}
+    for n in names:
+        by_region.setdefault(SOURCES[n].region, []).append(SOURCES[n])
+    for region, sources in by_region.items():
+        db.collection("coverage").document(slugify(region)).set(coverage_doc(region, sources, events, centers, now_ms))
+    return len(by_region)
+
+
 def summary(stats: dict[str, dict], sources: dict) -> str:
     """Tabella eventi per comune, errori e comuni a zero; va anche nel riepilogo del job GitHub."""
     lines = ["| comune | eventi | senza coordinate | errore |", "|---|---|---|---|"]
@@ -278,6 +322,7 @@ def main(argv: list[str] | None = None) -> int:
         stats: dict[str, dict] = {}
         try:
             events = collect(client, geocoder, names, now, args.horizon_days, stats)
+            centers = {} if args.dry_run or args.source else find_centers(names, geocoder)
         finally:
             geocoder.save()
     summary(stats, SOURCES)
@@ -305,6 +350,10 @@ def main(argv: list[str] | None = None) -> int:
     except QuotaExceeded as e:
         log.error("%s", e)
         return 2
+    if not args.source:  # con --source il conteggio per comune sarebbe parziale
+        from db import client as firestore_client
+
+        stats["writes"] += write_coverage(firestore_client(), events, names, centers, int(now.timestamp() * 1000))
     if args.stats_out:
         args.stats_out.write_text(json.dumps(stats | {
             "region": "+".join(sorted({slugify(SOURCES[n].region) for n in names})), "events": len(events),

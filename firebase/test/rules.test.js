@@ -105,6 +105,39 @@ describe('events', () => {
   });
 });
 
+describe('coverage', () => {
+  it('lettura pubblica, scrittura mai (nemmeno dall\'admin: scrive l\'importer)', async () => {
+    await seed((fs) => setDoc(doc(fs, 'coverage', 'lombardia'), { name: 'Lombardia', updatedAt: 1, comuni: [] }));
+    await assertSucceeds(getDoc(doc(db(), 'coverage', 'lombardia')));
+    await assertSucceeds(getDocs(collection(db(), 'coverage')));
+    await assertFails(setDoc(doc(db('alice'), 'coverage', 'x'), { name: 'X' }));
+    await assertFails(setDoc(doc(db('adm', ADMIN), 'coverage', 'x'), { name: 'X' }));
+    await assertFails(updateDoc(doc(db('adm', ADMIN), 'coverage', 'lombardia'), { name: 'Y' }));
+    await assertFails(deleteDoc(doc(db('adm', ADMIN), 'coverage', 'lombardia')));
+  });
+});
+
+describe('users: homePlace', () => {
+  const ref = (uid = 'alice') => doc(db(uid), 'users', uid);
+  const place = { label: 'Lecco', lat: 45.85, lng: 9.39, slug: 'lecco', region: 'Lombardia' };
+  it('il proprietario salva e cambia la zona', async () => {
+    await assertSucceeds(updateDoc(ref(), { homePlace: place }));
+    await assertSucceeds(updateDoc(ref(), { homePlace: { label: 'Vicino a Lecco', lat: 45.8, lng: 9.4 } }));
+  });
+  it('alla creazione del profilo', () =>
+    assertSucceeds(setDoc(doc(db('bob'), 'users', 'bob'), { name: 'Bob', createdAt: serverTimestamp(), pendingCount: 0, homePlace: place })));
+  it.each([
+    ['campo extra', { ...place, extra: 1 }],
+    ['senza etichetta', { lat: 1, lng: 1 }],
+    ['etichetta vuota', { ...place, label: '' }],
+    ['etichetta lunga', { ...place, label: 'a'.repeat(81) }],
+    ['latitudine fuori scala', { ...place, lat: 91 }],
+    ['coordinate come stringhe', { ...place, lat: '45', lng: '9' }],
+    ['non è una mappa', 'Lecco'],
+  ])('rifiuta: %s', (_, homePlace) => assertFails(updateDoc(ref(), { homePlace })));
+  it("l'estraneo non la scrive", () => assertFails(updateDoc(doc(db('bob'), 'users', 'alice'), { homePlace: place })));
+});
+
 describe('users', () => {
   it('solo il proprietario legge', async () => {
     await assertSucceeds(getDoc(doc(db('alice'), 'users', 'alice')));

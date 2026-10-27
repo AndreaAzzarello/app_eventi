@@ -28,7 +28,7 @@ import httpx
 
 from adapters import CMS_ADAPTERS, load_sources
 from fetch import Blocked, RobotsUnknown
-from geo import in_viewbox, slugify
+from geo import PROVINCES, in_viewbox, slugify
 from geocode import Geocoder
 from registry import USER_AGENT, read_rows, write_rows
 
@@ -129,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
                 if reason is None:
                     center = None
                     if any(e.get("lat") is None for e in events):  # 1 richiesta per comune, poi in cache
-                        center = geocoder.lookup(f"{r['comune']}, {r['provincia']}", box)
+                        center = geocoder.lookup(f"{r['comune']}, {PROVINCES.get(r['provincia'], (r['provincia'],))[0]}", box)
                     reason = judge(events, box, now_ms, center)
                 reasons[r["codice_istat"]] = reason
                 print(f"{r['comune']:<28} {len(events):>3} eventi  {'ATTIVO' if reason is None else reason}", flush=True)

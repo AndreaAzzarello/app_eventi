@@ -78,6 +78,13 @@ service cloud.firestore {
         && request.resource.data.get('removedAt', 0) is int;
     }
 
+    // ---- Copertura per regione ------------------------------------------
+    // Scritta solo dall'importer (Admin SDK, che non passa da queste regole); la webapp la legge per la scelta del luogo.
+    match /coverage/{region} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---- Proposte degli utenti -------------------------------------------
     // Limite anti-spam: users/{uid}.pendingCount (max 5) cambia nello stesso
     // batch della proposta; le due regole si controllano a vicenda con getAfter.
@@ -133,8 +140,21 @@ service cloud.firestore {
       return /databases/$(database)/documents/submissions/$(sid);
     }
 
+    // Zona scelta dall'utente (scelta regione → comune, ricerca o posizione): sincronizzata tra i dispositivi.
+    function validHomePlace(p) {
+      return p is map
+        && p.keys().hasAll(['label', 'lat', 'lng'])
+        && p.keys().hasOnly(['label', 'lat', 'lng', 'slug', 'region'])
+        && str(p.label, 1, 80)
+        && p.lat is number && p.lat >= -90 && p.lat <= 90
+        && p.lng is number && p.lng >= -180 && p.lng <= 180
+        && str(p.get('slug', ''), 0, 80)
+        && str(p.get('region', ''), 0, 80);
+    }
+
     function validProfile(d) {
-      return str(d.get('name', ''), 0, 80) && str(d.get('city', ''), 0, 80);
+      return str(d.get('name', ''), 0, 80) && str(d.get('city', ''), 0, 80)
+        && (!d.keys().hasAny(['homePlace']) || validHomePlace(d.homePlace));
     }
 
     // +1 solo se nello stesso batch nasce la proposta lastSubmissionId;
@@ -161,14 +181,14 @@ service cloud.firestore {
 
       allow create: if isOwner(uid)
         && request.resource.data.keys().hasAll(['createdAt', 'pendingCount'])
-        && request.resource.data.keys().hasOnly(['name', 'city', 'createdAt', 'pendingCount'])
+        && request.resource.data.keys().hasOnly(['name', 'city', 'createdAt', 'pendingCount', 'homePlace'])
         && request.resource.data.createdAt == request.time
         && request.resource.data.pendingCount == 0
         && validProfile(request.resource.data);
 
       allow update: if (isOwner(uid)
           && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['name', 'city', 'pendingCount', 'lastSubmissionId'])
+               .hasOnly(['name', 'city', 'homePlace', 'pendingCount', 'lastSubmissionId'])
           && validProfile(request.resource.data)
           && request.resource.data.pendingCount is int
           && validCounterChange(uid))

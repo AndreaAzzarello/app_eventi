@@ -110,3 +110,19 @@ def test_batch_da_400():
     db = FakeFirestore()
     run(db, [event(i) for i in range(1000)])
     assert db.writes == 1000 and db.commits == 3
+
+
+def test_documento_coverage():
+    from types import SimpleNamespace
+
+    from run import coverage_doc
+
+    src = [SimpleNamespace(city="Lecco", province="LC"), SimpleNamespace(city="Como", province="CO"),
+           SimpleNamespace(city="Senza Centro", province="CO")]
+    events = [event(1, citySlug="lecco"), event(2, citySlug="lecco"), event(3, citySlug="como"),
+              event(4, citySlug="lecco", importRegion="veneto")]
+    centers = {("Lombardia", "lecco"): (45.85612, 9.39771), ("Lombardia", "como"): (45.81, 9.08)}
+    doc = coverage_doc("Lombardia", src, events, centers, 5)
+    assert doc == {"name": "Lombardia", "updatedAt": 5, "comuni": [
+        {"name": "Como", "slug": "como", "province": "CO", "lat": 45.81, "lng": 9.08, "events": 1},
+        {"name": "Lecco", "slug": "lecco", "province": "LC", "lat": 45.8561, "lng": 9.3977, "events": 2}]}
