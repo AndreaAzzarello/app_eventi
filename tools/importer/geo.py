@@ -6,8 +6,10 @@ della webapp lavorano sugli intervalli di geohash, quindi i due lati devono prod
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
+from pathlib import Path
 
 _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
 PRECISION = 10
@@ -33,18 +35,11 @@ def geohash(lat: float, lng: float, precision: int = PRECISION) -> str:
     return "".join(out)
 
 
-# Emilia-Romagna: nome per le query a Nominatim e riquadro (lon_min, lat_max, lon_max, lat_min) della provincia.
-# Riquadri approssimati e un po' larghi: servono a scartare le omonimie lontane, non a tracciare i confini.
-PROVINCES = {
-    "PC": ("Piacenza", "9.15,45.20,10.10,44.45"),
-    "PR": ("Parma", "9.55,45.05,10.55,44.30"),
-    "RE": ("Reggio Emilia", "10.15,44.98,10.95,44.15"),
-    "MO": ("Modena", "10.40,45.00,11.40,44.10"),
-    "BO": ("Bologna", "10.85,44.90,12.05,43.85"),
-    "FE": ("Ferrara", "11.20,45.05,12.45,44.50"),
-    "RA": ("Ravenna", "11.50,44.65,12.50,44.00"),
-    "FC": ("Forlì-Cesena", "11.60,44.40,12.50,43.70"),
-    "RN": ("Rimini", "12.10,44.25,12.85,43.75"),
+# Sigla → (nome per le query a Nominatim, riquadro "lon_min,lat_max,lon_max,lat_min" della provincia).
+# Generato da build_provinces.py (ISTAT + OpenStreetMap), un po' largo: scarta le omonimie lontane.
+PROVINCES: dict[str, tuple[str, str]] = {
+    code: (name, box)
+    for code, (name, box) in json.loads((Path(__file__).parent / "provinces.json").read_text(encoding="utf-8")).items()
 }
 
 
