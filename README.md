@@ -71,6 +71,7 @@ web/
       event.ts         modello Event, validazione, limiti dei campi
       geo.ts           raggi, geohash, griglia della cache, distanza
       geocode.ts       ricerca comuni e indirizzi via /api/geocode
+      images.ts        srcset delle immagini di terze parti (scale Plone)
       *.test.ts        test unitari (Vitest)
     service-worker.ts  PWA: app shell e pagina offline
   e2e/                 test Playwright (desktop e mobile)
@@ -89,12 +90,12 @@ firebase/
 tools/importer/
   run.py               importer: raccolta, geocoding, deduplica, scrittura
   migrate.py           migrazione una tantum degli eventi esistenti
-  adapters/            fonti: base.py (interfaccia), plone.py, __init__.py (registro)
+  adapters/            fonti: base.py (interfaccia), plone.py, wordpress.py, __init__.py (registro)
   sources/comuni.csv   registro delle fonti (comuni, CMS, licenza, stato)
   build_registry.py    genera il registro da ISTAT e IndicePA
   detect_cms.py        riconosce CMS, pagina eventi e licenza dei comuni
-  geo.py, geocode.py, mapping.py, registry.py, db.py
-  seed_demo.py         10 eventi demo (scrive sul progetto reale: vedi sezione 9)
+  geo.py, geocode.py, licenses.py, mapping.py, registry.py, db.py
+  seed_demo.py         10 eventi demo (solo emulatore Firestore: vedi sezione 9)
   tests/               test pytest con fixture
 
 .github/workflows/
@@ -222,6 +223,8 @@ La CI non esegue i test E2E Playwright. Il test dell'importer gira nel workflow 
 
 Nessun deploy è stato ancora fatto. Questi sono i passi da eseguire.
 
+Prima della webapp, pubblica indici e regole Firestore (sezione 8): la query per raggio usa l'indice `(endTime, geohash)`, che senza indice fa fallire la ricerca.
+
 1. Dashboard Cloudflare → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**. Scegli il repository GitHub.
 2. Impostazioni del build:
    - **Root directory**: `web`
@@ -269,7 +272,9 @@ Il modello dati e le motivazioni stanno in `firebase/firestore.rules`. Riassunto
 - **`users/{uid}`**: lettura e modifica solo del proprietario, su pochi campi (nome, città, contatore). Il profilo non si cancella con proposte in attesa. Sotto `favorites/{eventId}` ci sono i preferiti dell'utente.
 - Tutto il resto è chiuso (`allow read, write: if false`).
 
-Indici composti: `events` per `geohash` + `endTime` e per `citySlug` + `endTime`; `submissions` per `ownerId` + `createdAt` e per `status` + `createdAt`.
+Indici composti: `events` per `geohash` + `endTime`, per `endTime` + `geohash` e per `citySlug` + `endTime`; `submissions` per `ownerId` + `createdAt` e per `status` + `createdAt`.
+
+**Ordine di pubblicazione.** L'indice `endTime` + `geohash` va pubblicato con `npm run deploy:rules` **prima** del deploy della webapp: la webapp lo usa per il limite per cella (`web/src/lib/server/firestore.ts`).
 
 ---
 
@@ -279,11 +284,11 @@ Il codice è in `tools/importer/`. Legge gli eventi pubblici dei comuni e li scr
 
 ### Come funziona
 
-1. **Adapter per fonte**: ogni fonte attiva ha un adapter (oggi solo Plone, in `adapters/plone.py`). Legge la API paginata (`++api++/@search`), con una richiesta al secondo.
+1. **Adapter per fonte**: ogni fonte attiva ha un adapter per il suo CMS. Plone (`adapters/plone.py`) legge la API paginata (`++api++/@search`), con una richiesta al secondo. WordPress "Design Comuni Italia" (`adapters/wordpress.py`, CMS `wordpress-dci`) legge `/wp-json/wp/v2/eventi` con una sola richiesta; se l'endpoint manca cerca la route eventi nell'indice `/wp-json/`. Cesena, Ravenna e Serramazzoni non espongono eventi via REST: zero eventi e un avviso.
 2. **Normalizzazione** (`mapping.py`): categoria dalla tipologia o dal titolo, prezzo dal testo, fuso `Europe/Rome`, prossima occorrenza per gli eventi ricorrenti, orario reale dal campo `orari` quando quello inserito è fittizio. Si importano gli eventi in corso o che iniziano entro 60 giorni (`--horizon-days`).
-3. **Coordinate**: dal campo geolocalizzato; altrimenti Nominatim sugli indirizzi (con `viewbox` per la provincia di Modena), con cache in `geocache.json`.
+3. **Coordinate**: dal campo geolocalizzato della fonte. Se la fonte è fuori dalla provincia del comune, quelle coordinate vengono scartate. Altrimenti Nominatim sugli indirizzi, con comune e provincia nella query (es. "via X, Modena") e il riquadro della provincia come filtro. Se nessun indirizzo si trova, si usa il centro del comune con `approxLocation=true`: la webapp lo mostra come "Luogo da confermare". Cache in `geocache.json`, anche per i "non trovato".
 4. **Località su ogni evento**: `enrich()` in `geo.py` scrive `geohash` (precisione 10, stesso algoritmo di `geofire-common`), `city`, `citySlug`, `province` e `region`. Il reverse geocoding è cachato a circa 100 metri. Se Nominatim non risponde, vale la località della fonte.
-5. **Id e deduplica**: l'id è l'hash SHA-1 di `sourceUrl` (20 caratteri), quindi lo stesso evento aggiorna lo stesso documento. Due comuni che pubblicano lo stesso evento si uniscono con la chiave titolo + giorno + luogo.
+5. **Id e deduplica**: l'id è l'hash SHA-1 di `sourceUrl` (20 caratteri), quindi lo stesso evento aggiorna lo stesso documento. Due siti che pubblicano lo stesso evento si uniscono con la chiave titolo normalizzato (minuscole, senza accenti né punteggiatura) + giorno + comune.
 6. **Scrittura**: upsert in batch da 400. `createdAt` si conserva. Gli eventi con `source: "manual"` (modificati a mano dall'admin) non vengono mai sovrascritti.
 7. **Scadenza**: gli eventi `scraper` finiti da più di 7 giorni vengono eliminati. Gli eventi manuali restano.
 
@@ -300,6 +305,7 @@ python run.py --dry-run                 # stampa, non scrive, non servono creden
 python run.py --dry-run --source modena # una sola fonte (nome = slug del comune)
 python run.py                           # scrive su Firestore
 python run.py --horizon-days 30         # orizzonte diverso (default 60)
+python geocode.py --clean               # ripulisce geocache.json, senza chiamare Nominatim
 ```
 
 Le credenziali per la scrittura arrivano solo da variabili d'ambiente (vedi sezione 5). Con `GOOGLE_APPLICATION_CREDENTIALS` il file sta fuori dal repository. `.gitignore` esclude i file `*serviceAccount*.json` e `*-firebase-adminsdk-*.json`.
@@ -311,7 +317,14 @@ python migrate.py --dry-run    # mostra cosa cambierebbe, non scrive
 python migrate.py              # scrive
 ```
 
-**Attenzione: `seed_demo.py`** carica 10 eventi demo con id `demo-01`…`demo-10` e con `--delete` li rimuove. Usa `db.py`, che punta sempre al progetto reale `appeventi-1e860`: non esiste una modalità emulatore. Non eseguirlo se non vuoi scrivere sul database di produzione.
+**`geocode.py --clean`** toglie da `geocache.json` i "non trovato" (si riprovano alla prossima esecuzione) e i risultati fuori dal riquadro della provincia nominata nella query. Serve dopo aver corretto un riquadro o una query.
+
+**`seed_demo.py`** carica 10 eventi demo con id `demo-01`…`demo-10`; con `--delete` li rimuove. Funziona **solo con l'emulatore Firestore**: `FIRESTORE_EMULATOR_HOST` deve essere impostato su `127.0.0.1`, `localhost` o `[::1]`, altrimenti lo script si ferma con un errore. Usa il progetto `demo-eventi` e non legge le credenziali, quindi non può scrivere sul progetto reale. Con l'emulatore avviato (`npm run emulators`, da `web/`):
+
+```powershell
+$env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
+python seed_demo.py
+```
 
 ### GitHub Action
 
@@ -341,7 +354,7 @@ Stati (colonna `stato`):
 | `attivo` | l'importer legge questa fonte. Lo imposti tu a mano. |
 | `manuale` | gestita a mano. Gli script automatici non la toccano mai. |
 
-Stato al momento della stesura (da `comuni.csv`, 330 comuni): 4 `attivo` (Formigine, Mirandola, Modena, Sassuolo, tutti Plone), 15 `candidato`, 310 `da_verificare`, 1 `escluso`. Per 226 righe il CMS non è ancora stato rilevato.
+Stato al momento della stesura (da `comuni.csv`, 330 comuni): 4 `attivo` (Formigine, Mirandola, Modena, Sassuolo, tutti Plone), 23 `candidato`, 274 `da_verificare`, 29 `escluso`. Per CMS: 52 `plone`, 21 `wordpress-dci`, 237 `altro`, 20 `irraggiungibile`.
 
 **`build_registry.py`** genera o aggiorna il registro dagli open data:
 
@@ -368,10 +381,14 @@ python detect_cms.py --report         # solo il riepilogo, senza visitare nulla
 
 Solo fonti con licenza che consente il riuso (CC0, CC-BY, CC-BY-SA, IODL). Mai testate giornalistiche o siti commerciali.
 
+### Licenze: `licenses.py`
+
+`python licenses.py` verifica la licenza dei contenuti dei siti candidati (più Modena, Formigine, Sassuolo e Mirandola). Cerca le pagine di note legali e privacy, estrae la frase sulla licenza e scrive `reports/licenze_er.md`. Legge il `robots.txt` con `protego`, con 1 richiesta al secondo per sito. Aggiorna le colonne `licenza` e `note` di `comuni.csv`, mai `stato`; `--no-csv` non tocca il CSV. Le licenze "non chiara" o "non trovata" vanno lette a mano.
+
 ### Attivare una fonte
 
 1. Verifica a mano la pagina eventi, le note legali (licenza, obbligo di citare la fonte, uso non commerciale se previsto) e il `robots.txt`.
-2. Controlla che il CMS sia `plone`. L'importer oggi legge solo quello: una riga con un altro CMS viene saltata con un avviso.
+2. Controlla che il CMS sia `plone` o `wordpress-dci`. L'importer legge solo i CMS con un adapter: una riga con un altro CMS viene saltata con un avviso.
 3. Nel CSV imposta `stato` a `attivo` e compila le note con la verifica fatta.
 4. Prova con `python run.py --dry-run --source <slug>`. Lo slug è il nome del comune in minuscolo con trattini (es. `modena`).
 
@@ -387,7 +404,7 @@ Passi:
 
 `mapping.to_event()` è specifico per il formato Plone. Un nuovo adapter non lo riusa: produce il suo dict. Geocoding, località, geohash, deduplica e scrittura restano in `run.py`.
 
-**Stato attuale:** gli adapter esistenti sono solo per Plone. I comuni con WordPress (`wordpress-dci`) sono candidati nel registro, ma non sono ancora importabili.
+**Stato attuale:** adapter per Plone (`plone`) e per WordPress Design Comuni Italia (`wordpress-dci`). Gli altri CMS non sono importabili.
 
 ---
 
@@ -450,15 +467,13 @@ Dove `Q` è il numero di intervalli dopo deduplica (da 1 a 9). Il `max(1, …)` 
 ### Limiti noti
 
 - **Cache HTML di 5 minuti**: dopo un deploy, una pagina vecchia può restare fino a 5 minuti e puntare a file JS non più esistenti. Usa "Purge cache" su Cloudflare.
-- **Limite per geohash**: `PER_CELL_LIMIT = 150` è applicato in ordine di geohash, non di data o di distanza. In una zona con più di 150 eventi futuri, alcuni vengono scartati senza criterio di priorità.
+- **Limite per cella**: `PER_CELL_LIMIT = 150` per intervallo di geohash, ordinato per fine evento e poi per geohash (non per distanza dal centro). In una zona con più di 150 eventi futuri, vengono scartati quelli che finiscono più tardi. A parità di fine evento vale il geohash.
 - **Cache e rate limit per isolate**: la cache in memoria e il limite di 1 richiesta al secondo verso Nominatim valgono per ogni isolate, non globalmente. Con molto traffico servono un geocoder self-hosted (Photon o Nominatim) o una cache condivisa (KV).
 - **Tile OpenStreetMap**: le tile pubbliche non sono ammesse per traffico intenso. Il progetto le usa direttamente dal browser. Con molto traffico va cambiato provider di tile.
-- **Importer: solo Plone**. I comuni WordPress non sono ancora importabili.
-- **Importer: nessun controllo robots.txt a ogni esecuzione**. Il controllo è fatto da `detect_cms.py` quando la riga viene analizzata. `plone.py` non lo ripete.
+- **Importer WordPress: solo REST**. Cesena, Ravenna e Serramazzoni non espongono eventi via REST e non c'è un fallback iCal o RSS.
+- **Importer: nessun controllo robots.txt a ogni esecuzione**. Il controllo è fatto da `detect_cms.py` quando la riga viene analizzata. gli adapter non lo ripetono.
 - **Importer scrive con Admin SDK**: le regole Firestore non validano i dati scritti dall'importer.
-- **`seed_demo.py` scrive sul progetto reale** (vedi sezione 9).
 - **Date legali**: la data di aggiornamento di `/privacy` e `/termini` è scritta a mano.
-- **Modifiche non committate**: all'analisi, `tools/importer/` aveva modifiche e file nuovi non ancora in git (`build_registry.py`, `detect_cms.py`, `registry.py`, `sources/`).
 
 ### Prossimi passi
 
@@ -466,5 +481,4 @@ Dove `Q` è il numero di intervalli dopo deduplica (da 1 a 9). Il `max(1, …)` 
 - Configurare Authentication (Google e link via email) e i domini autorizzati, poi `npm run deploy:rules`.
 - Verificare le letture reali su Firebase per una settimana e rivedere la sezione 10.
 - Verificare le fonti in `comuni.csv` a mano e attivarne altre, dopo la verifica.
-- Adapter WordPress (`wordpress-dci`) per i candidati già nel registro.
 - Impacchettare la webapp con **Capacitor** per Android e iOS (da valutare: il login Google e l'auth nativa richiedono una configurazione dedicata, e la policy delle tile OSM va rispettata anche nell'app).

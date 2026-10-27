@@ -2,7 +2,7 @@
 
 Id fissi demo-01…demo-10: rilanciarlo aggiorna gli stessi documenti, non li duplica.
 Funziona SOLO con l'emulatore Firestore: FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS e il
-progetto reale non vengono mai usati. Esempio (emulatore avviato con `npm run emulators` in firebase/):
+progetto reale non vengono mai usati. Esempio (emulatore avviato con `npm run emulators` in web/):
     FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 python seed_demo.py
 """
 
