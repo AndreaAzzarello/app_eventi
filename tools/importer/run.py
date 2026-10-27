@@ -12,7 +12,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -20,13 +20,12 @@ import httpx
 from concurrent.futures import ThreadPoolExecutor
 
 from adapters import SOURCES, Adapter, fallback_place
-from geo import PROVINCES, enrich, in_viewbox
+from geo import PROVINCES, enrich, in_viewbox, slugify
 from geocode import Geocoder
-from mapping import ROME, dedupe_key, html_to_text, is_long_running, one_line
+from mapping import ROME, content_hash, dedupe_key, html_to_text, is_long_running, one_line
 from registry import USER_AGENT
 
 HERE = Path(__file__).parent
-EXPIRED_AFTER = timedelta(days=7)
 WORKERS = 4  # fonti scaricate in parallelo
 log = logging.getLogger("importer")
 
@@ -63,6 +62,8 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             clean_texts(ev)
             if is_long_running(ev):
                 ev["longRunning"] = True
+            ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
+            ev["contentHash"] = content_hash(ev)
             events.setdefault(dedupe_key(ev), ev)
             kept += 1
         stats[name] |= {"events": kept, "skipped": skipped}
@@ -115,19 +116,28 @@ def place_of(geocoder: Geocoder, ev: dict, source: Adapter) -> dict | None:
 
 
 MISSING_RUNS_TO_REMOVE = 2
+BATCH = 400  # limite Firestore 500 operazioni per batch
+MAX_WRITES = 15_000  # quota Spark 20.000 scritture al giorno, con margine
+MAX_READS = 40_000  # quota Spark 50.000 letture al giorno, con margine
+#: campi letti in una sola query di proiezione: bastano a decidere cosa scrivere
+PROJECTION = ["source", "contentHash", "removedAt", "missingRuns", "sourceUrl", "startTime", "endTime", "createdAt"]
+
+
+class QuotaExceeded(Exception):
+    pass
 
 
 def stale_updates(docs: dict[str, dict], seen_ids: set[str], ok_hosts: set[str], now_ms: int,
                   horizon_ms: int) -> dict[str, dict]:
     """Aggiornamenti per gli eventi scraper non ancora finiti che la loro fonte non pubblica più.
 
-    docs: id → campi (source, sourceUrl, startTime, missingRuns, removedAt). Solo le fonti che in questo
-    giro hanno risposto (ok_hosts) contano, e solo gli eventi che iniziano entro l'orizzonte (gli altri
+    docs: id → campi (source, sourceUrl, startTime, endTime, missingRuns, removedAt). Solo le fonti che in
+    questo giro hanno risposto (ok_hosts) contano, e solo gli eventi che iniziano entro l'orizzonte (gli altri
     non erano nella lista letta). Al 2° import consecutivo senza l'evento: removedAt (nascosto, non cancellato).
     """
     out: dict[str, dict] = {}
     for doc_id, d in docs.items():
-        if doc_id in seen_ids or d.get("source") != "scraper" or d.get("removedAt"):
+        if doc_id in seen_ids or d.get("source") != "scraper" or d.get("removedAt") or (d.get("endTime") or 0) < now_ms:
             continue
         if urlsplit(d.get("sourceUrl") or "").netloc not in ok_hosts or (d.get("startTime") or 0) > now_ms + horizon_ms:
             continue
@@ -136,61 +146,87 @@ def stale_updates(docs: dict[str, dict], seen_ids: set[str], ok_hosts: set[str],
     return out
 
 
-def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, horizon_days: int = 60) -> None:
+def plan_writes(events: list[dict], existing: dict[str, dict], ok_hosts: set[str], now_ms: int,
+                horizon_ms: int) -> dict:
+    """Cosa scrivere: solo gli eventi nuovi o con hash diverso (o da ripristinare), più gli spariti dalla fonte.
+
+    existing: id → campi del documento già nel database (PROJECTION). Gli eventi con `source == manual`
+    (modificati dall'admin) non si toccano.
+    """
+    write, unchanged, kept_manual = [], 0, 0
+    for ev in events:
+        old = existing.get(ev["id"])
+        if old is None:
+            write.append(ev)
+        elif old.get("source") == "manual":
+            kept_manual += 1
+        elif old.get("contentHash") == ev["contentHash"] and not old.get("removedAt") and not old.get("missingRuns"):
+            unchanged += 1
+        else:
+            write.append(ev)
+    stale = stale_updates(existing, {ev["id"] for ev in events}, ok_hosts, now_ms, horizon_ms)
+    return {"write": write, "unchanged": unchanged, "kept_manual": kept_manual, "stale": stale}
+
+
+def commit_in_batches(db, ops: list) -> None:
+    """ops: funzioni (batch) → None, committate a gruppi di BATCH."""
+    for i in range(0, len(ops), BATCH):
+        b = db.batch()
+        for op in ops[i:i + BATCH]:
+            op(b)
+        b.commit()
+
+
+def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, horizon_days: int = 60,
+          regions: set[str] | None = None, db=None, max_writes: int = MAX_WRITES, max_reads: int = MAX_READS) -> dict:
+    """Upsert incrementale. Una sola lettura di proiezione degli eventi scraper delle regioni in elaborazione
+    (id + contentHash + …), poi si scrive solo ciò che è cambiato. Si ferma prima di scrivere se le quote
+    stimate superano max_writes/max_reads. Restituisce le statistiche (letti, scritti, invariati, nascosti)."""
     from google.cloud.firestore_v1.base_query import FieldFilter
 
-    from db import client as firestore_client  # solo qui: il dry-run non richiede credenziali
+    if db is None:
+        from db import client as firestore_client  # solo qui: il dry-run non richiede credenziali
 
-    db = firestore_client()
+        db = firestore_client()
     coll = db.collection("events")
     now_ms = int(now.timestamp() * 1000)
-    # Legge solo i documenti che sta per scrivere, non l'intera collezione.
-    seen_ids = {ev["id"] for ev in events}
-    refs = [coll.document(i) for i in seen_ids]
-    existing = {d.id: d.to_dict() or {} for d in db.get_all(refs, field_paths=["source", "createdAt"]) if d.exists}
+    regions = regions or {ev["importRegion"] for ev in events}
+    query = coll.where(filter=FieldFilter("importRegion", "in", sorted(regions)))
+    indexed = query.count().get()[0][0].value  # 1 lettura ogni 1000 voci
+    reads = max(1, -(-indexed // 1000))
+    if reads + indexed > max_reads:
+        raise QuotaExceeded(f"letture stimate {reads + indexed} > {max_reads}: non scrivo")
+    existing = {d.id: d.to_dict() or {} for d in query.select(PROJECTION).stream()}
+    reads += len(existing)
+    # Id non trovati (nuovi, o vecchi documenti senza importRegion): un get_all per createdAt e source manual.
+    missing = [ev["id"] for ev in events if ev["id"] not in existing]
+    if reads + len(missing) > max_reads:
+        raise QuotaExceeded(f"letture stimate {reads + len(missing)} > {max_reads}: non scrivo")
+    elsewhere = {d.id: d.to_dict() or {} for d in db.get_all([coll.document(i) for i in missing],
+                                                              field_paths=PROJECTION) if d.exists}
+    reads += len(missing)
+    plan = plan_writes(events, existing | elsewhere, ok_hosts or set(), now_ms, horizon_days * 86_400_000)
+    n_writes = len(plan["write"]) + len(plan["stale"])
+    if n_writes > max_writes:
+        raise QuotaExceeded(f"scritture stimate {n_writes} > {max_writes}: non scrivo")
 
-    batch, n, written, kept_manual = db.batch(), 0, 0, 0
-    for ev in events:
-        doc_id = ev.pop("id")
-        old = existing.get(doc_id)
-        if old and old.get("source") == "manual":  # modificato a mano dall'admin
-            kept_manual += 1
-            continue
-        ev["createdAt"] = (old or {}).get("createdAt") or now_ms
-        ev["updatedAt"] = now_ms
-        batch.set(coll.document(doc_id), ev)
-        n += 1
-        written += 1
-        if n == 400:  # limite Firestore 500 operazioni per batch
-            batch.commit()
-            batch, n = db.batch(), 0
-    if n:
-        batch.commit()
-
-    live = {d.id: d.to_dict() or {} for d in coll.where(filter=FieldFilter("endTime", ">=", now_ms)).select(
-        ["source", "sourceUrl", "startTime", "missingRuns", "removedAt"]).stream()}
-    stale = stale_updates(live, seen_ids, ok_hosts or set(), now_ms, horizon_days * 86_400_000)
-    for i, (doc_id, fields) in enumerate(stale.items()):
-        if i % 400 == 0:
-            if i:
-                b.commit()
-            b = db.batch()
-        b.update(coll.document(doc_id), fields)
-    if stale:
-        b.commit()
-    removed = sum(1 for f in stale.values() if "removedAt" in f)
-
-    cutoff = int((now - EXPIRED_AFTER).timestamp() * 1000)
-    # Filtro su source in Python: evita un indice composito endTime+source.
-    expired = [d.reference for d in coll.where(filter=FieldFilter("endTime", "<", cutoff)).select(["source"]).stream()
-               if (d.to_dict() or {}).get("source") == "scraper"]
-    for i in range(0, len(expired), 400):
-        b = db.batch()
-        for ref in expired[i:i + 400]:
-            b.delete(ref)
-        b.commit()
-    log.info("Scritti %d eventi, %d lasciati al manuale, %d scaduti eliminati, %d spariti dalla fonte "
-             "(%d nascosti con removedAt)", written, kept_manual, len(expired), len(stale), removed)
+    ops = []
+    for ev in plan["write"]:
+        doc = {k: v for k, v in ev.items() if k != "id"}
+        doc["createdAt"] = (existing | elsewhere).get(ev["id"], {}).get("createdAt") or now_ms
+        doc["updatedAt"] = now_ms
+        ops.append(lambda b, ref=coll.document(ev["id"]), doc=doc: b.set(ref, doc))
+    for doc_id, fields in plan["stale"].items():
+        ops.append(lambda b, ref=coll.document(doc_id), fields=fields: b.update(ref, fields))
+    commit_in_batches(db, ops)
+    hidden = sum(1 for f in plan["stale"].values() if "removedAt" in f)
+    stats = {"reads": reads, "written": len(plan["write"]), "unchanged": plan["unchanged"],
+             "kept_manual": plan["kept_manual"], "stale": len(plan["stale"]), "hidden": hidden,
+             "writes": n_writes, "deleted": 0}
+    log.info("Letture %d · scritti %d · invariati %d · lasciati al manuale %d · spariti dalla fonte %d "
+             "(%d nascosti con removedAt)", reads, stats["written"], stats["unchanged"], stats["kept_manual"],
+             stats["stale"], hidden)
+    return stats
 
 
 def summary(stats: dict[str, dict], sources: dict) -> str:
@@ -216,6 +252,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dry-run", action="store_true", help="stampa gli eventi senza scrivere")
     p.add_argument("--source", action="append", choices=sorted(SOURCES), help="fonte (ripetibile)")
     p.add_argument("--dump", type=Path, help="con --dry-run: scrive gli eventi in questo file JSON (per i controlli)")
+    p.add_argument("--regione", action="append", help="regione del registro (ripetibile), per esempio lombardia")
+    p.add_argument("--max-writes", type=int, default=MAX_WRITES, help="si ferma prima di scrivere oltre N documenti")
+    p.add_argument("--max-reads", type=int, default=MAX_READS, help="si ferma prima di leggere oltre N documenti")
+    p.add_argument("--stats-out", type=Path, help="scrive qui le statistiche dell'import (JSON)")
     p.add_argument("--horizon-days", type=int, default=60, help="importa eventi che iniziano entro N giorni")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
@@ -223,7 +263,10 @@ def main(argv: list[str] | None = None) -> int:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     now = datetime.now(timezone.utc)
-    names = args.source or list(SOURCES)
+    names = args.source or [n for n, a in SOURCES.items() if not args.regione or slugify(a.region) in args.regione]
+    if not names:
+        log.error("Nessuna fonte attiva per questa selezione")
+        return 1
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30, follow_redirects=True) as client:
         geocoder = Geocoder(client, HERE / "geocache.json")
         stats: dict[str, dict] = {}
@@ -246,7 +289,14 @@ def main(argv: list[str] | None = None) -> int:
                   f"{ev['title'][:55]:<55}  {ev['city'][:18]:<18} {ev['province']:<2} {ev['geohash']}")
         return 0
     ok_hosts = {urlsplit(SOURCES[n].base).netloc for n, st in stats.items() if st["error"] is None}
-    write(events, now, ok_hosts, args.horizon_days)
+    try:
+        stats = write(events, now, ok_hosts, args.horizon_days, {slugify(SOURCES[n].region) for n in names},
+                      max_writes=args.max_writes, max_reads=args.max_reads)
+    except QuotaExceeded as e:
+        log.error("%s", e)
+        return 2
+    if args.stats_out:
+        args.stats_out.write_text(json.dumps(stats | {"events": len(events)}), encoding="utf-8")
     return 0
 
 

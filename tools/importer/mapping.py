@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import json
 import logging
 import re
 import unicodedata
@@ -109,6 +110,16 @@ def is_long_running(ev: dict) -> bool:
 def event_id(source_url: str) -> str:
     """Id deterministico: lo stesso evento letto ogni giorno aggiorna lo stesso documento."""
     return hashlib.sha1(source_url.encode("utf-8")).hexdigest()[:20]
+
+
+#: campi di servizio: cambiano a ogni giro o li scrive l'importer dopo, non fanno parte del contenuto
+HASH_SKIP = {"id", "createdAt", "updatedAt", "contentHash", "missingRuns", "removedAt", "importRegion"}
+
+
+def content_hash(ev: dict) -> str:
+    """sha256 dei campi normalizzati dell'evento: se non cambia, il documento non va riscritto."""
+    body = {k: v for k, v in ev.items() if k not in HASH_SKIP}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 def dedupe_key(ev: dict) -> tuple:

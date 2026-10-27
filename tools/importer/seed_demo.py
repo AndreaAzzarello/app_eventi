@@ -12,8 +12,7 @@ import argparse
 import os
 from datetime import datetime, timedelta, timezone
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import firestore
 
 PROJECT_ID = "demo-eventi"  # prefisso demo-: l'emulatore non contatta mai un progetto reale
 
@@ -23,9 +22,9 @@ def emulator_client():
     if not host.startswith(("127.0.0.1", "localhost", "[::1]")):
         raise SystemExit("Rifiutato: seed_demo.py scrive solo sull'emulatore. Imposta FIRESTORE_EMULATOR_HOST "
                          "(es. 127.0.0.1:8080); non scrive mai sul progetto reale.")
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(credentials.AnonymousCredentials(), {"projectId": PROJECT_ID})
-    return firestore.client()
+    from google.auth.credentials import AnonymousCredentials
+
+    return firestore.Client(project=PROJECT_ID, credentials=AnonymousCredentials())
 
 # (titolo, descrizione, categoria, prezzo, inizio da ora, durata, luogo, indirizzo, lat, lng, tag)
 SAMPLES = [

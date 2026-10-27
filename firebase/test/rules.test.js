@@ -80,6 +80,13 @@ describe('events', () => {
     await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { longRunning: true }));
     await assertFails(updateDoc(doc(fs, 'events', 'e1'), { longRunning: 'si' }));
   });
+  it("campi di servizio dell'importer: tipi controllati", async () => {
+    const fs = db('adm', ADMIN);
+    await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { contentHash: 'abc', importRegion: 'lombardia', missingRuns: 1, removedAt: 5 }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { contentHash: 5 }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { missingRuns: 'x' }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { importRegion: 'a'.repeat(41) }));
+  });
   it.each([
     ['link javascript:', { ticketUrl: 'javascript:alert(1)' }],
     ["fine prima dell'inizio", { endTime: 1 }],

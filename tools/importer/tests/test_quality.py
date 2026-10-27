@@ -110,7 +110,7 @@ def test_eventi_spariti_dalla_fonte_due_import_poi_removed():
     day = 86_400_000
     now = 1_800_000_000_000
     url = "https://www.comune.sassuolo.mo.it/eventi/generare-valore-condiviso"
-    old = {"source": "scraper", "sourceUrl": url, "startTime": now + day}
+    old = {"source": "scraper", "sourceUrl": url, "startTime": now + day, "endTime": now + 2 * day}
     ok = {"www.comune.sassuolo.mo.it"}
 
     first = stale_updates({"g": old}, set(), ok, now, 60 * day)
