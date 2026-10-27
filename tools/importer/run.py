@@ -123,6 +123,7 @@ def place_of(geocoder: Geocoder, ev: dict, source: Adapter) -> dict | None:
 
 MISSING_RUNS_TO_REMOVE = 2
 BATCH = 400  # limite Firestore 500 operazioni per batch
+GET_ALL_CHUNK = 300  # documenti per chiamata get_all (primo import di una regione grande)
 MAX_WRITES = 15_000  # quota Spark 20.000 scritture al giorno, con margine
 MAX_GEOCODE = 3_000  # richieste nuove a Nominatim per giro
 MAX_READS = 40_000  # quota Spark 50.000 letture al giorno, con margine
@@ -209,8 +210,9 @@ def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, h
     missing = [ev["id"] for ev in events if ev["id"] not in existing]
     if reads + len(missing) > max_reads:
         raise QuotaExceeded(f"letture stimate {reads + len(missing)} > {max_reads}: non scrivo")
-    elsewhere = {d.id: d.to_dict() or {} for d in db.get_all([coll.document(i) for i in missing],
-                                                              field_paths=PROJECTION) if d.exists}
+    elsewhere = {d.id: d.to_dict() or {} for i in range(0, len(missing), GET_ALL_CHUNK)
+                 for d in db.get_all([coll.document(x) for x in missing[i:i + GET_ALL_CHUNK]], field_paths=PROJECTION)
+                 if d.exists}
     reads += len(missing)
     plan = plan_writes(events, existing | elsewhere, ok_hosts or set(), now_ms, horizon_days * 86_400_000)
     n_writes = len(plan["write"]) + len(plan["stale"])

@@ -126,3 +126,12 @@ def test_documento_coverage():
     assert doc == {"name": "Lombardia", "updatedAt": 5, "comuni": [
         {"name": "Como", "slug": "como", "province": "CO", "lat": 45.81, "lng": 9.08, "events": 1},
         {"name": "Lecco", "slug": "lecco", "province": "LC", "lat": 45.8561, "lng": 9.3977, "events": 2}]}
+
+
+def test_primo_import_grande_legge_i_mancanti_a_blocchi():
+    db = FakeFirestore()
+    calls = []
+    original = db.get_all
+    db.get_all = lambda refs, field_paths=None: (calls.append(len(refs)), original(refs, field_paths))[1]
+    s = run(db, [event(i) for i in range(700)])
+    assert calls == [300, 300, 100] and s["written"] == 700
