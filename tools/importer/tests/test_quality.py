@@ -131,3 +131,43 @@ def test_migrate_texts_ripulisce_solo_se_serve():
     docs = [("a", {"title": "Dolcetto &amp; scherzetto", "shortDescription": "<div>Ciao<br>mondo</div>", "address": "via Roma"}),
             ("b", {"title": "Pulito", "shortDescription": "Già a posto", "venueName": ""})]
     assert text_updates(docs) == [("a", {"title": "Dolcetto & scherzetto", "shortDescription": "Ciao\nmondo"})]
+
+
+def test_geocoding_budget_e_centro_del_comune_sempre_disponibile(tmp_path):
+    g, seen = geocoder(tmp_path, {"=Sassuolo, Modena": (44.54, 10.78), "via": (44.5, 10.8)})
+    g.max_requests = 1
+    assert g.lookup("via Roma 1, Sassuolo, Modena", BOX) is not None  # usa l'unica richiesta
+    assert g.lookup("via Verdi 2, Sassuolo, Modena", BOX) is None  # budget finito: rimandata
+    assert g.lookup("via Verdi 2, Sassuolo, Modena", BOX) is None and len(g.deferred) == 1
+    assert g.lookup("Sassuolo, Modena", BOX, essential=True) == (44.54, 10.78)  # il centro vale sempre
+    assert len(seen) == 2
+    assert g.reverse(44.5, 10.8, "Sassuolo", "MO") is None and len(g.deferred) == 2  # rimandato, non un errore
+
+
+def test_geocoding_intervallo_mai_sotto_un_secondo(tmp_path):
+    assert Geocoder(None, tmp_path / "c.json", interval=0.1).interval == 1.0
+    assert Geocoder(None, tmp_path / "c.json", interval=2).interval == 2
+
+
+def test_collect_geocodifica_prima_gli_eventi_piu_vicini(tmp_path, monkeypatch):
+    import run
+    from datetime import datetime, timezone
+
+    def mk(i, start):
+        return ev(title=f"E{i}", startTime=start, endTime=start + 1, sourceUrl=f"https://x/{i}", id=str(i),
+                  category="other", priceType="free", shortDescription="", venueName="", address="a",
+                  imageUrl="", ticketUrl="", tags=[], source="scraper", _geocode=[f"via {i}, Sassuolo"])
+
+    class Src(SimpleNamespace):
+        def events(self, client, now, horizon):
+            return [mk(1, 3000), mk(2, 1000), mk(3, 2000)]
+
+    src = Src(city="Sassuolo", province="MO", region="Emilia-Romagna", viewbox=BOX, base="https://x")
+    monkeypatch.setitem(run.SOURCES, "sassuolo", src)
+    g, seen = geocoder(tmp_path, {"via": (44.5, 10.8)})
+    g.max_requests = 2
+    g._cache["rev2:44.500,10.800"] = None  # reverse già in cache: il budget conta solo i lookup
+    run.collect(None, g, ["sassuolo"], datetime.now(timezone.utc), 60)
+    # le due richieste del budget vanno ai due eventi più vicini nel tempo (via 2 e via 3), non a via 1
+    assert [q["q"] for q in seen[:2]] == ["via 2, Sassuolo, Modena", "via 3, Sassuolo, Modena"]
+

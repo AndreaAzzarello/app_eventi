@@ -45,29 +45,32 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
 
     with ThreadPoolExecutor(WORKERS) as pool:
         fetched = list(pool.map(fetch, names))
-    # Geocoding (Nominatim, 1 richiesta/s in tutto) in sequenza.
+    # Geocoding (Nominatim, 1 richiesta/s in tutto) in sequenza, dagli eventi più vicini nel tempo: se il budget
+    # di richieste del giro finisce, i più lontani restano senza geocoding e lo prendono nei giorni dopo.
+    pending = []
     for name, (found, error) in zip(names, fetched):
-        source: Adapter = SOURCES[name]
-        kept = skipped = 0
         stats[name] = {"events": 0, "skipped": 0, "error": error}
         if error:
             log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
-        for ev in found:
-            locate(ev, source, geocoder)
-            if ev["lat"] is None:
-                skipped += 1
-                log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
-                continue
-            enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
-            clean_texts(ev)
-            if is_long_running(ev):
-                ev["longRunning"] = True
-            ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
-            ev["contentHash"] = content_hash(ev)
-            events.setdefault(dedupe_key(ev), ev)
-            kept += 1
-        stats[name] |= {"events": kept, "skipped": skipped}
-        log.info("%s: %d eventi, %d senza coordinate", name, kept, skipped)
+        pending += [(name, ev) for ev in found]
+    pending.sort(key=lambda p: (p[1]["startTime"], p[1]["sourceUrl"]))
+    for name, ev in pending:
+        source: Adapter = SOURCES[name]
+        locate(ev, source, geocoder)
+        if ev["lat"] is None:
+            stats[name]["skipped"] += 1
+            log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
+            continue
+        enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
+        clean_texts(ev)
+        if is_long_running(ev):
+            ev["longRunning"] = True
+        ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
+        ev["contentHash"] = content_hash(ev)
+        if events.setdefault(dedupe_key(ev), ev) is ev:
+            stats[name]["events"] += 1
+    for name in names:
+        log.info("%s: %d eventi, %d senza coordinate", name, stats[name]["events"], stats[name]["skipped"])
     return list(events.values())
 
 
@@ -98,7 +101,9 @@ def locate(ev: dict, source: Adapter, geocoder: Geocoder) -> None:
             ev["lat"], ev["lng"] = hit
     if ev["lat"] is None:
         city = queries[0].rsplit(",", 1)[-1].strip() if queries else source.city
-        hit = geocoder.lookup(f"{city}, {prov}", source.viewbox) or geocoder.lookup(f"{source.city}, {prov}", source.viewbox)
+        # il centro del comune vale anche a budget finito (essential): meglio un punto approssimato che perdere l'evento
+        hit = (geocoder.lookup(f"{city}, {prov}", source.viewbox, essential=True)
+               or geocoder.lookup(f"{source.city}, {prov}", source.viewbox, essential=True))
         if hit:
             ev["lat"], ev["lng"] = hit
             ev["approxLocation"] = True
@@ -118,6 +123,7 @@ def place_of(geocoder: Geocoder, ev: dict, source: Adapter) -> dict | None:
 MISSING_RUNS_TO_REMOVE = 2
 BATCH = 400  # limite Firestore 500 operazioni per batch
 MAX_WRITES = 15_000  # quota Spark 20.000 scritture al giorno, con margine
+MAX_GEOCODE = 3_000  # richieste nuove a Nominatim per giro
 MAX_READS = 40_000  # quota Spark 50.000 letture al giorno, con margine
 #: campi letti in una sola query di proiezione: bastano a decidere cosa scrivere
 PROJECTION = ["source", "contentHash", "removedAt", "missingRuns", "sourceUrl", "startTime", "endTime", "createdAt"]
@@ -256,6 +262,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-writes", type=int, default=MAX_WRITES, help="si ferma prima di scrivere oltre N documenti")
     p.add_argument("--max-reads", type=int, default=MAX_READS, help="si ferma prima di leggere oltre N documenti")
     p.add_argument("--stats-out", type=Path, help="scrive qui le statistiche dell'import (JSON)")
+    p.add_argument("--max-geocode", type=int, default=MAX_GEOCODE,
+                   help="richieste nuove a Nominatim per giro (le altre, dagli eventi più lontani, nei giorni dopo)")
     p.add_argument("--horizon-days", type=int, default=60, help="importa eventi che iniziano entro N giorni")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
@@ -268,7 +276,8 @@ def main(argv: list[str] | None = None) -> int:
         log.error("Nessuna fonte attiva per questa selezione")
         return 1
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30, follow_redirects=True) as client:
-        geocoder = Geocoder(client, HERE / "geocache.json")
+        geocoder = Geocoder(client, HERE / "geocache.json", args.max_geocode,
+                            float(os.environ.get("NOMINATIM_INTERVAL", "1")))
         stats: dict[str, dict] = {}
         try:
             events = collect(client, geocoder, names, now, args.horizon_days, stats)
@@ -276,6 +285,10 @@ def main(argv: list[str] | None = None) -> int:
             geocoder.save()
     summary(stats, SOURCES)
     log.info("Totale dopo deduplica: %d (richieste Nominatim: %d)", len(events), geocoder.requests)
+    if geocoder.deferred:
+        log.warning("Geocoding: %d richieste rimandate oltre il budget di %d, servono circa %d giorni "
+                    "(gli eventi più vicini nel tempo hanno la precedenza)", len(geocoder.deferred), args.max_geocode,
+                    -(-len(geocoder.deferred) // max(1, args.max_geocode)))
     if not events:
         log.error("Nessun evento raccolto: controlla le fonti")
         return 1
