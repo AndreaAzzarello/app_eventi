@@ -23,7 +23,8 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from detect_cms import Blocked, Fetcher, RobotsUnknown, is_open, license_of, links_of
+from detect_cms import is_open, license_of, links_of
+from fetch import Blocked, Fetcher, RobotsUnknown
 from registry import USER_AGENT, base_url, read_rows, write_rows
 
 EXTRA = {"modena", "formigine", "sassuolo", "mirandola"}
@@ -85,8 +86,8 @@ def classify(sentence: str) -> str:
 
 def robots_state(f: Fetcher, url: str) -> str:
     p = urlsplit(url)
-    rp = f._robots_for(f"{p.scheme}://{p.netloc}")
-    return "sconosciuto" if rp is None else "si" if rp.can_fetch(url, USER_AGENT) else "no"
+    ok = f.allowed(url)
+    return "sconosciuto" if ok is None else "si" if ok else "no"
 
 
 def get(f: Fetcher, url: str) -> httpx.Response | None:

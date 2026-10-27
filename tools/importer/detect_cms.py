@@ -14,74 +14,18 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-import threading
-import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
 import httpx
-from protego import Protego
 
+from fetch import Blocked, Fetcher, RobotsUnknown
 from registry import PROTECTED, USER_AGENT, base_url, read_rows, write_rows
 
 OPEN_LICENSE = re.compile(r"^(CC0|CC-BY(-SA)?(-\d\.\d)?|IODL(-\d\.\d)?)$")
 PLONE_API = "/++api++/@search?portal_type=Event&b_size=1"
-
-
-class Blocked(Exception):
-    """robots.txt vieta l'URL."""
-
-
-class RobotsUnknown(Exception):
-    """robots.txt non raggiungibile (5xx o rete): per prudenza non si visita nulla."""
-
-
-class Fetcher:
-    def __init__(self, client: httpx.Client, min_interval: float = 1.0):
-        self.client, self.min_interval = client, min_interval
-        self._robots: dict[str, Protego | None] = {}
-        self._next: dict[str, float] = {}
-        self._lock = threading.Lock()
-
-    def _wait(self, host: str) -> None:
-        with self._lock:
-            now = time.monotonic()
-            at = max(now, self._next.get(host, 0.0))
-            self._next[host] = at + self.min_interval
-        if at > now:
-            time.sleep(at - now)
-
-    def _robots_for(self, origin: str) -> Protego | None:
-        with self._lock:
-            if origin in self._robots:
-                return self._robots[origin]
-        rp: Protego | None
-        try:
-            self._wait(urlsplit(origin).netloc)
-            res = self.client.get(origin + "/robots.txt")
-            if res.status_code < 400:
-                rp = Protego.parse(res.text)
-            elif res.status_code < 500:
-                rp = Protego.parse("")  # nessun robots.txt: tutto permesso (RFC 9309)
-            else:
-                rp = None
-        except httpx.HTTPError:
-            rp = None
-        with self._lock:
-            self._robots[origin] = rp
-        return rp
-
-    def get(self, url: str) -> httpx.Response:
-        p = urlsplit(url)
-        rp = self._robots_for(f"{p.scheme}://{p.netloc}")
-        if rp is None:
-            raise RobotsUnknown(url)
-        if not rp.can_fetch(url, USER_AGENT):
-            raise Blocked(url)
-        self._wait(p.netloc)
-        return self.client.get(url)
 
 
 class _Links(HTMLParser):

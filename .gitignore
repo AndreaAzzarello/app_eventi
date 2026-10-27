@@ -35,3 +35,4 @@ tools/importer/geocache.json
 Thumbs.db
 web/.shots/
 FINAL_REPORT.md
+tools/importer/.httpcache/
