@@ -40,7 +40,7 @@ def estimate(client: httpx.Client, r: dict, now: datetime) -> tuple[int | None, 
 
 def recommend(r: dict, n: int | None) -> tuple[str, str]:
     lic = r["licenza"]
-    if r["robots_ok"] == "no" or lic.startswith("CC-BY-NC") or lic == "riservata":
+    if r["robots_ok"] == "no" or lic.startswith(("CC-BY-NC", "CC-BY-ND")) or lic == "riservata":
         return "escludere", "robots o licenza restrittiva"
     if not is_open(lic):
         return "da verificare a mano", "licenza sui contenuti non confermata"

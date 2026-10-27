@@ -165,8 +165,8 @@ def test_cms_of():
     ("CC0 dominio pubblico", "CC0"),
     ("Italian Open Data License", "IODL"),
     ("licenza IODL 2.0", "IODL"),
-    ("https://creativecommons.org/licenses/by-nc/4.0/", "CC-BY-NC/ND-4.0"),
-    ("Licenza CC BY-NC-ND", "CC-BY-NC/ND"),
+    ("https://creativecommons.org/licenses/by-nc/4.0/", "CC-BY-NC-4.0"),
+    ("Licenza CC BY-NC-ND", "CC-BY-NC"),
     ("Tutti i diritti riservati", "riservata"),
     ("niente di niente", "non trovata"),
 ])
@@ -176,7 +176,7 @@ def test_license_of(text, lic):
 
 @pytest.mark.parametrize("lic, ok", [
     ("CC-BY-4.0", True), ("CC0", True), ("IODL", True), ("CC-BY-SA-3.0", True),
-    ("CC-BY-NC/ND-4.0", False), ("riservata", False), ("non trovata", False), ("", False),
+    ("CC-BY-NC-4.0", False), ("riservata", False), ("non trovata", False), ("", False),
 ])
 def test_is_open(lic, ok):
     assert is_open(lic) is ok

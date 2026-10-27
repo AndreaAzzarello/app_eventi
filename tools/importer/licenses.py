@@ -23,8 +23,9 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from detect_cms import is_open, license_of, links_of
-from fetch import Blocked, Fetcher, RobotsUnknown
+from detect_cms import is_open, is_restrictive, license_of, links_of
+from fetch import CACHE_DIR, Blocked, Fetcher, RobotsUnknown
+from geo import slugify
 from registry import USER_AGENT, base_url, read_rows, write_rows
 
 EXTRA = {"modena", "formigine", "sassuolo", "mirandola"}
@@ -146,7 +147,7 @@ def analyze(f: Fetcher, r: dict) -> dict:
 def recommend(a: dict) -> tuple[str, str]:
     """(licenza per il CSV, raccomandazione)."""
     lic = license_of(a["frase"]) if a["frase"] else "non trovata"
-    if a["robots_api"] == "no" or a["robots_eventi"] == "no" or lic.startswith("CC-BY-NC") or lic == "riservata":
+    if a["robots_api"] == "no" or a["robots_eventi"] == "no" or is_restrictive(lic):
         return (lic if a["classe"] == "contenuti" else a["classe"]), "escludere"
     csv_lic = lic if a["classe"] == "contenuti" and lic != "non trovata" else         {"contenuti": "non-chiara", "non-trovata": "non trovata"}.get(a["classe"], a["classe"])
     ok = not a["conflitto"] and a["classe"] == "contenuti" and is_open(lic) and a["robots_api"] == "si" and a["robots_eventi"] in ("si", "n/d")
@@ -187,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--comune", action="append", help="solo questo comune (ripetibile)")
     p.add_argument("--cms", help="tutti i comuni con questo CMS (es. design_comuni_html), non solo i candidati")
+    p.add_argument("--regione", action="append", help="solo questa regione (ripetibile), per esempio lombardia")
     p.add_argument("--out", type=Path, default=REPORT, help="file del report")
     p.add_argument("--no-csv", action="store_true", help="non aggiornare i CSV")
     args = p.parse_args(argv)
@@ -194,11 +196,12 @@ def main(argv: list[str] | None = None) -> int:
 
     rows = read_rows()
     only = {c.lower() for c in args.comune} if args.comune else None
-    todo = [r for r in rows if r["sito"] and (r["comune"].lower() in only if only else
+    regions = {slugify(x) for x in args.regione or []}
+    todo = [r for r in rows if r["sito"] and (not regions or slugify(r["regione"]) in regions) and (r["comune"].lower() in only if only else
                                               r["cms"] == args.cms if args.cms else
                                               r["stato"] == "candidato" or r["comune"].lower() in EXTRA)]
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20, follow_redirects=True) as client:
-        fetcher = Fetcher(client)
+        fetcher = Fetcher(client, cache_dir=CACHE_DIR)
         with ThreadPoolExecutor(8) as pool:
             results = list(pool.map(lambda r: analyze(fetcher, r), todo))
     for r, a in zip(todo, results):
@@ -206,8 +209,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{a['comune']:<24} {a['cms']:<14} {a['classe']:<14} {a['licenza']:<12} {a['raccomandazione']}", flush=True)
         if not args.no_csv:  # `stato` non si tocca
             r["licenza"] = a["licenza"]
-            r["note"] = (f"licenza: {a['pagina']} — «{a['frase']}»" if a["frase"]
-                         else f"licenza: non trovata ({a['errore'] or 'nessuna pagina'})")
+            # [raccomandazione] e "conflitto" servono ad activate.py: la clausola restrittiva non sta in altre colonne
+            tag = f"licenza[{a['raccomandazione'].split()[0]}]" + (" conflitto" if a["conflitto"] else "")
+            r["note"] = (f"{tag}: {a['pagina']} — «{a['frase']}»" if a["frase"]
+                         else f"{tag}: non trovata ({a['errore'] or 'nessuna pagina'})")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render(results), encoding="utf-8")
     if not args.no_csv:

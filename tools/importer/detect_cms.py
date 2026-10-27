@@ -21,7 +21,8 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
-from fetch import Blocked, Fetcher, RobotsUnknown
+from fetch import CACHE_DIR, Blocked, Fetcher, RobotsUnknown
+from geo import slugify
 from registry import PROTECTED, USER_AGENT, base_url, read_rows, write_rows
 
 OPEN_LICENSE = re.compile(r"^(CC0|CC-BY(-SA)?(-\d\.\d)?|IODL(-\d\.\d)?)$")
@@ -102,7 +103,7 @@ def license_of(text: str) -> str:
     t = " ".join(text.lower().split())
     ver = lambda m: f"-{m}" if m else ""  # noqa: E731
     if m := re.search(r"creativecommons\.org/licenses/by-(nc|nd)[a-z-]*/(\d\.\d)|cc[\s-]*by[\s-]*(nc|nd)", t):
-        return "CC-BY-NC/ND" + ver(m.group(2))  # restrittiva
+        return f"CC-BY-{(m.group(1) or m.group(3)).upper()}" + ver(m.group(2))  # restrittiva (NC o ND)
     if m := re.search(r"creativecommons\.org/licenses/by-sa/(\d\.\d)|cc[\s-]*by[\s-]*sa[\s-]*(\d\.\d)?", t):
         return "CC-BY-SA" + ver(m.group(1) or m.group(2))
     if m := re.search(r"creativecommons\.org/licenses/by/(\d\.\d)|cc[\s-]*by[\s-]*(\d\.\d)", t):
@@ -114,6 +115,10 @@ def license_of(text: str) -> str:
     if "tutti i diritti riservati" in t or "all rights reserved" in t:
         return "riservata"
     return "non trovata"
+
+
+def is_restrictive(lic: str) -> bool:
+    return lic.startswith(("CC-BY-NC", "CC-BY-ND")) or lic == "riservata"
 
 
 def is_open(lic: str) -> bool:
@@ -185,7 +190,7 @@ def detect(f: Fetcher, sito: str) -> dict:
         notes.append("note legali non trovate")
 
     out["robots_ok"] = "no" if blocked else "si"
-    if blocked or lic.startswith("CC-BY-NC") or lic == "riservata":
+    if blocked or is_restrictive(lic):
         out["stato"] = "escluso"
     elif cms in CANDIDATE_CMS and out["robots_ok"] == "si" and is_open(lic) and (api_ok or cms != "plone")             and (out["url_eventi"] or cms != "design_comuni_html"):
         out["stato"] = "candidato"
@@ -222,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--comune", action="append", help="solo questo comune (ripetibile)")
     p.add_argument("--force", action="store_true", help="rianalizza anche le righe già fatte")
     p.add_argument("--report", action="store_true", help="solo riepilogo")
+    p.add_argument("--regione", action="append", help="solo questa regione (ripetibile), per esempio lombardia")
     p.add_argument("--limit", type=int, help="massimo di righe da analizzare")
     p.add_argument("--workers", type=int, default=8, help="siti in parallelo (1 richiesta/s per sito)")
     args = p.parse_args(argv)
@@ -229,24 +235,34 @@ def main(argv: list[str] | None = None) -> int:
 
     rows = read_rows()
     todo = [r for r in rows if r["stato"] not in PROTECTED and r["sito"]
+            and (not args.regione or slugify(r["regione"]) in {slugify(x) for x in args.regione})
             and (not args.comune or r["comune"].lower() in {c.lower() for c in args.comune})
             and (args.force or not r["cms"])]
     if args.limit:
         todo = todo[:args.limit]
     if not args.report and todo:
         with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20, follow_redirects=True) as client:
-            fetcher = Fetcher(client)
-            with ThreadPoolExecutor(args.workers) as pool:
-                futures = {pool.submit(detect, fetcher, r["sito"]): r for r in todo}
-                for i, fut in enumerate(as_completed(futures), 1):
-                    row = futures[fut]
-                    try:
-                        apply(row, fut.result())
-                    except Exception as e:  # una riga difettosa non ferma le altre
-                        apply(row, {"cms": "irraggiungibile", "note": f"auto: errore {type(e).__name__}"})
-                    print(f"[{i}/{len(todo)}] {row['comune']:<28} {row['cms']:<14} {row['licenza']:<12} {row['stato']}", flush=True)
-                    if i % 25 == 0:
-                        write_rows(rows)
+            fetcher = Fetcher(client, cache_dir=CACHE_DIR)
+
+            def run(batch: list[dict]) -> None:
+                with ThreadPoolExecutor(args.workers) as pool:
+                    futures = {pool.submit(detect, fetcher, r["sito"]): r for r in batch}
+                    for i, fut in enumerate(as_completed(futures), 1):
+                        row = futures[fut]
+                        try:
+                            apply(row, fut.result())
+                        except Exception as e:  # una riga difettosa non ferma le altre
+                            apply(row, {"cms": "irraggiungibile", "note": f"auto: errore {type(e).__name__}"})
+                        print(f"[{i}/{len(batch)}] {row['comune']:<28} {row['cms']:<14} {row['licenza']:<12} {row['stato']}", flush=True)
+                        if i % 25 == 0:
+                            write_rows(rows)
+
+            run(todo)
+            # una volta sola, a fine giro: i siti irraggiungibili si riprovano (guasti passeggeri, rate limit)
+            retry = [r for r in todo if r["cms"] == "irraggiungibile"]
+            if retry:
+                print(f"\nSecondo tentativo su {len(retry)} siti irraggiungibili", flush=True)
+                run(retry)
         write_rows(rows)
     print("\n" + report(rows))
     return 0
