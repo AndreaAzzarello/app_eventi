@@ -246,10 +246,7 @@ def summary(stats: dict[str, dict], sources: dict) -> str:
               f"Comuni a zero ({len(zero)}): {', '.join(zero) or '-'}",
               f"Comuni con errori ({len(errors)}): {', '.join(errors) or '-'}"]
     text = "\n".join(lines)
-    print(text)
-    if path := os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(text + "\n")
+    print(text)  # il riepilogo unico del workflow lo scrive ci_report.py
     return text
 
 
@@ -309,7 +306,9 @@ def main(argv: list[str] | None = None) -> int:
         log.error("%s", e)
         return 2
     if args.stats_out:
-        args.stats_out.write_text(json.dumps(stats | {"events": len(events)}), encoding="utf-8")
+        args.stats_out.write_text(json.dumps(stats | {
+            "region": "+".join(sorted({slugify(SOURCES[n].region) for n in names})), "events": len(events),
+            "sources": len(names), "geocode": geocoder.requests, "deferred": len(geocoder.deferred)}), encoding="utf-8")
     return 0
 
 
