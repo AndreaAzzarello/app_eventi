@@ -108,3 +108,63 @@ describe('eventi rimossi dalla fonte', () => {
 		expect(ids).toEqual(['e2']);
 	});
 });
+
+describe('coverage', () => {
+	const regionDoc = (slug: string, comuni: unknown[]) => ({
+		name: `projects/p/databases/(default)/documents/coverage/${slug}`,
+		fields: {
+			name: { stringValue: slug === 'lombardia' ? 'Lombardia' : 'Emilia-Romagna' },
+			comuni: {
+				arrayValue: {
+					values: comuni.map((c) => ({
+						mapValue: {
+							fields: Object.fromEntries(
+								Object.entries(c as Record<string, string | number>).map(([k, v]) => [
+									k,
+									typeof v === 'string' ? { stringValue: v } : { integerValue: String(v) }
+								])
+							)
+						}
+					}))
+				}
+			}
+		}
+	});
+
+	it('legge le regioni con una richiesta, chiave API dopo il parametro già presente', async () => {
+		const urls: string[] = [];
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: string) => {
+				urls.push(url);
+				return new Response(
+					JSON.stringify({
+						documents: [
+							regionDoc('lombardia', [{ name: 'Lecco', slug: 'lecco', province: 'LC', lat: 45, lng: 9, events: 3 }]),
+							regionDoc('emilia-romagna', [])
+						]
+					})
+				);
+			})
+		);
+		const { coverage, readCount } = await import('./firestore');
+		const before = readCount;
+		const regions = await coverage();
+		expect(regions.map((r) => r.slug)).toEqual(['emilia-romagna', 'lombardia']); // ordinate per nome
+		expect(regions[1].comuni[0]).toMatchObject({ name: 'Lecco', events: 3 });
+		expect(urls).toHaveLength(1);
+		expect(urls[0]).toMatch(/\/coverage\?pageSize=50&key=k$/);
+		await coverage(); // dalla cache: nessuna nuova richiesta
+		expect(urls).toHaveLength(1);
+		expect((await import('./firestore')).readCount - before).toBe(2); // una lettura per regione
+	});
+
+	it('regionCoverage: 404 → null, slug non valido senza richiesta', async () => {
+		const fetchMock = vi.fn(async () => new Response('{}', { status: 404 }));
+		vi.stubGlobal('fetch', fetchMock);
+		const { regionCoverage } = await import('./firestore');
+		expect(await regionCoverage('inesistente')).toBeNull();
+		expect(await regionCoverage('../eventi')).toBeNull();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+});

@@ -6,6 +6,15 @@
 		lat: number;
 		lng: number;
 		label: string;
+		/** Solo se scelto dall'elenco dei comuni coperti. */
+		slug?: string;
+		region?: string;
+	}
+
+	interface Region {
+		slug: string;
+		name: string;
+		comuni: { name: string; slug: string; province: string; lat: number; lng: number; events: number }[];
 	}
 
 	let { place, onchange }: { place: Pick<ChosenPlace, 'label'>; onchange: (p: ChosenPlace) => void } = $props();
@@ -16,13 +25,40 @@
 	let results = $state<GeoResult[]>([]);
 	let busy = $state(false);
 	let message = $state('');
+	let regions = $state<Region[]>([]);
+	let regionSlug = $state('');
+	let filter = $state('');
+	let loadedRegions = false;
 
-	function open() {
+	const region = $derived(regions.find((r) => r.slug === regionSlug));
+	// Confronto senza accenti né maiuscole: "forli" trova "Forlì".
+	const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+	const comuni = $derived(region ? region.comuni.filter((c) => fold(c.name).includes(fold(filter.trim()))) : []);
+
+	async function loadRegions() {
+		if (loadedRegions) return;
+		loadedRegions = true;
+		try {
+			const res = await fetch('/api/places');
+			if (!res.ok) throw new Error(String(res.status));
+			regions = await res.json();
+			if (regions.length === 1) regionSlug = regions[0].slug;
+		} catch {
+			loadedRegions = false; // riprova alla prossima apertura; la ricerca libera funziona comunque
+		}
+	}
+
+	export function open() {
 		q = '';
 		results = [];
 		message = '';
+		filter = '';
 		dialog.showModal();
-		input?.focus();
+		loadRegions();
+	}
+
+	export function close() {
+		dialog.close();
 	}
 
 	function choose(p: ChosenPlace) {
@@ -94,8 +130,36 @@
 		<Icon name="locate" /> Usa la mia posizione
 	</button>
 	<p class="hint">La posizione resta su questo dispositivo: non la salviamo sui nostri server.</p>
+	{#if regions.length}
+		<div class="field">
+			<label for="region-q">Oppure scegli la regione</label>
+			<select id="region-q" bind:value={regionSlug} onchange={() => (filter = '')}>
+				<option value="">Scegli la regione</option>
+				{#each regions as r (r.slug)}<option value={r.slug}>{r.name}</option>{/each}
+			</select>
+		</div>
+		{#if region}
+			<div class="field">
+				<label for="comune-q">Cerca il comune</label>
+				<input id="comune-q" type="search" bind:value={filter} placeholder="Es. {region.comuni[0]?.name ?? 'Modena'}" autocomplete="off" />
+			</div>
+			<ul class="results comuni">
+				{#each comuni as c (c.slug)}
+					<li>
+						<button class="result" onclick={() => choose({ lat: c.lat, lng: c.lng, label: c.name, slug: c.slug, region: region.name })}>
+							<Icon name="pin" size={16} />
+							<span class="grow">{c.name}{c.province ? ` (${c.province})` : ''}</span>
+							<span class="n">{c.events}</span>
+						</button>
+					</li>
+				{:else}
+					<li class="hint">Nessun comune con questo nome tra quelli coperti.</li>
+				{/each}
+			</ul>
+		{/if}
+	{/if}
 	<div class="field">
-		<label for="city-q">Oppure cerca una città</label>
+		<label for="city-q">{regions.length ? 'Oppure cerca qualsiasi città' : 'Oppure cerca una città'}</label>
 		<input
 			id="city-q"
 			type="search"
@@ -190,6 +254,20 @@
 	}
 	.result:hover {
 		background: var(--brand-soft);
+	}
+	.comuni {
+		max-height: 14rem;
+		overflow-y: auto;
+		margin-bottom: 1rem;
+	}
+	.grow {
+		flex: 1;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.n {
+		color: var(--muted);
+		font-size: 0.85rem;
 	}
 	.attribution {
 		margin: 1rem 0 0;

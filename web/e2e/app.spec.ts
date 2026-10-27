@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { accountExists, getDocument, mockGeocode, signInByEmail } from './helpers';
+import { accountExists, getDocument, mockGeocode, signInByEmail, uidOf } from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -116,15 +116,3 @@ test('elimina account e dati', async ({ page }) => {
 	expect(await getDocument(`users/${uid}/favorites/seedJazz`)).toBeNull();
 	expect(await accountExists('mario@example.org')).toBe(false);
 });
-
-async function uidOf(page: import('@playwright/test').Page): Promise<string> {
-	return page.evaluate(async () => {
-		const req = indexedDB.open('firebaseLocalStorageDb');
-		const db: IDBDatabase = await new Promise((ok, ko) => ((req.onsuccess = () => ok(req.result)), (req.onerror = ko)));
-		const all: { value: { uid: string } }[] = await new Promise((ok) => {
-			const r = db.transaction('firebaseLocalStorage').objectStore('firebaseLocalStorage').getAll();
-			r.onsuccess = () => ok(r.result);
-		});
-		return all.find((x) => x.value?.uid)!.value.uid;
-	});
-}

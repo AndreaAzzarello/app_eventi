@@ -39,7 +39,7 @@ function root() {
 	return {
 		url: `${host ? `http://${host}` : 'https://firestore.googleapis.com'}/v1/projects/${project}/databases/(default)/documents`,
 		name: `projects/${project}/databases/(default)/documents`,
-		key: host ? '' : `?key=${pub.PUBLIC_FIREBASE_API_KEY}`
+		key: host ? '' : `key=${pub.PUBLIC_FIREBASE_API_KEY}`
 	};
 }
 
@@ -47,7 +47,8 @@ export let readCount = 0; // per i test e per la stima delle letture
 
 async function call<T>(path: string, body?: unknown): Promise<T | null> {
 	const r = root();
-	const res = await fetch(`${r.url}${path}${r.key}`, {
+	const sep = path.includes('?') ? '&' : '?';
+	const res = await fetch(`${r.url}${path}${r.key ? sep + r.key : ''}`, {
 		method: body ? 'POST' : 'GET',
 		headers: body ? { 'content-type': 'application/json' } : undefined,
 		body: body ? JSON.stringify(body) : undefined
@@ -157,6 +158,44 @@ export function upcomingEvents(limit: number): Promise<Event[]> {
 	return cached(`upcoming:${limit}`, () =>
 		runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], ['endTime'], limit)
 	);
+}
+
+export interface CoverageComune {
+	name: string;
+	slug: string;
+	province: string;
+	lat: number;
+	lng: number;
+	events: number;
+}
+export interface Coverage {
+	slug: string;
+	name: string;
+	comuni: CoverageComune[];
+}
+
+const toCoverage = (d: Doc): Coverage => {
+	const f = decodeFields(d.fields) as Partial<Coverage>;
+	return { slug: d.name.slice(d.name.lastIndexOf('/') + 1), name: f.name ?? '', comuni: f.comuni ?? [] };
+};
+
+/** Regioni coperte e loro comuni (scritto ogni giorno dall'importer): una lettura per regione, in cache 5 minuti. */
+export function coverage(): Promise<Coverage[]> {
+	return cached('coverage', async () => {
+		const res = await call<{ documents?: Doc[] }>('/coverage?pageSize=50');
+		const docs = res?.documents ?? [];
+		readCount += Math.max(docs.length, 1);
+		return docs.map(toCoverage).sort((a, b) => a.name.localeCompare(b.name, 'it'));
+	});
+}
+
+export function regionCoverage(slug: string): Promise<Coverage | null> {
+	if (!/^[a-z0-9-]{1,70}$/.test(slug)) return Promise.resolve(null);
+	return cached(`region:${slug}`, async () => {
+		readCount++;
+		const doc = await call<Doc>(`/coverage/${slug}`);
+		return doc ? toCoverage(doc) : null;
+	});
 }
 
 export function getEvent(id: string): Promise<Event | null> {

@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { fromData } from '$lib/event';
 
 const calls: string[] = [];
+let override: ReturnType<typeof fromData>[] | null = null;
 const ev = (id: string, locality: string) =>
 	fromData(id, { city: 'Terre del Reno', citySlug: 'terre-del-reno', province: 'FE', locality, startTime: 1 });
 vi.mock('$lib/server/firestore', () => ({
-	eventsInCity: async (slug: string) => (calls.push(slug), [ev('a', "Sant'Agostino"), ev('b', 'Mirabello')])
+	eventsInCity: async (slug: string) => (calls.push(slug), override ?? [ev('a', "Sant'Agostino"), ev('b', 'Mirabello')]),
+	regionCoverage: async (slug: string) => (slug === 'emilia-romagna' ? { slug, name: 'Emilia-Romagna', comuni: [] } : null)
 }));
 
 describe('/citta/[slug]', () => {
@@ -14,5 +16,15 @@ describe('/citta/[slug]', () => {
 		const r = (await load({ params: { slug: 'terre-del-reno' }, setHeaders() {} } as never)) as { city: string };
 		expect(calls).toEqual(['terre-del-reno']);
 		expect(r.city).toBe('Terre del Reno');
+	});
+
+	it('il breadcrumb porta alla pagina regione solo se la regione è coperta', async () => {
+		const { load } = await import('./+page.server');
+		const run = async (region: string) => {
+			override = [fromData('x', { city: 'Lecco', citySlug: 'lecco', region, startTime: 1 })];
+			return (await load({ params: { slug: 'lecco' }, setHeaders() {} } as never)) as { regionSlug: string };
+		};
+		expect((await run('Emilia-Romagna')).regionSlug).toBe('emilia-romagna');
+		expect((await run('Lombardia')).regionSlug).toBe('');
 	});
 });

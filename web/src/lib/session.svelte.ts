@@ -3,6 +3,7 @@
 import { ADMIN_EMAIL } from './config';
 import { firebase, type Firebase } from './firebase/client';
 import { KEYS, mergeFavorites, readJson, writeJson } from './storage';
+import type { ChosenPlace } from './components/LocationPicker.svelte';
 import { toast } from './toast.svelte';
 
 export interface SessionUser {
@@ -38,8 +39,9 @@ class Session {
 							lastSignIn: Date.parse(u.metadata.lastSignInTime ?? '') || 0
 						};
 						try {
-							await ensureProfile(fb, u.uid, u.displayName ?? '');
+							const profile = await ensureProfile(fb, u.uid, u.displayName ?? '');
 							await favorites.attach(fb, u.uid);
+							await homePlace.attach(fb, u.uid, profile.homePlace);
 						} catch (e) {
 							console.error(e);
 							toast('Non riesco a sincronizzare i preferiti: riprova più tardi.');
@@ -48,6 +50,7 @@ class Session {
 						writeJson(KEYS.session, null);
 						this.user = null;
 						favorites.detach();
+						homePlace.detach();
 					}
 					this.status = 'ready';
 					resolve();
@@ -70,15 +73,66 @@ class Session {
 	}
 }
 
-async function ensureProfile(fb: Firebase, uid: string, name: string) {
+async function ensureProfile(fb: Firebase, uid: string, name: string): Promise<{ homePlace?: unknown }> {
 	const ref = fb.fs.doc(fb.db, 'users', uid);
-	if ((await fb.fs.getDoc(ref)).exists()) return;
+	const snap = await fb.fs.getDoc(ref);
+	if (snap.exists()) return snap.data();
 	await fb.fs.setDoc(ref, {
 		name: name.slice(0, 80),
 		city: '',
 		createdAt: fb.fs.serverTimestamp(),
 		pendingCount: 0
 	});
+	return {};
+}
+
+/** Solo i campi ammessi dalle regole (users/{uid}.homePlace), mai undefined; null se non è una zona valida. */
+export function toHomePlace(p: unknown): ChosenPlace | null {
+	const v = p as Partial<ChosenPlace> | null;
+	if (!v || typeof v.label !== 'string' || !v.label || !Number.isFinite(v.lat) || !Number.isFinite(v.lng)) return null;
+	return {
+		label: v.label.slice(0, 80),
+		lat: v.lat!,
+		lng: v.lng!,
+		...(v.slug ? { slug: v.slug.slice(0, 80) } : {}),
+		...(v.region ? { region: v.region.slice(0, 80) } : {})
+	};
+}
+
+/** Zona scelta: in localStorage per chi è anonimo, anche nel profilo (users/{uid}.homePlace) per chi ha l'account. */
+class HomePlace {
+	/** Impostata al login quando il profilo ha una zona: la home la applica. */
+	value = $state<ChosenPlace | null>(null);
+	#remote: { fb: Firebase; uid: string } | null = null;
+
+	/** Al login: la zona del profilo vince e aggiorna quella locale; se il profilo non ne ha, vale quella locale. */
+	async attach(fb: Firebase, uid: string, remote: unknown) {
+		this.#remote = { fb, uid };
+		const saved = toHomePlace(remote);
+		if (saved) {
+			writeJson(KEYS.place, saved);
+			this.value = saved;
+			return;
+		}
+		const local = toHomePlace(readJson<unknown>(KEYS.place, null));
+		if (local) await this.#write(local);
+	}
+
+	detach() {
+		this.#remote = null;
+		this.value = null;
+	}
+
+	/** Dopo una scelta dell'utente: se ha l'account la salva nel profilo. */
+	save(p: ChosenPlace) {
+		const place = toHomePlace(p);
+		if (place && this.#remote) this.#write(place).catch((e) => console.error(e));
+	}
+
+	async #write(place: ChosenPlace) {
+		const { fb, uid } = this.#remote!;
+		await fb.fs.updateDoc(fb.fs.doc(fb.db, 'users', uid), { homePlace: place });
+	}
 }
 
 class Favorites {
@@ -148,3 +202,4 @@ class Favorites {
 
 export const session = new Session();
 export const favorites = new Favorites();
+export const homePlace = new HomePlace();

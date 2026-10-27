@@ -55,3 +55,15 @@ export async function mockGeocode(page: Page) {
 		return route.fulfill({ json: [{ label: 'Via Emilia Centro 100, Modena', lat: 44.6466, lng: 10.9262, place }] });
 	});
 }
+
+export async function uidOf(page: import('@playwright/test').Page): Promise<string> {
+	return page.evaluate(async () => {
+		const req = indexedDB.open('firebaseLocalStorageDb');
+		const db: IDBDatabase = await new Promise((ok, ko) => ((req.onsuccess = () => ok(req.result)), (req.onerror = ko)));
+		const all: { value: { uid: string } }[] = await new Promise((ok) => {
+			const r = db.transaction('firebaseLocalStorage').objectStore('firebaseLocalStorage').getAll();
+			r.onsuccess = () => ok(r.result);
+		});
+		return all.find((x) => x.value?.uid)!.value.uid;
+	});
+}

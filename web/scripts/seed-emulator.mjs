@@ -104,6 +104,7 @@ const enc = (v) => {
 	if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
 	if (typeof v === 'boolean') return { booleanValue: v };
 	if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
+	if (v && typeof v === 'object') return { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc(x)])) } };
 	return { nullValue: null };
 };
 
@@ -116,3 +117,33 @@ for (const { id, data } of events) {
 	if (!res.ok) throw new Error(`${id}: ${res.status} ${await res.text()}`);
 }
 console.log(`Inseriti ${events.length} eventi in ${BASE}`);
+
+// Come coverage/{regione} scritto dall'importer: comuni coperti con centro e numero di eventi.
+const coverage = {
+	'emilia-romagna': {
+		name: 'Emilia-Romagna',
+		updatedAt: now,
+		comuni: [
+			{ name: 'Bologna', slug: 'bologna', province: 'BO', lat: 44.4939, lng: 11.3428, events: 1 },
+			{ name: 'Formigine', slug: 'formigine', province: 'MO', lat: 44.5733, lng: 10.8466, events: 2 },
+			{ name: 'Modena', slug: 'modena', province: 'MO', lat: 44.6458, lng: 10.9256, events: 2 }
+		]
+	},
+	lombardia: {
+		name: 'Lombardia',
+		updatedAt: now,
+		comuni: [
+			{ name: 'Como', slug: 'como', province: 'CO', lat: 45.81, lng: 9.0852, events: 0 },
+			{ name: 'Lecco', slug: 'lecco', province: 'LC', lat: 45.8566, lng: 9.3977, events: 0 }
+		]
+	}
+};
+for (const [id, data] of Object.entries(coverage)) {
+	const res = await fetch(`${BASE}/coverage/${id}`, {
+		method: 'PATCH',
+		headers: { 'content-type': 'application/json', Authorization: 'Bearer owner' },
+		body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, enc(v)])) })
+	});
+	if (!res.ok) throw new Error(`coverage/${id}: ${res.status} ${await res.text()}`);
+}
+console.log(`Inserite ${Object.keys(coverage).length} regioni in coverage`);

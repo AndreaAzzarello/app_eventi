@@ -12,6 +12,7 @@
 	import type { Event } from '$lib/event';
 	import { applyFilter, filterFromParams, filterToParams, type Filter } from '$lib/filters';
 	import { DEFAULT_PLACE, distanceKm, SNAP_MARGIN_KM, snapCoord } from '$lib/geo';
+	import { homePlace } from '$lib/session.svelte';
 	import { KEYS, readJson, writeJson } from '$lib/storage';
 
 	let { data } = $props();
@@ -26,6 +27,9 @@
 	let view = $state<'list' | 'map'>('list');
 	let wide = $state(false);
 	let highlighted = $state<string | null>(null);
+	let picker: LocationPicker | undefined = $state();
+	/** Primo accesso senza posizione salvata né permesso di geolocalizzazione: si sceglie regione → comune. */
+	let needsPlace = $state(false);
 
 	const visible = $derived(applyFilter(events, filter, now, place));
 	const covered = $derived(
@@ -35,12 +39,43 @@
 	onMount(() => {
 		const saved = readJson<ChosenPlace | null>(KEYS.place, null);
 		if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) place = saved;
+		else firstVisit();
 		const mq = matchMedia('(min-width: 960px)');
 		wide = mq.matches;
 		mq.onchange = (e) => (wide = e.matches);
 		const tick = setInterval(() => (now = Date.now()), 60_000);
 		return () => clearInterval(tick);
 	});
+
+	// Al login la zona del profilo vince su quella locale.
+	$effect(() => {
+		const p = homePlace.value;
+		if (p && (p.lat !== place.lat || p.lng !== place.lng)) {
+			place = p;
+			needsPlace = false;
+			picker?.close(); // il dialogo si era aperto prima che arrivasse il profilo
+		}
+	});
+
+	/** Con il permesso già concesso si parte dalla posizione; altrimenti si chiede dove cercare, senza partire da Modena. */
+	async function firstVisit() {
+		const granted = await navigator.permissions
+			?.query({ name: 'geolocation' })
+			.then((s) => s.state === 'granted')
+			.catch(() => false);
+		if (granted) {
+			navigator.geolocation.getCurrentPosition(
+				({ coords }) => setPlace({ lat: coords.latitude, lng: coords.longitude, label: 'La tua posizione' }),
+				ask,
+				{ timeout: 10000, maximumAge: 600000 }
+			);
+		} else ask();
+	}
+
+	function ask() {
+		needsPlace = true;
+		picker?.open();
+	}
 
 	// Ricarica solo se la zona richiesta esce da quella già scaricata.
 	$effect(() => {
@@ -73,7 +108,9 @@
 
 	function setPlace(p: ChosenPlace) {
 		place = p;
+		needsPlace = false;
 		writeJson(KEYS.place, p);
+		homePlace.save(p);
 	}
 
 	const summary = $derived(
@@ -86,9 +123,16 @@
 <div class="container">
 	<section class="intro" aria-labelledby="h1">
 		<h1 id="h1">Cosa succede <span class="accent">vicino a te</span></h1>
-		<LocationPicker {place} onchange={setPlace} />
+		<LocationPicker bind:this={picker} place={needsPlace ? { label: 'Scegli la zona' } : place} onchange={setPlace} />
 	</section>
 
+	{#if needsPlace}
+		<section class="first-visit" aria-labelledby="first-title">
+			<h2 id="first-title">Dove cerchi eventi?</h2>
+			<p class="muted">Scegli la tua regione e il tuo comune, oppure usa la tua posizione.</p>
+			<button class="btn btn-primary" onclick={() => picker?.open()}>Scegli la zona</button>
+		</section>
+	{:else}
 	<FilterBar {filter} onchange={setFilter} />
 
 	<div class="toolbar">
@@ -142,9 +186,24 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 </div>
 
 <style>
+	.first-visit {
+		margin: 1.5rem 0;
+		padding: 1.5rem 1.25rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+		display: grid;
+		justify-items: start;
+		gap: 0.5rem;
+	}
+	.first-visit h2,
+	.first-visit p {
+		margin: 0;
+	}
 	.intro {
 		display: flex;
 		flex-wrap: wrap;

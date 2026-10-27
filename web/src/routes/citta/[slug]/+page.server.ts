@@ -1,7 +1,7 @@
 import { HTML_CACHE } from '$lib/server/cache';
 import { error } from '@sveltejs/kit';
 import { slugify } from '$lib/event';
-import { eventsInCity } from '$lib/server/firestore';
+import { eventsInCity, regionCoverage } from '$lib/server/firestore';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
@@ -11,5 +11,8 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	if (!events.length) error(404, 'Nessun evento in programma per questa città.');
 	setHeaders({ 'cache-control': HTML_CACHE });
 	const { city, province, region } = events[0];
-	return { events, city, province, region };
+	// Link alla pagina regione solo se esiste (regione coperta): niente breadcrumb che portano a un 404.
+	const regionSlug = region ? slugify(region) : '';
+	const regionPage = regionSlug ? await regionCoverage(regionSlug).catch(() => null) : null;
+	return { events, city, province, region, regionSlug: regionPage ? regionSlug : '' };
 };

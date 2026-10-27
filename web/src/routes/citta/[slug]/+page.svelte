@@ -21,7 +21,8 @@
 <div class="container narrow">
 	<nav class="crumbs" aria-label="Percorso">
 		<a href="/">Eventi Vicini</a> <span aria-hidden="true">›</span>
-		{#if data.region}<span>{data.region}</span> <span aria-hidden="true">›</span>{/if}
+		{#if data.regionSlug}<a href={`/regione/${data.regionSlug}`}>{data.region}</a> <span aria-hidden="true">›</span>
+		{:else if data.region}<span>{data.region}</span> <span aria-hidden="true">›</span>{/if}
 		<span aria-current="page">{data.city}</span>
 	</nav>
 	<h1>Eventi a {data.city}</h1>

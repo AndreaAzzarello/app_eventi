@@ -12,6 +12,16 @@ export default defineConfig({
 	globalSetup: './e2e/global-setup.ts',
 	use: {
 		baseURL: 'http://localhost:4300',
+		// Chi ha già scelto la zona: senza, la home apre la scelta regione → comune (vedi first-visit.spec.ts).
+		storageState: {
+			cookies: [],
+			origins: [
+				{
+					origin: 'http://localhost:4300',
+					localStorage: [{ name: 'ev:place', value: JSON.stringify({ lat: 44.6471, lng: 10.9252, label: 'Modena' }) }]
+				}
+			]
+		},
 		locale: 'it-IT',
 		timezoneId: 'Europe/Rome',
 		trace: 'retain-on-failure'

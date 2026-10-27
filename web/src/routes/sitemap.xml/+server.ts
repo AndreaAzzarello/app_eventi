@@ -1,6 +1,6 @@
 import { siteUrl } from '$lib/config';
 import { cityPath, eventPath } from '$lib/event';
-import { upcomingEvents } from '$lib/server/firestore';
+import { coverage, upcomingEvents } from '$lib/server/firestore';
 import type { RequestHandler } from './$types';
 
 // shortcut: un solo file con al massimo 2000 eventi futuri; oltre serve un indice di sitemap paginato.
@@ -10,11 +10,14 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 export const GET: RequestHandler = async () => {
 	const base = siteUrl();
-	const events = await upcomingEvents(MAX_EVENTS);
+	const [events, regions] = await Promise.all([upcomingEvents(MAX_EVENTS), coverage().catch(() => [])]);
 	const cities = [...new Set(events.map((e) => e.citySlug).filter(Boolean))];
 	const day = (ms?: number) => (ms ? `<lastmod>${new Date(ms).toISOString().slice(0, 10)}</lastmod>` : '');
 	const urls = [
 		`<url><loc>${base}/</loc><changefreq>daily</changefreq></url>`,
+		...regions
+			.filter((r) => r.comuni.length)
+			.map((r) => `<url><loc>${esc(`${base}/regione/${r.slug}`)}</loc><changefreq>daily</changefreq></url>`),
 		...cities.map((c) => `<url><loc>${esc(base + cityPath(c))}</loc><changefreq>daily</changefreq></url>`),
 		...events.map((e) => `<url><loc>${esc(base + eventPath(e))}</loc>${day(e.updatedAt ?? e.createdAt)}</url>`),
 		`<url><loc>${base}/privacy</loc></url>`,
