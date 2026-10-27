@@ -1,15 +1,31 @@
 """Carica (o rimuove con --delete) 10 eventi demo su Firestore dal PC.
 
 Id fissi demo-01…demo-10: rilanciarlo aggiorna gli stessi documenti, non li duplica.
-Credenziali: come run.py (FIREBASE_SERVICE_ACCOUNT o GOOGLE_APPLICATION_CREDENTIALS).
+Funziona SOLO con l'emulatore Firestore: FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS e il
+progetto reale non vengono mai usati. Esempio (emulatore avviato con `npm run emulators` in firebase/):
+    FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 python seed_demo.py
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 from datetime import datetime, timedelta, timezone
 
-from db import client
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+PROJECT_ID = "demo-eventi"  # prefisso demo-: l'emulatore non contatta mai un progetto reale
+
+
+def emulator_client():
+    host = os.environ.get("FIRESTORE_EMULATOR_HOST", "")
+    if not host.startswith(("127.0.0.1", "localhost", "[::1]")):
+        raise SystemExit("Rifiutato: seed_demo.py scrive solo sull'emulatore. Imposta FIRESTORE_EMULATOR_HOST "
+                         "(es. 127.0.0.1:8080); non scrive mai sul progetto reale.")
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(credentials.AnonymousCredentials(), {"projectId": PROJECT_ID})
+    return firestore.client()
 
 # (titolo, descrizione, categoria, prezzo, inizio da ora, durata, luogo, indirizzo, lat, lng, tag)
 SAMPLES = [
@@ -41,7 +57,7 @@ def main() -> None:
     p.add_argument("--delete", action="store_true", help="rimuove gli eventi demo")
     args = p.parse_args()
 
-    db = client()
+    db = emulator_client()
     coll = db.collection("events")
     batch = db.batch()
     now = datetime.now(timezone.utc)
