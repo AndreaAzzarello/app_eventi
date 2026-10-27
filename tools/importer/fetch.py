@@ -49,18 +49,20 @@ class Fetcher:
         with self._lock:
             if origin in self._robots:
                 return self._robots[origin]
-        rp: Protego | None
-        try:
-            self._wait(urlsplit(origin).netloc)
-            res = self.client.get(origin + "/robots.txt")
-            if res.status_code < 400:
+        rp: Protego | None = None
+        for attempt in range(self.retries + 1):  # un errore momentaneo non deve spegnere la fonte per tutto l'import
+            try:
+                self._wait(urlsplit(origin).netloc)
+                res = self.client.get(origin + "/robots.txt")
+            except httpx.HTTPError:
+                res = None
+            if res is not None and res.status_code < 400:
                 rp = Protego.parse(res.text)
-            elif res.status_code < 500:
+            elif res is not None and res.status_code < 500:
                 rp = Protego.parse("")  # nessun robots.txt: tutto permesso (RFC 9309)
-            else:
-                rp = None
-        except httpx.HTTPError:
-            rp = None
+            if rp is not None:
+                break
+            time.sleep(self.backoff * 2 ** attempt)
         with self._lock:
             self._robots[origin] = rp
         return rp

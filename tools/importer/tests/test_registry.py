@@ -182,7 +182,7 @@ def make_fetcher(routes, calls=None):
         if r is None:
             return httpx.Response(404)
         return r if isinstance(r, httpx.Response) else httpx.Response(200, text=r)
-    return Fetcher(httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True), min_interval=0)
+    return Fetcher(httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True), min_interval=0, backoff=0)
 
 
 def plone_routes(legal="Contenuti con licenza CC BY 4.0", api=None, robots=None):
@@ -231,7 +231,7 @@ def test_detect_robots_500_irraggiungibile():
     calls = []
     out = detect(make_fetcher(plone_routes(robots=httpx.Response(500)), calls), "www.c.it")
     assert out["cms"] == "irraggiungibile" and out["stato"] == "da_verificare"
-    assert calls == ["/robots.txt"]
+    assert calls == ["/robots.txt"] * 4  # 1 tentativo + 3 retry: un errore momentaneo non basta a spegnere la fonte
 
 
 def test_detect_home_404():
@@ -285,3 +285,11 @@ def test_cms_of_modello_design_comuni_e_fornitore():
     assert cms_of(page) == "design_comuni_html" and vendor_of(page) == "ComWeb"
     assert vendor_of('<meta name="generator" content="Joomla! - Open Source">') == "Joomla"
     assert vendor_of("<p>niente</p>") == "" and cms_of("<p>niente</p>") == "altro"
+
+
+def test_robots_errore_momentaneo_poi_ok():
+    seq = iter([httpx.Response(503), httpx.Response(200, text="User-agent: *\nAllow: /")])
+    f = make_fetcher({"/robots.txt": None, "/x": "ok"})
+    f.client = httpx.Client(transport=httpx.MockTransport(
+        lambda req: next(seq) if req.url.path == "/robots.txt" else httpx.Response(200, text="ok")))
+    assert f.get("https://www.c.it/x").status_code == 200

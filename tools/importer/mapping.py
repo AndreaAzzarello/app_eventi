@@ -49,6 +49,8 @@ FREE_RE = re.compile(r"gratuit|gratis|gratutio|libero|free|non\s+(?:sono\s+)?pre
 EURO_RE = re.compile(r"(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro)|€\s*(\d+(?:[.,]\d{1,2})?)", re.I)
 
 PREMIUM_FROM_EUR = 25
+#: oltre questa durata è un progetto/una mostra permanente, non un evento (vale per tutti gli adapter)
+MAX_EVENT_DAYS = 45
 MAX_DESCRIPTION = 300
 
 
@@ -195,7 +197,7 @@ def to_event(item: dict, source: dict, now: datetime, horizon_days: int = 60) ->
     if times is None:
         return None
     start, end = times
-    if end < now or start > now + timedelta(days=horizon_days):
+    if end < now or start > now + timedelta(days=horizon_days) or end - start > timedelta(days=MAX_EVENT_DAYS):
         return None
 
     venues = item.get("luoghi_correlati") or []

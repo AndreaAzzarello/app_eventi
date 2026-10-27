@@ -36,9 +36,45 @@ def test_slugify_come_la_webapp(text, slug):
 
 def test_localita_da_nominatim():
     assert place_from_nominatim(ADDRESS) == {
-        "city": "Formigine", "citySlug": "formigine", "province": "MO", "region": "Emilia-Romagna"}
+        "city": "Formigine", "citySlug": "formigine", "province": "MO", "region": "Emilia-Romagna", "locality": ""}
     assert place_from_nominatim({"state": "Lazio"}) is None
     assert place_from_nominatim(None) is None
+
+
+REVERSE = json.loads((Path(__file__).parent / "fixtures" / "nominatim_reverse.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("key, source_city, prov, city, locality", [
+    # Risposte reali di Nominatim. municipality è un'Unione di comuni: il comune è quello della fonte.
+    ("minerbio", "Minerbio", "BO", "Minerbio", "Tintoria"),
+    ("terredelreno", "Terre del Reno", "FE", "Terre del Reno", "Sant'Agostino"),
+    ("rivadelpo", "Riva del Po", "FE", "Riva del Po", "Cologna"),
+    # il comune è "village" e la frazione "town"
+    ("rottofreno", "Rottofreno", "PC", "Rottofreno", "San Nicolò a Trebbia"),
+])
+def test_comune_e_frazione_da_risposte_reali(key, source_city, prov, city, locality):
+    place = place_from_nominatim(REVERSE[key]["address"], source_city, prov)
+    assert (place["city"], place["locality"], place["province"]) == (city, locality, prov)
+    assert place["citySlug"] == slugify(city)
+
+
+def test_comune_vicino_resta_il_suo():
+    # un evento della fonte Modena che cade a Nonantola: city = Nonantola, non Modena
+    addr = {"town": "Nonantola", "ISO3166-2-lvl6": "IT-MO", "state": "Emilia-Romagna"}
+    assert place_from_nominatim(addr, "Modena", "MO")["city"] == "Nonantola"
+
+
+def test_altra_provincia_o_indirizzo_senza_comune_usa_la_fonte():
+    addr = {"municipality": "Zola Predosa", "ISO3166-2-lvl6": "IT-BO", "state": "Emilia-Romagna"}
+    assert place_from_nominatim(addr, "Sassuolo", "MO") is None  # altra provincia
+    assert place_from_nominatim({"municipality": "Unione Terre di Pianura", "ISO3166-2-lvl6": "IT-BO"}, "Minerbio", "BO") is None
+
+
+def test_enrich_scrive_locality_solo_se_c_e():
+    base = {"lat": 44.65, "lng": 10.93}
+    ev = enrich(dict(base), {"city": "Terre del Reno", "province": "FE", "region": "E-R", "locality": "Sant'Agostino"}, {})
+    assert (ev["city"], ev["citySlug"], ev["locality"]) == ("Terre del Reno", "terre-del-reno", "Sant'Agostino")
+    assert "locality" not in enrich(dict(base), {"city": "Modena", "province": "MO", "region": "E-R", "locality": ""}, {})
 
 
 def test_enrich_usa_la_fonte_se_manca_il_reverse():
@@ -69,7 +105,7 @@ def test_reverse_in_cache(tmp_path):
     assert g.reverse(44.57319, 10.84669)["city"] == "Formigine"  # stessa cella da ~100 m
     assert counter["nominatim.openstreetmap.org"] == 1
     g.save()
-    assert "rev:44.573,10.847" in json.loads((tmp_path / "c.json").read_text(encoding="utf-8"))
+    assert "rev2:44.573,10.847" in json.loads((tmp_path / "c.json").read_text(encoding="utf-8"))
 
 
 def test_collect_aggiunge_geohash_e_localita(tmp_path):

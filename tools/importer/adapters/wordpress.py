@@ -17,13 +17,11 @@ from typing import Iterator
 
 import httpx
 
-from mapping import (KIDS_RE, MAX_DESCRIPTION, ROME, category_from_title, event_id, geocode_queries,
+from mapping import (KIDS_RE, MAX_DESCRIPTION, MAX_EVENT_DAYS, ROME, category_from_title, event_id, geocode_queries,
                      map_price)
 
 log = logging.getLogger("importer")
 
-#: oltre questa durata è un progetto/bando, non un evento (Mesola: 556 h e 1202 h)
-MAX_EVENT_DAYS = 45
 ROUTE_RE = re.compile(r"^/wp/v2/(evento|eventi|event|events)$")
 TAG_RE = re.compile(r"<[^>]+>")
 

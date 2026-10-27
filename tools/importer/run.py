@@ -59,7 +59,7 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
                 skipped += 1
                 log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
                 continue
-            enrich(ev, place_of(geocoder, ev), fallback_place(source))
+            enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
             events.setdefault(dedupe_key(ev), ev)
             kept += 1
         stats[name] |= {"events": kept, "skipped": skipped}
@@ -94,10 +94,11 @@ def locate(ev: dict, source: Adapter, geocoder: Geocoder) -> None:
             log.warning("  luogo non trovato, uso il centro di %s: %s", city, ev["sourceUrl"])
 
 
-def place_of(geocoder: Geocoder, ev: dict) -> dict | None:
-    """Comune, provincia e regione dalle coordinate; se Nominatim non risponde vale quello della fonte."""
+def place_of(geocoder: Geocoder, ev: dict, source: Adapter) -> dict | None:
+    """Comune, frazione, provincia e regione dalle coordinate; se Nominatim non risponde, non dà un comune
+    o cade in un'altra provincia vale il comune della fonte."""
     try:
-        return geocoder.reverse(ev["lat"], ev["lng"])
+        return geocoder.reverse(ev["lat"], ev["lng"], source.city, source.province)
     except httpx.HTTPError as e:
         log.warning("  reverse geocoding non riuscito (%s), uso il comune della fonte", e)
         return None

@@ -36,6 +36,8 @@ export async function saveEvent(id: string | null, input: EventInput): Promise<s
 		sourceUrl: (old?.sourceUrl as string) ?? '',
 		createdAt: (old?.createdAt as number) ?? now,
 		updatedAt: now,
+		// La frazione vale solo se l'admin non ha spostato il luogo in un altro comune.
+		...(old?.locality && input.city === old.city ? { locality: old.locality } : {}),
 		...(old?.submittedBy ? { submittedBy: old.submittedBy } : {})
 	});
 	return ref.id;

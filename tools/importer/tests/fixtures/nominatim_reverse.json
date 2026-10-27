@@ -1,0 +1,65 @@
+{
+ "minerbio": {
+  "lat": 44.624,
+  "lng": 11.491,
+  "address": {
+   "village": "Tintoria",
+   "municipality": "Unione Terre di Pianura",
+   "county": "Bologna",
+   "ISO3166-2-lvl6": "IT-BO",
+   "state": "Emilia-Romagna",
+   "ISO3166-2-lvl4": "IT-45",
+   "postcode": "40061",
+   "country": "Italia",
+   "country_code": "it"
+  }
+ },
+ "rivadelpo": {
+  "lat": 44.967,
+  "lng": 11.897,
+  "address": {
+   "hamlet": "Macchiavella",
+   "village": "Cologna",
+   "municipality": "Riva del Po",
+   "county": "Ferrara",
+   "ISO3166-2-lvl6": "IT-FE",
+   "state": "Emilia-Romagna",
+   "ISO3166-2-lvl4": "IT-45",
+   "postcode": "44033",
+   "country": "Italia",
+   "country_code": "it"
+  }
+ },
+ "terredelreno": {
+  "lat": 44.792,
+  "lng": 11.388,
+  "address": {
+   "isolated_dwelling": "Quattro Torri",
+   "village": "Sant'Agostino",
+   "municipality": "Terre del Reno",
+   "county": "Ferrara",
+   "ISO3166-2-lvl6": "IT-FE",
+   "state": "Emilia-Romagna",
+   "ISO3166-2-lvl4": "IT-45",
+   "postcode": "44047",
+   "country": "Italia",
+   "country_code": "it"
+  }
+ },
+ "rottofreno": {
+  "lat": 45.054,
+  "lng": 9.608,
+  "address": {
+   "isolated_dwelling": "Villa Celli",
+   "hamlet": "Case Nuove Bonina",
+   "town": "San Nicolò a Trebbia",
+   "village": "Rottofreno",
+   "county": "Piacenza",
+   "ISO3166-2-lvl6": "IT-PC",
+   "state": "Emilia-Romagna",
+   "ISO3166-2-lvl4": "IT-45",
+   "country": "Italia",
+   "country_code": "it"
+  }
+ }
+}

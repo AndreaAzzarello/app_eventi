@@ -63,19 +63,41 @@ def slugify(s: str) -> str:
     return s[:70].rstrip("-")
 
 
-def place_from_nominatim(address: dict | None) -> dict | None:
-    """addressdetails di Nominatim → {city, citySlug, province (sigla), region}."""
+#: enti sovra-comunali che Nominatim mette in "municipality" al posto del comune
+UNION_RE = re.compile(r"^(unione|comunit[àa]|unione montana)\b", re.I)
+#: dal più al meno probabile come frazione da mostrare accanto al comune
+LOCALITY_KEYS = ("town", "village", "hamlet")
+
+
+def place_from_nominatim(address: dict | None, city: str | None = None, province: str | None = None) -> dict | None:
+    """addressdetails di Nominatim → {city, citySlug, province (sigla), region, locality}.
+
+    city: comune della fonte. Nominatim chiama "village"/"town" anche le frazioni (e a volte il comune stesso:
+    Rottofreno è village, San Nicolò a Trebbia è town), e "municipality" può essere un'Unione di comuni
+    (Minerbio → "Unione Terre di Pianura"). Quindi: se uno dei nomi dell'indirizzo è il comune della fonte, è
+    quello; altrimenti vale municipality/city/town; se c'è solo una frazione, il comune è quello della fonte.
+    La frazione va in "locality". None (= usa la fonte) se l'indirizzo è vuoto o in un'altra provincia.
+    """
     if not address:
         return None
-    city = next((address[k] for k in ("city", "town", "village", "municipality", "hamlet") if address.get(k)), "")
-    if not city:
-        return None
     iso = address.get("ISO3166-2-lvl6", "")
+    prov = iso[3:] if iso.startswith("IT-") else ""
+    if province and prov and prov != province:
+        return None
+    names = {k: address[k] for k in ("municipality", "city", "town", "village", "hamlet")
+             if address.get(k) and not UNION_RE.match(address[k])}
+    if not names:
+        return None
+    own = bool(city) and any(slugify(v) == slugify(city) for v in names.values())
+    name = city if own else (names.get("municipality") or names.get("city") or names.get("town")
+                             or city or names.get("village") or names.get("hamlet"))
+    locality = next((names[k] for k in LOCALITY_KEYS if k in names and slugify(names[k]) != slugify(name)), "")
     return {
-        "city": city,
-        "citySlug": slugify(city),
-        "province": iso[3:] if iso.startswith("IT-") else "",
+        "city": name,
+        "citySlug": slugify(name),
+        "province": prov or province or "",
         "region": address.get("state", ""),
+        "locality": locality,
     }
 
 
@@ -87,4 +109,6 @@ def enrich(ev: dict, place: dict | None, fallback: dict) -> dict:
     ev["citySlug"] = loc.get("citySlug") or slugify(loc["city"])
     ev["province"] = loc.get("province", "")
     ev["region"] = loc.get("region", "")
+    if loc.get("locality"):
+        ev["locality"] = loc["locality"]
     return ev

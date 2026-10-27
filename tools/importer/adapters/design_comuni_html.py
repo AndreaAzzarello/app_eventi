@@ -23,12 +23,11 @@ import httpx
 from selectolax.lexbor import LexborHTMLParser
 
 from fetch import CACHE_DIR, Blocked, Fetcher, RobotsUnknown
-from mapping import (KIDS_RE, MAX_DESCRIPTION, ROME, category_from_title, event_id, geocode_queries, map_price,
+from mapping import (KIDS_RE, MAX_DESCRIPTION, MAX_EVENT_DAYS, ROME, category_from_title, event_id, geocode_queries, map_price,
                      parse_hours)
 
 log = logging.getLogger("importer")
 
-MAX_EVENT_DAYS = 45  # oltre è un progetto/mostra permanente, come per l'adapter WordPress
 MAX_DETAILS = 40  # dettagli scaricati per comune a ogni import
 TYPICAL_PATHS = ["/vivere-il-comune/eventi/", "/novita/eventi/", "/eventi/", "/evento/"]
 MONTHS = {m: i for i, m in enumerate(
@@ -357,9 +356,11 @@ class DesignComuniHtmlAdapter:
     def _get(self, f: Fetcher, url: str) -> str | None:
         try:
             res = f.get(url)
-        except (Blocked, RobotsUnknown) as e:
+        except Blocked as e:
             log.warning("%s: robots.txt non permette %s", self.name, e)
             return None
+        except RobotsUnknown as e:  # errore e non "zero eventi": run.py non deve scambiarlo per una fonte vuota
+            raise httpx.ConnectError(f"robots.txt non raggiungibile ({e})") from e
         return res.text if res.status_code < 400 else None
 
     def _list_urls(self, f: Fetcher, now: datetime) -> list[str]:
@@ -381,6 +382,8 @@ class DesignComuniHtmlAdapter:
                     break
             if found:
                 break
+        if not listing:
+            raise httpx.HTTPError(f"pagina eventi non raggiungibile o vietata da robots.txt: {starts[0]}")
         if listing:
             path = urlsplit(listing).path.rstrip("/")
             for u in self._sitemap_urls(f, path):

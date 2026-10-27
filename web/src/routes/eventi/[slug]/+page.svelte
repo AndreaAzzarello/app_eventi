@@ -110,6 +110,7 @@
 			<dd>
 				{#if e.venueName}<strong>{e.venueName}</strong><br />{/if}
 				{#if e.approxLocation}<span class="approx">Luogo da confermare</span>{:else}{e.address}{/if}
+				{#if e.locality && e.locality !== e.city}<br />{e.locality}, {e.city}{/if}
 				{#if e.citySlug}<br /><a href={cityPath(e.citySlug)}>Altri eventi a {e.city}</a>{/if}
 			</dd>
 		</div>

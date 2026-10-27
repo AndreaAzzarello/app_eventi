@@ -114,3 +114,11 @@ def test_dedupe_key_ignora_maiuscole_e_punteggiatura():
 ])
 def test_category_from_title_italian_keywords(title, expected):
     assert category_from_title(title) == expected
+
+
+def test_scarta_eventi_piu_lunghi_di_45_giorni():
+    base = {"@id": "https://x/e", "title": "Mostra permanente"}
+    lunga = {**base, "start": "2026-10-01T10:00:00Z", "end": "2027-02-01T10:00:00Z"}
+    assert to_event(lunga, SOURCE, NOW) is None
+    ok = {**base, "start": "2026-10-01T10:00:00Z", "end": "2026-11-10T10:00:00Z"}  # 40 giorni
+    assert to_event(ok, SOURCE, NOW) is not None

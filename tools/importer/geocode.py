@@ -48,18 +48,20 @@ class Geocoder:
         # Doppio controllo: vale anche per le voci già in cache, scritte quando il riquadro non c'era.
         return (hit[0], hit[1]) if hit and in_viewbox(hit[0], hit[1], viewbox) else None
 
-    def reverse(self, lat: float, lng: float) -> dict | None:
-        """Coordinate → {city, citySlug, province, region}. Cache a ~100 m (3 decimali)."""
-        key = f"rev:{lat:.3f},{lng:.3f}"
+    def reverse(self, lat: float, lng: float, city: str | None = None, province: str | None = None) -> dict | None:
+        """Coordinate → {city, citySlug, province, region, locality}; city/province = comune e provincia della fonte
+        (vedi geo.place_from_nominatim). Cache a ~100 m (3 decimali) dell'indirizzo grezzo: cambiare le regole
+        non costringe a rifare le richieste."""
+        key = f"rev2:{lat:.3f},{lng:.3f}"
         if key not in self._cache:
             data = self._get("reverse", {"lat": f"{lat:.3f}", "lon": f"{lng:.3f}", "zoom": 14, "addressdetails": 1})
-            self._cache[key] = place_from_nominatim(data.get("address")) if isinstance(data, dict) else None
-        return self._cache[key]
+            self._cache[key] = data.get("address") if isinstance(data, dict) else None
+        return place_from_nominatim(self._cache[key], city, province)
 
     def clean(self, viewbox_of: dict[str, str] | None = None) -> int:
         """Toglie dalla cache i "non trovato" (si riprovano) e i risultati fuori dal riquadro
         della provincia indicata nella query (ultimo elemento: nome provincia). Restituisce quanti."""
-        stale = [k for k, v in self._cache.items() if not k.startswith("rev:") and (
+        stale = [k for k, v in self._cache.items() if not k.startswith(("rev:", "rev2:")) and (
             v is None or not in_viewbox(v[0], v[1], _box_of(k, viewbox_of or {})))]
         for k in stale:
             del self._cache[k]

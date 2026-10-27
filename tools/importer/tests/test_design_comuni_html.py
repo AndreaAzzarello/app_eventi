@@ -121,3 +121,27 @@ def test_span_orari():
     assert span(d, d, []) == (datetime(2026, 11, 3, 0, 0, tzinfo=ROME), datetime(2026, 11, 3, 23, 59, tzinfo=ROME))
     assert span(d, d, [time(21, 0)])[1] == datetime(2026, 11, 3, 23, 0, tzinfo=ROME)  # un solo orario: +2 ore
     assert span(d, d, [time(21, 0), time(22, 30)])[1] == datetime(2026, 11, 3, 22, 30, tzinfo=ROME)
+
+
+def test_robots_non_raggiungibile_o_lista_assente_e_un_errore_non_zero_eventi():
+    import httpx
+
+    from fetch import Fetcher
+
+    def client(robots_status: int, list_status: int) -> httpx.Client:
+        def handler(req: httpx.Request) -> httpx.Response:
+            if req.url.path == "/robots.txt":
+                return httpx.Response(robots_status, text="User-agent: *\nAllow: /")
+            return httpx.Response(list_status, text="<html></html>")
+        return httpx.Client(transport=httpx.MockTransport(handler))
+
+    now = datetime(2026, 10, 27, tzinfo=ROME)
+    for robots, lista in [(503, 200), (200, 404)]:
+        a = DesignComuniHtmlAdapter("x", "https://x.it", "X", "BO", "Emilia-Romagna", None, "https://x.it/eventi/",
+                                    fetcher=Fetcher(client(robots, lista), min_interval=0, backoff=0))
+        with pytest.raises(httpx.HTTPError):
+            list(a.events(None, now, 60))
+    # lista raggiungibile ma senza eventi: zero eventi, nessun errore
+    ok = DesignComuniHtmlAdapter("x", "https://x.it", "X", "BO", "Emilia-Romagna", None, "https://x.it/eventi/",
+                                 fetcher=Fetcher(client(200, 200), min_interval=0, backoff=0))
+    assert list(ok.events(None, now, 60)) == []

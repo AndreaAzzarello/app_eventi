@@ -54,6 +54,8 @@ export interface Event extends EventInput {
 	sourceUrl: string;
 	/** true = posizione approssimata al centro del comune (scritta dall'importer). */
 	approxLocation: boolean;
+	/** Frazione (es. "Sant'Agostino"), scritta dall'importer; city resta il comune. Solo da mostrare: mai per URL o raggruppamenti. */
+	locality: string;
 	createdAt?: number;
 	updatedAt?: number;
 }
@@ -90,6 +92,7 @@ export function fromData(id: string, m: Record<string, unknown>): Event {
 		source: (['manual', 'scraper', 'user'].includes(source) ? source : 'manual') as Event['source'],
 		sourceUrl: safeUrl(str(m.sourceUrl)),
 		approxLocation: m.approxLocation === true,
+		locality: str(m.locality),
 		createdAt: m.createdAt == null ? undefined : num(m.createdAt),
 		updatedAt: m.updatedAt == null ? undefined : num(m.updatedAt)
 	};
