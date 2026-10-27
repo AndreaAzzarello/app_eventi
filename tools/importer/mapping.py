@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -55,13 +56,41 @@ def event_id(source_url: str) -> str:
 
 
 def dedupe_key(ev: dict) -> tuple:
-    """Stesso titolo, giorno e luogo = stesso evento anche se pubblicato da due comuni."""
+    """Stesso titolo (normalizzato), giorno e comune = stesso evento anche se pubblicato da due siti."""
     day = datetime.fromtimestamp(ev["startTime"] / 1000, ROME).date()
-    return (_norm(ev["title"]), day, _norm(ev["venueName"]))
+    return (_norm(ev["title"]), day, ev["citySlug"])
 
 
 def _norm(s: str) -> str:
-    return re.sub(r"\W+", " ", s.lower()).strip()
+    """Minuscole, senza accenti né punteggiatura, spazi singoli."""
+    s = unicodedata.normalize("NFD", s.lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return re.sub(r"[\W_]+", " ", s).strip()
+
+
+# Testo che nei campi indirizzo non è un indirizzo ("sedi diverse", "vedi nel programma").
+NOT_AN_ADDRESS = re.compile(r"\bsedi?\s+(?:diverse|varie)|\bvedi\b|da definire|\bonline\b|a distanza", re.I)
+ROAD_RE = re.compile(
+    r"\b(?:via|viale|piazza|piazzale|corso|largo|vicolo|strada|stradello|borgo|localit[àa]|loc\.)\s.*", re.I)
+
+
+def clean_street(s: str) -> str:
+    """"ritrovo presso la biglietteria, via Lanfranco" → "via Lanfranco"; "" se non c'è un indirizzo."""
+    if NOT_AN_ADDRESS.search(s):
+        return ""
+    m = ROAD_RE.search(s)
+    if not m:
+        return s.strip()
+    parts = [p.strip() for p in m.group(0).split(",")]
+    out = parts[0] + (f", {parts[1]}" if len(parts) > 1 and re.match(r"\d", parts[1]) else "")
+    return re.sub(r"^(?:localit[àa]|loc\.)\s+", "", out, flags=re.I)
+
+
+def geocode_queries(street: str, venue_name: str, city: str) -> list[str]:
+    """Indirizzi da provare con Nominatim, dal più preciso: via+civico, via, nome del luogo."""
+    street = clean_street(street)
+    venue = "" if NOT_AN_ADDRESS.search(venue_name) else re.split(r",| - | e ", venue_name)[0].strip()
+    return [f"{p}, {city}" for p in dict.fromkeys([street, re.sub(r",\s*\d.*$", "", street), venue]) if p]
 
 
 def plaintext(blocks_field) -> str:
@@ -200,8 +229,7 @@ def to_event(item: dict, source: dict, now: datetime, horizon_days: int = 60) ->
         "tags": ["kids"] if KIDS_RE.search(audience) else [],
         "source": "scraper",
         "sourceUrl": url,
-        "_geocode": [] if has_geo else [q for q in dict.fromkeys([
-            f"{street}, {city}" if street else "",
-            f"{venue_name}, {city}" if venue_name else "",
-        ]) if q],
+        "approxLocation": False,
+        # Sempre compilato: se le coordinate della fonte risultano fuori provincia si riparte da qui.
+        "_geocode": geocode_queries(street, venue_name, city),
     }

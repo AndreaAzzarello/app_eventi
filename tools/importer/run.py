@@ -16,7 +16,7 @@ from pathlib import Path
 import httpx
 
 from adapters import SOURCES, Adapter, fallback_place
-from geo import enrich
+from geo import PROVINCES, enrich, in_viewbox
 from geocode import Geocoder
 from mapping import ROME, dedupe_key
 from registry import USER_AGENT
@@ -34,12 +34,7 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
         kept = skipped = 0
         try:
             for ev in source.events(client, now, horizon_days):
-                for q in ev.pop("_geocode"):
-                    if ev["lat"] is not None:
-                        break
-                    hit = geocoder.lookup(q, source.viewbox)
-                    if hit:
-                        ev["lat"], ev["lng"] = hit
+                locate(ev, source, geocoder)
                 if ev["lat"] is None:
                     skipped += 1
                     log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
@@ -51,6 +46,33 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             log.error("%s: fonte non raggiungibile (%s), la salto", name, e)
         log.info("%s: %d eventi, %d senza coordinate", name, kept, skipped)
     return list(events.values())
+
+
+def locate(ev: dict, source: Adapter, geocoder: Geocoder) -> None:
+    """Coordinate dell'evento, sempre dentro la provincia della fonte.
+
+    Quelle della fonte fuori provincia si scartano (capita: Umbria, Varsi…); si prova con gli indirizzi
+    (comune e provincia nella query, risultato nel riquadro); in ultima istanza il centro del comune,
+    con approxLocation=True.
+    """
+    queries = ev.pop("_geocode")
+    if ev["lat"] is not None and not in_viewbox(ev["lat"], ev["lng"], source.viewbox):
+        log.warning("  coordinate fuori provincia (%s, %s), le ignoro: %s", ev["lat"], ev["lng"], ev["sourceUrl"])
+        ev["lat"] = ev["lng"] = None
+    prov = PROVINCES.get(source.province, (source.province, None))[0]
+    for q in queries:
+        if ev["lat"] is not None:
+            return
+        hit = geocoder.lookup(f"{q}, {prov}", source.viewbox)
+        if hit:
+            ev["lat"], ev["lng"] = hit
+    if ev["lat"] is None:
+        city = queries[0].rsplit(",", 1)[-1].strip() if queries else source.city
+        hit = geocoder.lookup(f"{city}, {prov}", source.viewbox) or geocoder.lookup(f"{source.city}, {prov}", source.viewbox)
+        if hit:
+            ev["lat"], ev["lng"] = hit
+            ev["approxLocation"] = True
+            log.warning("  luogo non trovato, uso il centro di %s: %s", city, ev["sourceUrl"])
 
 
 def place_of(geocoder: Geocoder, ev: dict) -> dict | None:

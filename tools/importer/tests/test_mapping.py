@@ -30,7 +30,7 @@ def test_evento_normale_con_coordinate_del_luogo(events):
     assert e["priceType"] == "low"  # "Biglietti: 10€"
     assert e["venueName"] == 'Auditorium "Spira mirabilis"'
     assert (e["lat"], e["lng"]) == pytest.approx((44.5765, 10.8393), abs=1e-3)
-    assert e["_geocode"] == []
+    assert e["_geocode"]  # sempre compilato: serve se le coordinate della fonte risultano fuori provincia
     assert e["source"] == "scraper"
     assert e["id"] == event_id(e["sourceUrl"])
 
@@ -101,6 +101,6 @@ def test_orari_dal_testo():
 
 
 def test_dedupe_key_ignora_maiuscole_e_punteggiatura():
-    a = {"title": "Concerto: Jazz!", "venueName": "Teatro", "startTime": 1_793_000_000_000}
-    b = {"title": "concerto jazz", "venueName": "TEATRO", "startTime": 1_793_000_000_000 + 3_600_000}
+    a = {"title": "Concerto: Jazz!", "citySlug": "modena", "startTime": 1_793_000_000_000}
+    b = {"title": "concerto jazz", "citySlug": "modena", "startTime": 1_793_000_000_000 + 3_600_000}
     assert dedupe_key(a) == dedupe_key(b)

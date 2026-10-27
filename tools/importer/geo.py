@@ -33,6 +33,28 @@ def geohash(lat: float, lng: float, precision: int = PRECISION) -> str:
     return "".join(out)
 
 
+# Emilia-Romagna: nome per le query a Nominatim e riquadro (lon_min, lat_max, lon_max, lat_min) della provincia.
+# Riquadri approssimati e un po' larghi: servono a scartare le omonimie lontane, non a tracciare i confini.
+PROVINCES = {
+    "PC": ("Piacenza", "9.15,45.20,10.10,44.45"),
+    "PR": ("Parma", "9.55,45.05,10.55,44.30"),
+    "RE": ("Reggio Emilia", "10.15,44.98,10.95,44.15"),
+    "MO": ("Modena", "10.40,45.00,11.40,44.10"),
+    "BO": ("Bologna", "10.85,44.90,12.05,43.85"),
+    "FE": ("Ferrara", "11.20,45.05,12.45,44.50"),
+    "RA": ("Ravenna", "11.50,44.65,12.50,44.00"),
+    "FC": ("Forlì-Cesena", "11.60,44.40,12.50,43.70"),
+    "RN": ("Rimini", "12.10,44.25,12.85,43.75"),
+}
+
+
+def in_viewbox(lat: float, lng: float, viewbox: str | None) -> bool:
+    if not viewbox:
+        return True
+    lon_min, lat_max, lon_max, lat_min = (float(x) for x in viewbox.split(","))
+    return lat_min <= lat <= lat_max and lon_min <= lng <= lon_max
+
+
 def slugify(s: str) -> str:
     """Come slugify() in TypeScript: niente accenti, minuscolo, trattini, massimo 70 caratteri."""
     s = unicodedata.normalize("NFD", s)
