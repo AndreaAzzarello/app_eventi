@@ -46,8 +46,14 @@ def parse_istat(text: str, regions: set[str] | None) -> list[dict]:
     return out
 
 
+# Riforma delle province sarde: ISTAT e IndicePA non usano sempre le stesse sigle (SU/OG/OT/CI/VS…), e i nomi dei
+# comuni sono unici nella regione, quindi per la Sardegna la provincia non entra nella chiave.
+SARDINIA = {"CA", "SS", "NU", "OR", "SU", "OG", "OT", "CI", "VS"}
+
+
 def _key(name: str, provincia: str) -> tuple[str, str]:
-    return slugify(name), provincia.upper()
+    p = provincia.upper()
+    return slugify(name), "SAR" if p in SARDINIA else p
 
 
 def parse_ipa(text: str) -> dict[tuple[str, str], str]:
@@ -76,7 +82,7 @@ def merge(existing: list[dict], comuni: list[dict], sites: dict[tuple[str, str],
             by_code[c["codice_istat"]] = {k: "" for k in COLUMNS} | c | {
                 "sito": sito, "stato": "da_verificare", "note": "" if sito else "auto: sito non in IndicePA"}
         elif row["stato"] not in PROTECTED:
-            row.update(c)
+            row.update(c | {"comune_alt": c.get("comune_alt") or row.get("comune_alt", "")})  # alias inseriti a mano restano
             if sito and sito != row["sito"]:
                 row["sito"] = sito  # il sito è cambiato: il rilevamento precedente non vale più
                 row.update(cms="", url_eventi="", licenza="", robots_ok="")

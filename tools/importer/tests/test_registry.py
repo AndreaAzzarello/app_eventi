@@ -380,3 +380,17 @@ def test_find_link_pagina_eventi_in_tedesco_e_francese():
     fr = '<a href="/fr/agenda-des-manifestations">Événements</a>'
     assert find_link(fr, "https://www.comune.aosta.it", "eventi").endswith("/fr/agenda-des-manifestations")
     assert find_link('<a href="/de/Verwaltung/Termine">Termine</a>', "https://x.bz.it", "eventi") == ""
+
+
+def test_merge_non_perde_l_alias_inserito_a_mano():
+    existing = [row(regione="Sardegna", provincia="SS", comune="Alghero", codice_istat="090003", stato="da_verificare",
+                    comune_alt="L'Alguer")]
+    out = merge(existing, [{"regione": "Sardegna", "provincia": "SS", "comune": "Alghero", "codice_istat": "090003",
+                            "comune_alt": ""}], {})
+    assert out[0]["comune_alt"] == "L'Alguer"
+
+
+def test_sardegna_sigle_provincia_diverse_tra_istat_e_indicepa():
+    from build_registry import _key
+
+    assert _key("Lanusei", "SU") == _key("Lanusei", "OG") and _key("Lanusei", "SU") != _key("Lanusei", "BO")
