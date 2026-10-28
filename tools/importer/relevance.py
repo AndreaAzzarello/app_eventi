@@ -18,7 +18,8 @@ GENERIC_TITLES = {
 
 #: pagine riassuntive: "Tutti gli eventi", "Eventi 2026", "Programma eventi estate", "Calendario eventi"
 SUMMARY_RE = re.compile(
-    r"^(?:tutti gli )?eventi(?: (?:in programma|del comune|di (?:\w+ ){0,2}20\d\d))?(?: 20\d\d)?$"
+    r"^archivio(?: eventi)?(?: 20\d\d)?$"
+    r"|^(?:tutti gli )?eventi(?: (?:in programma|del comune|di (?:\w+ ){0,2}20\d\d))?(?: 20\d\d)?$"
     r"|^(?:programma|calendario|elenco)\b.*\beventi\b"
     r"|^eventi\b.*\b(?:programma|calendario)\b"
     r"|^programma (?:dell |della )?(?:estate|estivo|autunno|inverno|primavera)\b"
@@ -32,12 +33,17 @@ SEDUTA_RE = re.compile(
 #: avvisi alla cittadinanza; si salvano se il titolo dice che è un incontro pubblico (EVENT_WORD_RE)
 NOTICE_RE = re.compile(
     r"\brifiuti\b|\becocentro\b|\braccolta\s+(?:differenziata|porta)|\bingombranti\b"
-    r"|\b(?:attenzione|allerta|avviso|tentativi?|false?)\b.*\btruff\w*|\btruff\w*\b.*\b(?:in corso|anziani)\b|\braggir\w*"
+    r"|\braggir\w*"
     r"|\ballert[ae]\b|\bavviso\b|\bavvisi\b"
     r"|\bpeste\s+suina\b|\binfluenza\s+aviaria\b|\bzanzara\s+tigre\b"
     r"|\bband[oi]\b|\bgraduatoria\b"
     r"|\bsicurezza\s+stradale\b|\bchiusura\s+(?:al\s+traffico|strada|ufficio|uffici)\b|\bviabilit[aà]\b"
     r"|\bsciopero\b|\binterruzione\s+(?:acqua|energia|servizio)\b")
+#: truffe: avviso solo se il titolo è un allarme; "Come prevenire e difendersi dalle truffe" è un incontro
+TRUFFE_RE = re.compile(r"\b(?:attenzione|allerta|avviso|tentativi?|false?)\b.*\btruff\w*|\btruff\w*\b.*\b(?:in corso|anziani)\b")
+TRUFFE_KEEP_RE = re.compile(r"\b(?:come|prevenire|difendersi|difendere|difesa|proteggersi|riconoscere|imparare)\b")
+#: stagioni teatrali/concertistiche/cinematografiche: eventi longRunning, non riepiloghi
+SEASON_RE = re.compile(r"\bstagione\s+(?:teatral\w*|concertistic\w*|cinematografic\w*|music\w*|lirica|di prosa|sinfonica)\b|^stagione\b")
 EVENT_WORD_RE = re.compile(
     r"\b(?:incontro|conferenza|serata|convegno|laboratori\w*|corso|spettacol\w*|concert\w*|mostra|cerimonia|festa|"
     r"presentazione|assemblea|passeggiata|visita|giornata|workshop|evento)\b")
@@ -46,10 +52,16 @@ EVENT_WORD_RE = re.compile(
 VIDEO_RE = re.compile(r"^video\b|\bvideo\s+(?:messaggio|istituzionale|del sindaco|integrale)\b|\bdiretta\s+streaming\b")
 
 
+def is_season(title: str) -> bool:
+    return bool(SEASON_RE.search(_norm(title)))
+
+
 def exclusion_reason(title: str) -> str | None:
     """Motivo per cui la pagina non è un evento pubblico, None se va importata."""
     t = _norm(title)
     if not t:
+        return None
+    if is_season(title):
         return None
     if t in GENERIC_TITLES:
         return "titolo generico"
@@ -60,5 +72,7 @@ def exclusion_reason(title: str) -> str | None:
     if VIDEO_RE.search(t):
         return "video"
     if NOTICE_RE.search(t) and not EVENT_WORD_RE.search(t):
+        return "avviso"
+    if TRUFFE_RE.search(t) and not (EVENT_WORD_RE.search(t) or TRUFFE_KEEP_RE.search(t)):
         return "avviso"
     return None

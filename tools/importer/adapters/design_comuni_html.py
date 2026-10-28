@@ -23,12 +23,14 @@ import httpx
 from selectolax.lexbor import LexborHTMLParser
 
 from fetch import CACHE_DIR, Blocked, Fetcher, RobotsUnknown
+from relevance import is_season
 from mapping import (KIDS_RE, LONG_RUNNING_DAYS, ROME, category_from_title, event_id, geocode_queries, html_to_text,
                      map_price, parse_hours, shorten, too_long)
 
 log = logging.getLogger("importer")
 
 MAX_DETAILS = 40  # dettagli scaricati per comune a ogni import
+ARCHIVE_RE = re.compile(r"/(?:archivio(?:-eventi)?|index\.html?)/?$", re.I)
 SUMMARY_LINKS = 6  # link ad altri eventi, senza data strutturata: la pagina è un riepilogo
 TYPICAL_PATHS = ["/vivere-il-comune/eventi/", "/novita/eventi/", "/eventi/", "/evento/"]
 MONTHS = {m: i for i, m in enumerate(
@@ -244,6 +246,9 @@ def _place(tree: LexborHTMLParser) -> tuple[str, str]:
 def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
     """Campi grezzi di un dettaglio: title, start, end, venue, street, description, price_text, tipo, image."""
     tree = LexborHTMLParser(page)
+    for sel in ('[data-element="feedback"]', ".cmp-rating"):  # "Quanto sono chiare le informazioni…": h1/h2 del widget
+        while (node := tree.css_first(sel)) is not None:
+            node.decompose()
     canonical = (tree.css_first('link[rel="canonical"]') or tree.css_first("body")).attributes.get("href") or url
     og = tree.css_first('meta[property="og:title"]')
     # Alcuni temi hanno più <h1> ("Seguici su" nel piè di pagina): meglio l'h1 marcato o og:title
@@ -305,7 +310,7 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
     return {"title": title, "start": when[0], "end": when[1], "venue": venue, "street": street, "description": desc,
             "price_text": price_text or (_clean(str(ld.get("isAccessibleForFree"))) if ld and ld.get("isAccessibleForFree") else ""),
             "tipo": tipo, "image": _image(tree, url), "url": urljoin(url, canonical), "recurring": bool(RECUR_RE.search(main_text)),
-            "summary": not exact and len(others) >= SUMMARY_LINKS}
+            "summary": not exact and len(others) >= SUMMARY_LINKS and not is_season(title)}
 
 
 def _next_point(sec, today: date) -> tuple[datetime, datetime] | None:
@@ -416,6 +421,8 @@ class DesignComuniHtmlAdapter:
         urls = self._list_urls(f, now)
         found = 0
         for url in urls:
+            if ARCHIVE_RE.search(urlsplit(url).path):  # archivio e index.html sono elenchi, non eventi
+                continue
             page = self._get(f, url)
             if page is None:
                 continue

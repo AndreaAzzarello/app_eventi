@@ -33,6 +33,7 @@ ESCLUSI = [
     ("Evento culturale", "titolo generico"),
     ("Mostra", "titolo generico"),
     ("  Evento  ", "titolo generico"),
+    ("Archivio eventi", "pagina riassuntiva"),
 ]
 
 TENUTI = [
@@ -42,6 +43,12 @@ TENUTI = [
     "Evento culturale in biblioteca: Leggere ad alta voce",
     "Incontro contro le truffe agli anziani",
     "Truffe sbuffi baruffe",
+    "Come prevenire e difendersi dalle Truffe!",
+    "Come difendersi dalle truffe agli anziani",
+    "Stagione teatrale 2026/2027",
+    "Teatro Michelangelo: stagione",
+    "Stagione concertistica 2026-2027",
+    "Stagione cinematografica d'autunno",
     "Laboratorio di riciclo dei rifiuti per bambini",
     "Presentazione del bando per il servizio civile",
     "Band emergenti in piazza",
@@ -80,6 +87,26 @@ def test_pagina_riassuntiva_molti_link_e_data_dal_testo():
     assert "_excluded" not in a.event_from_page(pagina(2, "Dal 5 novembre al 20 dicembre 2026"), url, now, 90)
 
 
+def test_stagione_teatrale_con_molti_link_resta_longrunning():
+    a = DesignComuniHtmlAdapter("x", "https://x.it", "X", "FI", "Toscana")
+    now = datetime(2026, 11, 1, tzinfo=ROME)
+    page = pagina(9, "Dal 5 novembre al 20 dicembre 2026").replace("Eventi autunno", "Stagione teatrale 2026/2027")
+    ev = a.event_from_page(page, "https://x.it/eventi/stagione", now, 90)
+    assert ev and "_excluded" not in ev and exclusion_reason(ev["title"]) is None
+
+
+def test_widget_feedback_non_e_il_titolo():
+    a = DesignComuniHtmlAdapter("x", "https://x.it", "X", "BG", "Lombardia")
+    now = datetime(2026, 11, 1, tzinfo=ROME)
+    widget = ('<div class="cmp-rating"><div data-element="feedback"><h1 data-element="feedback-title">'
+              "Quanto sono chiare le informazioni su questa pagina?</h1></div></div>")
+    # come sui siti reali: l'h1 della pagina sta fuori da <main>, quello del widget dentro
+    page = (f"<html><body><h1>Archivio eventi</h1><main>{widget}<p>Dal 5 novembre al 20 dicembre 2026</p></main>"
+            "</body></html>")
+    ev = a.event_from_page(page, "https://x.it/eventi/archivio-eventi/", now, 90)
+    assert ev["title"] == "Archivio eventi" and exclusion_reason(ev["title"]) == "pagina riassuntiva"
+
+
 def test_esclusi_gia_importati_diventano_removed_subito():
     now_ms = 1_000_000_000_000
     ok = {"www.comune.test.it"}
@@ -114,3 +141,9 @@ def test_errore_imprevisto_in_una_fonte_non_ferma_le_altre(monkeypatch, tmp_path
     stats: dict = {}
     run.collect(httpx.Client(), SimpleNamespace(), ["rotta", "vuota"], datetime(2026, 11, 1, tzinfo=ROME), 60, stats)
     assert stats["rotta"]["error"] == "ValueError: pagina anomala" and stats["vuota"]["error"] is None
+
+
+def test_pagine_archivio_saltate():
+    from adapters.design_comuni_html import ARCHIVE_RE
+    assert ARCHIVE_RE.search("/vivere-il-comune/eventi/archivio-eventi/")
+    assert not ARCHIVE_RE.search("/vivere-il-comune/eventi/archivio-fotografico-in-mostra")
