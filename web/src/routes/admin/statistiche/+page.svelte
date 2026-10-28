@@ -22,7 +22,7 @@
 </script>
 
 <h1>Statistiche</h1>
-<p class="muted">Eventi attivi nel mese per regione, contati ogni giorno dall’import. Confronto con {monthName(keys.prev)}.</p>
+<p class="muted">Eventi attivi a {monthName(keys.cur)} per regione, contati ogni giorno dall’import. La variazione è rispetto a {monthName(keys.prev)}.</p>
 
 {#if failed}
 	<ErrorMessage>Non riesco a leggere le statistiche.</ErrorMessage>
@@ -31,14 +31,15 @@
 {:else if !rows.length}
 	<p class="muted">Nessuna statistica per {monthName(keys.cur)}: compaiono dopo il prossimo import.</p>
 {:else}
+	<div class="scroll">
 	<table>
 		<thead>
 			<tr>
 				<th scope="col">Regione</th>
-				<th scope="col" class="num">Eventi a {monthName(keys.cur)}</th>
-				<th scope="col" class="num">Rispetto a {monthName(keys.prev)}</th>
-				<th scope="col" class="num">Comuni con eventi</th>
-				<th scope="col">Città principali</th>
+				<th scope="col" class="num">Eventi</th>
+				<th scope="col" class="num">Variazione</th>
+				<th scope="col" class="num">Comuni</th>
+				<th scope="col" class="cities">Città principali</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -48,14 +49,27 @@
 					<td class="num">{fmtNum(r.cur.events)}</td>
 					<td class="num">{monthDelta(r.cur.events, r.prev?.events ?? null) || '–'}</td>
 					<td class="num">{fmtNum(r.cur.comuni)}</td>
-					<td>{r.cur.cities.slice(0, 3).map((c) => `${c.name} ${fmtNum(c.n)}`).join(', ')}</td>
+					<td class="cities">{r.cur.cities.slice(0, 3).map((c) => `${c.name} ${fmtNum(c.n)}`).join(', ')}</td>
 				</tr>
 			{/each}
 		</tbody>
 	</table>
+	</div>
 {/if}
 
 <style>
+	.scroll {
+		overflow-x: auto;
+	}
+	@media (max-width: 479px) {
+		.cities {
+			display: none;
+		}
+		th,
+		td {
+			padding-inline: var(--space-1);
+		}
+	}
 	table {
 		width: 100%;
 		border-collapse: collapse;

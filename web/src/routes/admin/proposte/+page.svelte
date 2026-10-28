@@ -83,8 +83,10 @@
 			<li class="card item">
 				<div class="top">
 					<div>
-						<span class="badge"><Cat size={16} aria-hidden="true" /> {CATEGORIES[s.category]}</span>
-						<span class="badge">{PRICE_TYPES[s.priceType]}</span>
+						<div class="meta">
+							<span class="badge"><Cat size={16} aria-hidden="true" /> {CATEGORIES[s.category]}</span>
+							<span class="badge">{PRICE_TYPES[s.priceType]}</span>
+						</div>
 						<h2>{s.title}</h2>
 						<p class="muted">{formatWhen(s.startTime, s.endTime)} · {s.venueName ? `${s.venueName}, ` : ''}{s.address} ({s.city}{s.province ? `, ${s.province}` : ''})</p>
 					</div>
@@ -128,6 +130,12 @@
 </dialog>
 
 <style>
+	.meta {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-3);
+	}
 	.list {
 		list-style: none;
 		padding: 0;
@@ -144,6 +152,9 @@
 		justify-content: space-between;
 		align-items: start;
 		gap: var(--space-3);
+	}
+	.top p {
+		margin: 0;
 	}
 	.top h2 {
 		margin: var(--space-2) 0 var(--space-1);

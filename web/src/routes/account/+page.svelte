@@ -153,7 +153,7 @@
 					<span class="hint" role="status">{profileMsg}</span>
 				</div>
 			</form>
-			<div class="row">
+			<div class="row start">
 				{#if session.user.isAdmin}<a class="btn btn-ghost" href="/admin">Area admin</a>{/if}
 				<button class="btn btn-ghost" onclick={() => session.signOut()}>Esci</button>
 			</div>
@@ -261,6 +261,7 @@
 		align-items: center;
 		justify-content: flex-end;
 	}
+	.row.start,
 	.profile .row {
 		justify-content: flex-start;
 		margin-bottom: var(--space-2);

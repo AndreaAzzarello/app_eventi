@@ -8,7 +8,7 @@
 	let loading = $state(true);
 	let error = $state('');
 	let now = $state(Date.now());
-	let loadedKey = '';
+	let loadedKey: string | null = null; // null: mai caricato (la chiave di una lista vuota è '')
 
 	// I dati arrivano da /api/events?ids= (cache all'edge), uguale per chi ha l'account e per chi no.
 	async function load(ids: string[]) {
@@ -28,7 +28,7 @@
 			events = await res.json();
 		} catch {
 			error = 'Non riesco a caricare i preferiti.';
-			loadedKey = '';
+			loadedKey = null;
 		} finally {
 			loading = false;
 		}
@@ -45,7 +45,7 @@
 	);
 </script>
 
-<EventList events={shown} {now} {loading} {error} onretry={() => ((loadedKey = ''), load(favorites.ids))}>
+<EventList events={shown} {now} {loading} {error} onretry={() => ((loadedKey = null), load(favorites.ids))}>
 	{#snippet empty()}
 		<h2>Ancora nessun preferito</h2>
 		<p class="muted">Tocca il cuore su un evento per ritrovarlo qui.</p>

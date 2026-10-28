@@ -47,16 +47,22 @@
 		gap: var(--space-1);
 		border-bottom: 1px solid var(--border);
 		margin-bottom: var(--space-4);
+		overflow-x: auto;
 	}
 	.tabs a {
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--control);
-		padding: 0 var(--space-3);
+		padding: 0 var(--space-2);
 		color: var(--muted);
 		font-weight: var(--fw-strong);
 		text-decoration: none;
 		border-bottom: 2px solid transparent;
+	}
+	@media (min-width: 480px) {
+		.tabs a {
+			padding: 0 var(--space-3);
+		}
 	}
 	.tabs a[aria-current='page'] {
 		color: var(--accent);

@@ -68,6 +68,11 @@ test('preferito senza account propone il login, che unisce i preferiti', async (
 	expect(await page.evaluate(() => localStorage.getItem('ev:favorites'))).toBeNull();
 });
 
+test('senza preferiti si vede lo stato vuoto, non lo scheletro di caricamento', async ({ page }) => {
+	await page.goto('/preferiti');
+	await expect(page.getByRole('heading', { name: 'Ancora nessun preferito' })).toBeVisible();
+});
+
 test('proposta di un evento', async ({ page }) => {
 	await mockGeocode(page);
 	await signInByEmail(page, 'mario@example.org', '/proponi');

@@ -40,3 +40,22 @@ for (const width of [360, 390]) {
 		await expect(page).toHaveURL(/\/admin$/);
 	});
 }
+
+const overflow = (page: Page) =>
+	page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+test('accedi, proponi, account e tutte le viste admin senza scroll orizzontale a 360px', async ({ page }) => {
+	await page.setViewportSize({ width: 360, height: 740 });
+	for (const path of ['/accedi', '/proponi']) {
+		await page.goto(path);
+		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		expect(await overflow(page), path).toBeLessThanOrEqual(0);
+	}
+	await signInByEmail(page, 'azzatubo@gmail.com', '/proponi');
+	for (const path of ['/proponi', '/account', '/admin', '/admin/proposte', '/admin/statistiche', '/admin/stile', '/admin/eventi/nuovo', '/admin/eventi/seedJazz']) {
+		await page.goto(path);
+		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		await page.waitForLoadState('networkidle');
+		expect(await overflow(page), path).toBeLessThanOrEqual(0);
+	}
+});

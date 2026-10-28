@@ -258,7 +258,7 @@ dialog {
 	border: none;
 	border-radius: var(--radius);
 	padding: var(--space-4);
-	max-width: min(var(--w-dialog), 100%);
+	max-width: min(var(--w-dialog), calc(100vw - var(--space-5)));
 	background: var(--surface);
 	color: var(--text);
 	box-shadow: var(--shadow-overlay);
