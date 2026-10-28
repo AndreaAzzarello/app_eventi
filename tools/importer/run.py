@@ -45,6 +45,9 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             return list(SOURCES[name].events(client, now, horizon_days)), None
         except httpx.HTTPError as e:
             return [], str(e) or type(e).__name__
+        except Exception as e:  # un bug o una pagina anomala in una fonte non deve fermare le altre
+            log.exception("%s: errore imprevisto", name)
+            return [], f"{type(e).__name__}: {e}"
 
     with ThreadPoolExecutor(WORKERS) as pool:
         fetched = list(pool.map(fetch, names))

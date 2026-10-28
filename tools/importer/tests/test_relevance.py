@@ -94,3 +94,22 @@ def test_report_per_regione():
            "region": "veneto" if i % 2 else "toscana"} for i in range(30)]
     text = excluded_report(ex)
     assert "veneto: 15" in text and "toscana: 15" in text and text.count("\n  - ") == 20
+
+
+def test_errore_imprevisto_in_una_fonte_non_ferma_le_altre(monkeypatch, tmp_path):
+    import httpx
+    import run
+    from types import SimpleNamespace
+
+    class Rotta:
+        def events(self, *a):
+            raise ValueError("pagina anomala")
+
+    class Vuota:
+        def events(self, *a):
+            return []
+
+    monkeypatch.setattr(run, "SOURCES", {"rotta": Rotta(), "vuota": Vuota()})
+    stats: dict = {}
+    run.collect(httpx.Client(), SimpleNamespace(), ["rotta", "vuota"], datetime(2026, 11, 1, tzinfo=ROME), 60, stats)
+    assert stats["rotta"]["error"] == "ValueError: pagina anomala" and stats["vuota"]["error"] is None
