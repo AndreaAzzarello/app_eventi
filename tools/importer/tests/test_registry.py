@@ -75,8 +75,8 @@ ISTAT = (
 def test_parse_istat_filtra_regione():
     out = parse_istat(ISTAT, {"emilia-romagna"})
     assert out == [
-        {"regione": "Emilia-Romagna", "provincia": "MO", "comune": "Modena", "codice_istat": "036023"},
-        {"regione": "Emilia-Romagna", "provincia": "BO", "comune": "Bologna", "codice_istat": "037006"},
+        {"regione": "Emilia-Romagna", "provincia": "MO", "comune": "Modena", "codice_istat": "036023", "comune_alt": ""},
+        {"regione": "Emilia-Romagna", "provincia": "BO", "comune": "Bologna", "codice_istat": "037006", "comune_alt": ""},
     ]
 
 
@@ -88,6 +88,31 @@ def test_parse_istat_intestazioni_spostate():
     text = ("Sigla automobilistica;Denominazione Regione;Denominazione in italiano;"
             "Codice Comune formato alfanumerico\nMO;Emilia-Romagna;Modena;036023\n")
     assert parse_istat(text, {"Emilia-Romagna"})[0]["codice_istat"] == "036023"
+
+
+ISTAT_BILINGUE = (
+    "Codice Regione;Codice Comune formato alfanumerico;Denominazione (italiano e straniera);Denominazione in italiano;"
+    "Denominazione altra lingua;Denominazione Regione;Sigla automobilistica\n"
+    "04;021008;Bolzano/Bozen;Bolzano;Bozen;Trentino-Alto Adige/Südtirol;BZ\n"
+    "02;007003;Aosta/Aoste;Aosta;Aoste;Valle d'Aosta/Vallée d'Aoste;AO\n"
+    "04;022205;Trento;Trento;;Trentino-Alto Adige/Südtirol;TN\n"
+)
+
+
+def test_parse_istat_regioni_bilingui():
+    out = parse_istat(ISTAT_BILINGUE, {"Trentino-Alto Adige", "Valle d'Aosta"})
+    assert [(r["regione"], r["comune"], r["comune_alt"]) for r in out] == [
+        ("Trentino-Alto Adige", "Bolzano", "Bozen"), ("Valle d'Aosta", "Aosta", "Aoste"), ("Trentino-Alto Adige", "Trento", "")]
+    assert [r["comune"] for r in parse_istat(ISTAT_BILINGUE, {"valle-d-aosta"})] == ["Aosta"]
+
+
+def test_ipa_trova_il_sito_anche_con_il_nome_bilingue():
+    t = "Comuni e loro Consorzi e Associazioni"
+    sites = parse_ipa(ipa((t, "Comune di Bolzano", "Bolzano - Bozen", "BZ", "www.comune.bolzano.it"),
+                          (t, "Comune di Aosta", "Aoste", "AO", "www.comune.aosta.it")))
+    rows = merge([], parse_istat(ISTAT_BILINGUE, None), sites)
+    assert {r["comune"]: r["sito"] for r in rows} == {
+        "Bolzano": "https://www.comune.bolzano.it", "Aosta": "https://www.comune.aosta.it", "Trento": ""}
 
 
 IPA_HEAD = "tipologia_istat\tdes_amm\tComune\tProvincia\tsito_istituzionale\n"
@@ -116,7 +141,7 @@ def test_parse_ipa_nome_ente_con_articolo():
     assert sites[("aquila", "MO")] == "https://aquila.it"
 
 
-COMUNI = [{"regione": "Emilia-Romagna", "provincia": "MO", "comune": "Modena", "codice_istat": "036023"}]
+COMUNI = [{"regione": "Emilia-Romagna", "provincia": "MO", "comune": "Modena", "codice_istat": "036023", "comune_alt": ""}]
 
 
 def test_merge_nuova_riga():

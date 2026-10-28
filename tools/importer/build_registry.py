@@ -33,11 +33,17 @@ def parse_istat(text: str, regions: set[str] | None) -> list[dict]:
     col = lambda start: next(i for i, h in enumerate(head) if h.startswith(start))  # noqa: E731
     i_cod, i_name = col("codice comune formato alfanumerico"), col("denominazione in italiano")
     i_reg, i_sig = col("denominazione regione"), col("sigla automobilistica")
-    want = {r.lower() for r in regions} if regions is not None else None  # None = tutte
-    return [
-        {"regione": r[i_reg], "provincia": r[i_sig], "comune": r[i_name], "codice_istat": r[i_cod]}
-        for r in rows[1:] if len(r) > i_sig and (want is None or r[i_reg].lower() in want)
-    ]
+    i_alt = next((i for i, h in enumerate(head) if h.startswith("denominazione altra lingua")), None)
+    want = {slugify(r) for r in regions} if regions is not None else None  # None = tutte
+    out = []
+    for r in rows[1:]:
+        # "Trentino-Alto Adige/Südtirol", "Valle d'Aosta/Vallée d'Aoste": la regione è il nome italiano
+        region = r[i_reg].split("/")[0].strip() if len(r) > i_sig else ""
+        if region and (want is None or slugify(region) in want):
+            alt = r[i_alt].strip() if i_alt is not None and len(r) > i_alt else ""
+            out.append({"regione": region, "provincia": r[i_sig], "comune": r[i_name], "codice_istat": r[i_cod],
+                        "comune_alt": alt})
+    return out
 
 
 def _key(name: str, provincia: str) -> tuple[str, str]:
@@ -55,7 +61,8 @@ def parse_ipa(text: str) -> dict[tuple[str, str], str]:
             continue
         # Chiave dal campo Comune e dal nome ente ("Comune di X"): copre le differenze di grafia.
         stripped = re.sub(r"^comune (dello|della|dell'|delle|degli|dei|del|di|d')\s*", "", r["des_amm"], flags=re.I)
-        for name in (r["Comune"], stripped):
+        names = [r["Comune"], stripped] + [x for x in re.split(r"\s*/\s*|\s+-\s+", r["Comune"]) if x]  # "Bolzano - Bozen"
+        for name in names:
             sites.setdefault(_key(name, r["Provincia"]), sito)
     return sites
 
@@ -63,7 +70,7 @@ def parse_ipa(text: str) -> dict[tuple[str, str], str]:
 def merge(existing: list[dict], comuni: list[dict], sites: dict[tuple[str, str], str]) -> list[dict]:
     by_code = {r["codice_istat"]: r for r in existing}
     for c in comuni:
-        sito = sites.get(_key(c["comune"], c["provincia"]), "")
+        sito = next((sites[k] for n in (c["comune"], c.get("comune_alt")) if n and (k := _key(n, c["provincia"])) in sites), "")
         row = by_code.get(c["codice_istat"])
         if row is None:
             by_code[c["codice_istat"]] = {k: "" for k in COLUMNS} | c | {
@@ -91,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     sites = parse_ipa(ipa)
     rows = merge(read_rows(), comuni, sites)
     write_rows(rows)
-    with_site = sum(1 for c in comuni if sites.get(_key(c["comune"], c["provincia"])))
+    with_site = sum(1 for r in rows if r["sito"] and r["codice_istat"] in {c["codice_istat"] for c in comuni})
     print(f"Comuni: {len(comuni)}, con sito in IndicePA: {with_site}, senza: {len(comuni) - with_site}")
     return 0
 

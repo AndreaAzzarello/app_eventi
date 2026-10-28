@@ -16,7 +16,7 @@ from geo import slugify
 USER_AGENT = "EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/app_eventi)"
 SOURCES_DIR = Path(__file__).parent / "sources"
 COLUMNS = ["regione", "provincia", "comune", "codice_istat", "sito", "url_eventi", "cms", "fornitore", "stato",
-           "licenza", "robots_ok", "note"]
+           "licenza", "robots_ok", "note", "comune_alt"]  # comune_alt: nome nell'altra lingua ufficiale (Bozen, Aoste)
 PROTECTED = {"manuale", "attivo"}  # righe che gli script automatici non modificano
 
 
