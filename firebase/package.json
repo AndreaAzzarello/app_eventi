@@ -19,5 +19,8 @@
     "@firebase/util": false,
     "protobufjs": false,
     "re2": false
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6"
   }
 }

@@ -49,5 +49,8 @@
     "workerd@1.20261023.1": true,
     "@firebase/util": false,
     "protobufjs": false
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6"
   }
 }
