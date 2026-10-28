@@ -412,7 +412,7 @@ class DesignComuniHtmlAdapter:
         return [u for _, u in sorted(urls, reverse=True)]
 
     def events(self, client: httpx.Client, now: datetime, horizon_days: int):
-        f = self.fetcher or Fetcher(client, cache_dir=CACHE_DIR)
+        f = self.fetcher or Fetcher(client, cache_dir=CACHE_DIR, retries=4, backoff=3.0)  # server comunali lenti: Fanano ha timeout a intermittenza
         urls = self._list_urls(f, now)
         found = 0
         for url in urls:

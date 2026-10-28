@@ -41,6 +41,7 @@ TENUTI = [
     "Mostra fotografica sul Novecento",
     "Evento culturale in biblioteca: Leggere ad alta voce",
     "Incontro contro le truffe agli anziani",
+    "Truffe sbuffi baruffe",
     "Laboratorio di riciclo dei rifiuti per bambini",
     "Presentazione del bando per il servizio civile",
     "Band emergenti in piazza",

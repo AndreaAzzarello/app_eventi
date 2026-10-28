@@ -32,7 +32,7 @@ SEDUTA_RE = re.compile(
 #: avvisi alla cittadinanza; si salvano se il titolo dice che è un incontro pubblico (EVENT_WORD_RE)
 NOTICE_RE = re.compile(
     r"\brifiuti\b|\becocentro\b|\braccolta\s+(?:differenziata|porta)|\bingombranti\b"
-    r"|\btruff[aeo]\b|\braggir\w*"
+    r"|\b(?:attenzione|allerta|avviso|tentativi?|false?)\b.*\btruff\w*|\btruff\w*\b.*\b(?:in corso|anziani)\b|\braggir\w*"
     r"|\ballert[ae]\b|\bavviso\b|\bavvisi\b"
     r"|\bpeste\s+suina\b|\binfluenza\s+aviaria\b|\bzanzara\s+tigre\b"
     r"|\bband[oi]\b|\bgraduatoria\b"
