@@ -85,6 +85,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Statistiche mensili per regione ---------------------------------
+    // stats/{regione}_{AAAA-MM}: scritte solo dall'importer (Admin SDK). Pubbliche per le pagine /regione e l'admin.
+    match /stats/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---- Proposte degli utenti -------------------------------------------
     // Limite anti-spam: users/{uid}.pendingCount (max 5) cambia nello stesso
     // batch della proposta; le due regole si controllano a vicenda con getAfter.

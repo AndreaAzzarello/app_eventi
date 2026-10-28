@@ -117,6 +117,18 @@ describe('coverage', () => {
   });
 });
 
+describe('stats', () => {
+  it('lettura pubblica, scrittura mai (nemmeno admin: scrive solo importer)', async () => {
+    await seed((fs) => setDoc(doc(fs, 'stats', 'lombardia_2026-11'), { region: 'lombardia', month: '2026-11', events: 412 }));
+    await assertSucceeds(getDoc(doc(db(), 'stats', 'lombardia_2026-11')));
+    await assertSucceeds(getDocs(collection(db(), 'stats')));
+    await assertFails(setDoc(doc(db('alice'), 'stats', 'x_2026-11'), { events: 1 }));
+    await assertFails(setDoc(doc(db('adm', ADMIN), 'stats', 'x_2026-11'), { events: 1 }));
+    await assertFails(updateDoc(doc(db('adm', ADMIN), 'stats', 'lombardia_2026-11'), { events: 2 }));
+    await assertFails(deleteDoc(doc(db('adm', ADMIN), 'stats', 'lombardia_2026-11')));
+  });
+});
+
 describe('users: homePlace', () => {
   const ref = (uid = 'alice') => doc(db(uid), 'users', uid);
   const place = { label: 'Lecco', lat: 45.85, lng: 9.39, slug: 'lecco', region: 'Lombardia' };
