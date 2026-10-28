@@ -167,6 +167,8 @@ export interface CoverageComune {
 	lat: number;
 	lng: number;
 	events: number;
+	/** Nome nell'altra lingua ufficiale (Bozen, Aoste), se il comune è bilingue. */
+	alt?: string;
 }
 export interface Coverage {
 	slug: string;

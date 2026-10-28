@@ -58,6 +58,8 @@ export interface Event extends EventInput {
 	approxLocation: boolean;
 	/** Frazione (es. "Sant'Agostino"), scritta dall'importer; city resta il comune. Solo da mostrare: mai per URL o raggruppamenti. */
 	locality: string;
+	/** Nome nell'altra lingua ufficiale dei comuni bilingui (Bozen, Aoste); city resta il nome italiano. */
+	cityAlt?: string;
 	/** true = dura più di LONG_RUNNING_DAYS giorni (mostre, rassegne). Non è nel form: si ricava dalle date. */
 	longRunning: boolean;
 	createdAt?: number;
@@ -100,6 +102,7 @@ export function fromData(id: string, m: Record<string, unknown>): Event {
 		sourceUrl: safeUrl(str(m.sourceUrl)),
 		approxLocation: m.approxLocation === true,
 		locality: str(m.locality),
+		cityAlt: str(m.cityAlt) || undefined,
 		longRunning: m.longRunning === true || endMs - start > LONG_RUNNING_DAYS * 86_400_000,
 		createdAt: m.createdAt == null ? undefined : num(m.createdAt),
 		updatedAt: m.updatedAt == null ? undefined : num(m.updatedAt)

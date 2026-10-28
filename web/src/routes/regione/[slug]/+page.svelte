@@ -27,7 +27,7 @@
 		{#each withEvents as c (c.slug)}
 			<li>
 				<a class="comune" href={cityPath(c.slug)}>
-					<span class="name">{c.name}{c.province ? ` (${c.province})` : ''}</span>
+					<span class="name">{c.name}{c.alt ? ` / ${c.alt}` : ''}{c.province ? ` (${c.province})` : ''}</span>
 					<span class="n">{count(c.events)}</span>
 				</a>
 			</li>
@@ -35,7 +35,7 @@
 	</ul>
 	{#if without.length}
 		<h2>Per ora senza eventi</h2>
-		<p class="muted">{without.map((c) => c.name).join(', ')}.</p>
+		<p class="muted">{without.map((c) => (c.alt ? `${c.name} / ${c.alt}` : c.name)).join(', ')}.</p>
 	{/if}
 </div>
 

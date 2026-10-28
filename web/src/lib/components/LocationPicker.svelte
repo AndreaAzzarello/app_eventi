@@ -14,7 +14,7 @@
 	interface Region {
 		slug: string;
 		name: string;
-		comuni: { name: string; slug: string; province: string; lat: number; lng: number; events: number }[];
+		comuni: { name: string; slug: string; province: string; lat: number; lng: number; events: number; alt?: string }[];
 	}
 
 	let { place, onchange }: { place: Pick<ChosenPlace, 'label'>; onchange: (p: ChosenPlace) => void } = $props();
@@ -33,7 +33,7 @@
 	const region = $derived(regions.find((r) => r.slug === regionSlug));
 	// Confronto senza accenti né maiuscole: "forli" trova "Forlì".
 	const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-	const comuni = $derived(region ? region.comuni.filter((c) => fold(c.name).includes(fold(filter.trim()))) : []);
+	const comuni = $derived(region ? region.comuni.filter((c) => [c.name, c.alt ?? ''].some((n) => fold(n).includes(fold(filter.trim())))) : []);
 
 	async function loadRegions() {
 		if (loadedRegions) return;
@@ -148,7 +148,7 @@
 					<li>
 						<button class="result" onclick={() => choose({ lat: c.lat, lng: c.lng, label: c.name, slug: c.slug, region: region.name })}>
 							<Icon name="pin" size={16} />
-							<span class="grow">{c.name}{c.province ? ` (${c.province})` : ''}</span>
+							<span class="grow">{c.name}{c.alt ? ` / ${c.alt}` : ''}{c.province ? ` (${c.province})` : ''}</span>
 							<span class="n">{c.events}</span>
 						</button>
 					</li>

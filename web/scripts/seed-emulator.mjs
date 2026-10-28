@@ -16,7 +16,10 @@ const places = {
 	formigine: { city: 'Formigine', citySlug: 'formigine', province: 'MO', region: 'Emilia-Romagna', lat: 44.5733, lng: 10.8466 },
 	bologna: { city: 'Bologna', citySlug: 'bologna', province: 'BO', region: 'Emilia-Romagna', lat: 44.4939, lng: 11.3428 },
 	roma: { city: 'Roma', citySlug: 'roma', province: 'RM', region: 'Lazio', lat: 41.8986, lng: 12.4769 },
-	lecce: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia', lat: 40.3529, lng: 18.1743 }
+	lecce: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia', lat: 40.3529, lng: 18.1743 },
+	// Comuni bilingui: city col nome ufficiale italiano, alias in cityAlt (come scrive l'importer)
+	bolzano: { city: 'Bolzano', citySlug: 'bolzano', cityAlt: 'Bozen', province: 'BZ', region: 'Trentino-Alto Adige', lat: 46.4983, lng: 11.3548 },
+	aosta: { city: 'Aosta', citySlug: 'aosta', cityAlt: 'Aoste', province: 'AO', region: "Valle d'Aosta", lat: 45.7375, lng: 7.3203 }
 };
 
 const ev = (id, place, over) => {
@@ -97,6 +100,8 @@ const events = [
 	}),
 	ev('seedRoma', 'roma', { title: 'Concerto all’Auditorium', category: 'music', priceType: 'premium', startTime: at(4, 20), endTime: at(4, 23) }),
 	ev('seedLecce', 'lecce', { title: 'Festa del barocco leccese', category: 'culture', startTime: at(5, 18), endTime: at(5, 23) }),
+	ev('seedBolzano', 'bolzano', { title: 'Mercatino di Natale in Piazza Walther', category: 'market', startTime: at(2, 10), endTime: at(2, 20) }),
+	ev('seedAosta', 'aosta', { title: 'Concerto al Teatro Romano', category: 'music', startTime: at(3, 20), endTime: at(3, 22) }),
 	ev('seedFinito', 'modena', { title: 'Evento già concluso', startTime: at(-3, 10), endTime: at(-3, 12) })
 ];
 
@@ -129,6 +134,19 @@ const coverage = {
 			{ name: 'Formigine', slug: 'formigine', province: 'MO', lat: 44.5733, lng: 10.8466, events: 2 },
 			{ name: 'Modena', slug: 'modena', province: 'MO', lat: 44.6458, lng: 10.9256, events: 2 }
 		]
+	},
+	'trentino-alto-adige': {
+		name: 'Trentino-Alto Adige',
+		updatedAt: now,
+		comuni: [
+			{ name: 'Bolzano', slug: 'bolzano', alt: 'Bozen', province: 'BZ', lat: 46.4983, lng: 11.3548, events: 1 },
+			{ name: 'Trento', slug: 'trento', province: 'TN', lat: 46.0679, lng: 11.1211, events: 0 }
+		]
+	},
+	"valle-d-aosta": {
+		name: "Valle d'Aosta",
+		updatedAt: now,
+		comuni: [{ name: 'Aosta', slug: 'aosta', alt: 'Aoste', province: 'AO', lat: 45.7375, lng: 7.3203, events: 1 }]
 	},
 	lombardia: {
 		name: 'Lombardia',

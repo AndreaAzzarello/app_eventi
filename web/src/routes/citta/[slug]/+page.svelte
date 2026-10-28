@@ -8,12 +8,13 @@
 	let { data } = $props();
 	let now = $state(Date.now());
 	onMount(() => (now = Date.now()));
-	const where = $derived(data.province ? `${data.city} (${data.province})` : data.city);
+	const name = $derived(data.cityAlt ? `${data.city} / ${data.cityAlt}` : data.city);
+	const where = $derived(data.province ? `${name} (${data.province})` : name);
 	const visible = $derived(data.events.filter((e) => e.endTime >= now).sort(compareEvents(now)));
 </script>
 
 <Seo
-	title={`Eventi a ${data.city}`}
+	title={`Eventi a ${name}`}
 	description={`${data.events.length} eventi in programma a ${where}${data.region ? `, ${data.region}` : ''}: concerti, sagre, mostre, mercatini e attività per bambini.`}
 	path={page.url.pathname}
 />
@@ -23,9 +24,9 @@
 		<a href="/">Eventi Vicini</a> <span aria-hidden="true">›</span>
 		{#if data.regionSlug}<a href={`/regione/${data.regionSlug}`}>{data.region}</a> <span aria-hidden="true">›</span>
 		{:else if data.region}<span>{data.region}</span> <span aria-hidden="true">›</span>{/if}
-		<span aria-current="page">{data.city}</span>
+		<span aria-current="page">{name}</span>
 	</nav>
-	<h1>Eventi a {data.city}</h1>
+	<h1>Eventi a {name}</h1>
 	<p class="muted lead">
 		{visible.length === 1 ? 'Un evento in programma' : `${visible.length} eventi in programma`} a {where}.
 	</p>
