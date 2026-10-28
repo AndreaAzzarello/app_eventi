@@ -1,75 +1,19 @@
 /* Eventi Vicini — token e base. Mobile-first, tema chiaro/scuro, contrasti AA verificati. */
-:root {
-	--brand: #b8432f; /* terracotta: 7.8:1 su bianco */
-	--brand-strong: #963524;
-	--brand-ink: #ffffff;
-	--brand-soft: #f6e4de;
-	--bg: #fbf8f5;
-	--surface: #ffffff;
-	--surface-2: #f3eee9;
-	--text: #1f1a17;
-	--muted: #675c55; /* 5.9:1 su --bg */
-	--border: #e5dbd3;
-	--ok: #2f6b3a;
-	--ok-soft: #e3f0e4;
-	--warn: #8a5a00;
-	--warn-soft: #fbefd5;
-	--danger: #a3261b;
-	--danger-soft: #fbe3e0;
-	--shadow: 0 1px 2px rgb(60 30 20 / 0.06), 0 4px 16px rgb(60 30 20 / 0.06);
-	--shadow-lift: 0 2px 4px rgb(60 30 20 / 0.08), 0 12px 28px rgb(60 30 20 / 0.12);
-	--radius: 14px;
-	--radius-sm: 9px;
-	--font-display: 'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-	--font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-	--header-h: 60px;
-	--ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-	color-scheme: light;
-}
+@import './lib/styles/tokens.css';
 
-@media (prefers-color-scheme: dark) {
-	:root:not([data-theme='light']) {
-		--brand: #e57a61; /* 6:1 su --bg scuro */
-		--brand-strong: #f0937c;
-		--brand-ink: #1a0f0b;
-		--brand-soft: #3a2420;
-		--bg: #161210;
-		--surface: #201a17;
-		--surface-2: #2a2320;
-		--text: #f3ece6;
-		--muted: #b9aca3;
-		--border: #3a312c;
-		--ok: #8fd19b;
-		--ok-soft: #1f3324;
-		--warn: #f0c36b;
-		--warn-soft: #3a2e14;
-		--danger: #ff9b8f;
-		--danger-soft: #3d1d1a;
-		--shadow: 0 1px 2px rgb(0 0 0 / 0.4);
-		--shadow-lift: 0 8px 24px rgb(0 0 0 / 0.5);
-		color-scheme: dark;
-	}
-}
-:root[data-theme='dark'] {
-	--brand: #e57a61;
-	--brand-strong: #f0937c;
-	--brand-ink: #1a0f0b;
-	--brand-soft: #3a2420;
-	--bg: #161210;
-	--surface: #201a17;
-	--surface-2: #2a2320;
-	--text: #f3ece6;
-	--muted: #b9aca3;
-	--border: #3a312c;
-	--ok: #8fd19b;
-	--ok-soft: #1f3324;
-	--warn: #f0c36b;
-	--warn-soft: #3a2e14;
-	--danger: #ff9b8f;
-	--danger-soft: #3d1d1a;
-	--shadow: 0 1px 2px rgb(0 0 0 / 0.4);
-	--shadow-lift: 0 8px 24px rgb(0 0 0 / 0.5);
-	color-scheme: dark;
+/* Alias temporanei dei vecchi nomi: spariscono con l'applicazione dei token ai componenti. */
+:root {
+	--brand: var(--accent);
+	--brand-strong: var(--accent-hover);
+	--brand-ink: var(--accent-ink);
+	--brand-soft: var(--surface-2);
+	--ok: var(--text);
+	--ok-soft: var(--surface-2);
+	--warn: var(--text);
+	--warn-soft: var(--surface-2);
+	--danger-soft: var(--surface-2);
+	--shadow: none;
+	--shadow-lift: var(--shadow-overlay);
 }
 
 *,

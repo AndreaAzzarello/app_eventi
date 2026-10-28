@@ -1,7 +1,7 @@
 <script lang="ts">
-	import '@fontsource-variable/fraunces/wght.css';
+	import '@fontsource/fraunces/latin-600.css';
 	import '../app.css';
-	import frauncesUrl from '@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2?url';
+	import frauncesUrl from '@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url';
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
 	import { page } from '$app/state';

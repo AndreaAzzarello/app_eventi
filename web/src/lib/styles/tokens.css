@@ -1,0 +1,92 @@
+/*
+ * Token del design system: l'unico file dove ammessi esadecimali e misure assolute.
+ * Il resto del CSS usa solo queste variabili (lo verifica src/lib/styles/design.test.ts).
+ * Riferimento visivo: /admin/stile.
+ */
+:root {
+	/* Spaziatura: multipli di 8, più il 4 per i dettagli fini */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 16px;
+	--space-4: 24px;
+	--space-5: 32px;
+	--space-6: 48px;
+	--space-7: 64px;
+
+	/* Raggi e dimensioni dei controlli */
+	--radius-sm: 4px;
+	--radius: 8px;
+	--radius-full: 999px;
+	--control-sm: 32px;
+	--control: 48px;
+	--header-h: 64px;
+
+	/* Larghezze dei contenitori */
+	--w-prose: 760px;
+	--w-page: 1200px;
+	--w-dialog: 480px;
+
+	/* Tipografia: due pesi, una scala */
+	--font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+	--font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	--fw-regular: 400;
+	--fw-strong: 600;
+	--text-xs: 12px;
+	--text-sm: 14px;
+	--text-md: 16px;
+	--text-lg: 18px;
+	--text-xl: 24px;
+	--text-2xl: 32px;
+	--text-3xl: 48px;
+	--lh-tight: 1.2;
+	--lh-body: 1.55;
+
+	/* Movimento */
+	--ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+	--dur: 150ms;
+
+	/* Grigi caldi (10 gradini) */
+	--gray-50: #fbf9f7;
+	--gray-100: #f3f0ed;
+	--gray-200: #f0ece8;
+	--gray-300: #d2cbc4;
+	--gray-400: #8f867e;
+	--gray-500: #6f665f;
+	--gray-600: #564f49;
+	--gray-700: #302a27;
+	--gray-800: #26211e;
+	--gray-900: #181513;
+
+	/* Accento (terracotta del brand) ed errore (cremisi più freddo, mai senza icona e testo) */
+	--terracotta: #b8432f;
+	--terracotta-dark: #963524;
+	--terracotta-light: #e57a61;
+	--terracotta-light-hover: #f0937c;
+	--ink-on-accent-light: #ffffff;
+	--ink-on-accent-dark: #1a0f0b;
+	--crimson: #a3194a;
+	--crimson-light: #f58aa8;
+
+	/* Ruoli: chiaro e scuro in un solo posto. Il tema segue il sistema, data-theme lo forza. */
+	color-scheme: light dark;
+	--bg: light-dark(var(--gray-100), var(--gray-900));
+	--surface: light-dark(var(--gray-50), var(--gray-800));
+	--surface-2: light-dark(var(--gray-200), var(--gray-700));
+	--border: light-dark(var(--gray-300), var(--gray-600));
+	--border-strong: var(--gray-400);
+	--text: light-dark(var(--gray-900), var(--gray-100));
+	--muted: light-dark(var(--gray-600), var(--gray-300));
+	--accent: light-dark(var(--terracotta), var(--terracotta-light));
+	--accent-hover: light-dark(var(--terracotta-dark), var(--terracotta-light-hover));
+	--accent-ink: light-dark(var(--ink-on-accent-light), var(--ink-on-accent-dark));
+	--focus: var(--accent);
+	--danger: light-dark(var(--crimson), var(--crimson-light));
+	--overlay: light-dark(rgb(24 21 19 / 0.4), rgb(0 0 0 / 0.6));
+	--shadow-overlay: 0 var(--space-1) var(--space-3) light-dark(rgb(24 21 19 / 0.12), rgb(0 0 0 / 0.5));
+}
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+:root[data-theme='dark'] {
+	color-scheme: dark;
+}
