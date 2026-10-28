@@ -86,7 +86,9 @@ def vendor_of(html: str) -> str:
 def find_link(html: str, base: str, kind: str) -> str:
     """Prima pagina 'eventi' (kind='eventi') o 'note legali' (kind='legali') dello stesso sito."""
     host = urlsplit(base).netloc
-    pats = {"eventi": (r"^(eventi|agenda|eventi e manifestazioni)$", r"/(eventi|agenda)(/|$)"),
+    # "Termine" no: in tedesco sono gli appuntamenti con gli uffici
+    pats = {"eventi": (r"^(eventi|agenda|eventi e manifestazioni|veranstaltungen|veranstaltungskalender|[ée]v[ée]nements|manifestations)$",
+                       r"/(eventi|agenda|veranstaltungen|veranstaltungskalender|evenements|%c3%a9v%c3%a9nements)(/|$)"),
             "legali": (r"note legali|termini d.uso|condizioni d.uso|licenza", r"note[-_]legali|termini[-_]")}[kind]
     ranked = []
     for url, text in links_of(html, base):

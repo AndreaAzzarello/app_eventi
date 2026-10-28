@@ -370,3 +370,13 @@ def test_licenze_tedesco_pagina_impressum():
             "Namensnennung 4.0 International.</p><p>Die Software ist Open Source.</p></footer>")
     frase = best_sentence(html)
     assert license_of(frase) == "CC-BY-4.0" and classify(frase) == "contenuti"
+
+
+def test_find_link_pagina_eventi_in_tedesco_e_francese():
+    from detect_cms import find_link
+
+    de = '<a href="/de/Verwaltung/Termine">Termine</a><a href="/de/Dorfleben/Veranstaltungen">Dorfleben</a>'
+    assert find_link(de, "https://www.comune.aldino.bz.it", "eventi").endswith("/de/Dorfleben/Veranstaltungen")
+    fr = '<a href="/fr/agenda-des-manifestations">Événements</a>'
+    assert find_link(fr, "https://www.comune.aosta.it", "eventi").endswith("/fr/agenda-des-manifestations")
+    assert find_link('<a href="/de/Verwaltung/Termine">Termine</a>', "https://x.bz.it", "eventi") == ""
