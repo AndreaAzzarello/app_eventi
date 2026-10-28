@@ -3,7 +3,8 @@
 	import { EMPTY_FILTER, type Filter } from '$lib/filters';
 	import { RADII_KM } from '$lib/geo';
 	import { debounce } from '$lib/geocode';
-	import Icon from './Icon.svelte';
+	import Search from '@lucide/svelte/icons/search';
+	import X from '@lucide/svelte/icons/x';
 
 	let { filter, onchange }: { filter: Filter; onchange: (f: Filter) => void } = $props();
 
@@ -23,7 +24,7 @@
 <form class="filters" role="search" onsubmit={(e) => e.preventDefault()}>
 	<div class="search">
 		<label for="q" class="visually-hidden">Cerca eventi</label>
-		<Icon name="search" size={18} />
+		<Search size={20} aria-hidden="true" />
 		<input
 			id="q"
 			type="search"
@@ -61,7 +62,7 @@
 			</select>
 		</label>
 		{#if active}
-			<button type="button" class="chip reset" onclick={reset}><Icon name="x" size={16} /> Azzera</button>
+			<button type="button" class="chip reset" onclick={reset}><X size={16} aria-hidden="true" /> Azzera</button>
 		{/if}
 	</div>
 </form>
@@ -69,7 +70,7 @@
 <style>
 	.filters {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.search {
 		position: relative;
@@ -78,22 +79,22 @@
 	}
 	.search :global(svg) {
 		position: absolute;
-		left: 0.9rem;
+		left: var(--space-3);
 		color: var(--muted);
 		pointer-events: none;
 	}
 	.search input {
-		padding-left: 2.6rem;
-		min-height: 48px;
-		border-radius: 999px;
-		font-size: 1rem;
+		padding-left: var(--space-6);
+		min-height: var(--control);
+		border-radius: var(--radius);
+		font-size: var(--text-md);
 	}
 	.row {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		overflow-x: auto;
 		padding: 2px;
-		margin: -2px;
+		margin: 0;
 		scrollbar-width: none;
 	}
 	.row::-webkit-scrollbar {
@@ -103,12 +104,11 @@
 		position: relative; /* contiene il testo visually-hidden: fuori dallo scroller allargherebbe la pagina */
 	}
 	.select-chip select {
-		min-height: 40px;
+		min-height: var(--control);
 		width: auto;
-		padding: 0.3em 2em 0.3em 0.95em;
-		border-radius: 999px;
-		font-size: 0.9rem;
-		font-weight: 500;
+		padding: var(--space-1) var(--space-6) var(--space-1) var(--space-3);
+		border-radius: var(--radius);
+		font-size: var(--text-sm);
 	}
 	.reset {
 		border-style: dashed;

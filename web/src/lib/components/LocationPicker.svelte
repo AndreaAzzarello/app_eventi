@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { debounce, reversePlace, searchPlaces, type GeoResult } from '$lib/geocode';
-	import Icon from './Icon.svelte';
+	import MapPin from '@lucide/svelte/icons/map-pin';
+	import X from '@lucide/svelte/icons/x';
+	import LocateFixed from '@lucide/svelte/icons/locate-fixed';
+	import { fmtNum } from '$lib/format';
 
 	export interface ChosenPlace {
 		lat: number;
@@ -116,7 +119,7 @@
 </script>
 
 <button type="button" class="place-btn" onclick={open} aria-haspopup="dialog">
-	<Icon name="pin" size={18} />
+	<MapPin size={20} aria-hidden="true" />
 	<span class="lbl">{place.label}</span>
 	<span class="change">Cambia</span>
 </button>
@@ -124,10 +127,10 @@
 <dialog bind:this={dialog} aria-labelledby="loc-title" onclick={(e) => e.target === dialog && dialog.close()}>
 	<div class="head">
 		<h2 id="loc-title">Dove cerchi eventi?</h2>
-		<button class="btn btn-ghost btn-sm" onclick={() => dialog.close()} aria-label="Chiudi"><Icon name="x" /></button>
+		<button class="btn btn-ghost btn-sm" onclick={() => dialog.close()} aria-label="Chiudi"><X size={20} aria-hidden="true" /></button>
 	</div>
 	<button class="btn btn-primary wide" onclick={locate} disabled={busy}>
-		<Icon name="locate" /> Usa la mia posizione
+		<LocateFixed size={20} aria-hidden="true" /> Usa la mia posizione
 	</button>
 	<p class="hint">La posizione resta su questo dispositivo: non la salviamo sui nostri server.</p>
 	{#if regions.length}
@@ -147,9 +150,9 @@
 				{#each comuni as c (c.slug)}
 					<li>
 						<button class="result" onclick={() => choose({ lat: c.lat, lng: c.lng, label: c.name, slug: c.slug, region: region.name })}>
-							<Icon name="pin" size={16} />
+							<MapPin size={16} aria-hidden="true" />
 							<span class="grow">{c.name}{c.alt ? ` / ${c.alt}` : ''}{c.province ? ` (${c.province})` : ''}</span>
-							<span class="n">{c.events}</span>
+							<span class="n">{fmtNum(c.events)}</span>
 						</button>
 					</li>
 				{:else}
@@ -177,36 +180,44 @@
 			{#each results as r (r.lat + ',' + r.lng)}
 				<li>
 					<button class="result" onclick={() => choose({ lat: r.lat, lng: r.lng, label: r.label })}>
-						<Icon name="pin" size={16} />
+						<MapPin size={16} aria-hidden="true" />
 						{r.label}
 					</button>
 				</li>
 			{/each}
 		</ul>
 	{/if}
-	<p class="hint attribution">Ricerca: © OpenStreetMap / Nominatim</p>
+	<p class="hint attribution">Ricerca: &copy; OpenStreetMap / Nominatim</p>
 </dialog>
 
 <style>
 	.place-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
-		min-height: 44px;
+		gap: var(--space-2);
+		min-height: var(--control);
 		max-width: 100%;
-		padding: 0.4rem 0.9rem;
+		padding: var(--space-1) var(--space-3);
 		border: 1px solid var(--border);
-		border-radius: 999px;
+		border-radius: var(--radius);
 		background: var(--surface);
 		color: var(--text);
-		font: 600 0.95rem var(--font-body);
+		font-family: var(--font-body);
+		font-size: var(--text-md);
+		font-weight: var(--fw-strong);
 		cursor: pointer;
+		transition: border-color var(--dur) var(--ease);
 	}
 	.place-btn:hover {
-		border-color: var(--brand);
+		border-color: var(--accent);
+	}
+	.place-btn:focus-visible,
+	.result:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
 	}
 	.place-btn :global(svg) {
-		color: var(--brand);
+		color: var(--accent);
 	}
 	.lbl {
 		overflow: hidden;
@@ -214,9 +225,9 @@
 		white-space: nowrap;
 	}
 	.change {
-		color: var(--brand);
-		font-weight: 500;
-		font-size: 0.85rem;
+		color: var(--accent);
+		font-weight: var(--fw-regular);
+		font-size: var(--text-sm);
 	}
 	dialog {
 		width: 100%;
@@ -225,7 +236,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: start;
-		gap: 1rem;
+		gap: var(--space-3);
 	}
 	.wide {
 		width: 100%;
@@ -235,15 +246,15 @@
 		margin: 0;
 		padding: 0;
 		display: grid;
-		gap: 0.25rem;
+		gap: var(--space-1);
 	}
 	.result {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		width: 100%;
-		min-height: 44px;
-		padding: 0.5rem 0.75rem;
+		min-height: var(--control);
+		padding: var(--space-2) var(--space-3);
 		border: none;
 		border-radius: var(--radius-sm);
 		background: var(--surface-2);
@@ -253,12 +264,12 @@
 		cursor: pointer;
 	}
 	.result:hover {
-		background: var(--brand-soft);
+		outline: 1px solid var(--accent);
 	}
 	.comuni {
-		max-height: 14rem;
+		max-height: var(--w-dialog);
 		overflow-y: auto;
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-3);
 	}
 	.grow {
 		flex: 1;
@@ -267,10 +278,11 @@
 	}
 	.n {
 		color: var(--muted);
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
 	}
 	.attribution {
-		margin: 1rem 0 0;
-		font-size: 0.75rem;
+		margin: var(--space-3) 0 0;
+		font-size: var(--text-xs);
 	}
 </style>

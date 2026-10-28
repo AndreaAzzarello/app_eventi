@@ -14,12 +14,15 @@
 
 <style>
 	.err {
-		padding: 4rem 16px;
+		padding: var(--space-7) var(--space-3);
 		text-align: center;
 	}
 	.code {
-		font: 700 4rem/1 var(--font-display);
-		color: var(--brand);
-		margin: 0 0 0.5rem;
+		font-family: var(--font-display);
+		font-weight: var(--fw-strong);
+		font-size: var(--text-3xl);
+		line-height: var(--lh-tight);
+		color: var(--accent);
+		margin: 0 0 var(--space-2);
 	}
 </style>

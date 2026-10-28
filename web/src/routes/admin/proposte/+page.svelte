@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { approve, pendingSubmissions, reject } from '$lib/admin';
-	import Icon from '$lib/components/Icon.svelte';
+	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import PinMap from '$lib/components/PinMap.svelte';
 	import { formatWhen } from '$lib/dates';
+	import { CATEGORY_ICONS } from '$lib/categoryIcons';
+	import Check from '@lucide/svelte/icons/check';
+	import X from '@lucide/svelte/icons/x';
 	import { CATEGORIES, PRICE_TYPES, eventPath } from '$lib/event';
 	import type { Submission } from '$lib/submissions';
 	import { toast } from '$lib/toast.svelte';
@@ -67,18 +70,20 @@
 <h1>Proposte in attesa</h1>
 
 {#if error}
-	<p class="notice notice-error" role="alert">{error} <button class="btn btn-sm" onclick={load}>Riprova</button></p>
+	<ErrorMessage>{error}</ErrorMessage>
+	<button class="btn btn-sm" onclick={load}>Riprova</button>
 {:else if subs === null}
-	<div class="skeleton" style="height: 200px" aria-hidden="true"></div>
+	<div class="skeleton" style="height: calc(var(--space-7) * 3)" aria-hidden="true"></div>
 {:else if subs.length === 0}
-	<p class="notice">Nessuna proposta da revisionare. 🎉</p>
+	<p class="notice">Nessuna proposta da revisionare.</p>
 {:else}
 	<ul class="list">
 		{#each subs as s (s.id)}
+			{@const Cat = CATEGORY_ICONS[s.category]}
 			<li class="card item">
 				<div class="top">
 					<div>
-						<span class="badge badge-brand">{CATEGORIES[s.category]}</span>
+						<span class="badge"><Cat size={16} aria-hidden="true" /> {CATEGORIES[s.category]}</span>
 						<span class="badge">{PRICE_TYPES[s.priceType]}</span>
 						<h2>{s.title}</h2>
 						<p class="muted">{formatWhen(s.startTime, s.endTime)} · {s.venueName ? `${s.venueName}, ` : ''}{s.address} ({s.city}{s.province ? `, ${s.province}` : ''})</p>
@@ -100,8 +105,8 @@
 					</div>
 				{/if}
 				<div class="actions">
-					<button class="btn btn-danger" onclick={() => askReject(s)} disabled={busy}><Icon name="x" size={18} /> Rifiuta</button>
-					<button class="btn btn-primary" onclick={() => doApprove(s)} disabled={busy}><Icon name="check" size={18} /> Approva</button>
+					<button class="btn btn-danger" onclick={() => askReject(s)} disabled={busy}><X size={20} aria-hidden="true" /> Rifiuta</button>
+					<button class="btn btn-primary" onclick={() => doApprove(s)} disabled={busy}><Check size={20} aria-hidden="true" /> Approva</button>
 				</div>
 			</li>
 		{/each}
@@ -128,29 +133,29 @@
 		padding: 0;
 		margin: 0;
 		display: grid;
-		gap: 1rem;
-		max-width: 860px;
+		gap: var(--space-3);
+		max-width: var(--w-prose);
 	}
 	.item {
-		padding: 1rem 1.25rem;
+		padding: var(--space-3) var(--space-4);
 	}
 	.top {
 		display: flex;
 		justify-content: space-between;
 		align-items: start;
-		gap: 1rem;
+		gap: var(--space-3);
 	}
 	.top h2 {
-		margin: 0.5rem 0 0.2rem;
-		font-size: 1.2rem;
+		margin: var(--space-2) 0 var(--space-1);
+		font-size: var(--text-lg);
 	}
 	.preview {
 		display: grid;
-		gap: 0.75rem;
-		margin: 1rem 0;
+		gap: var(--space-3);
+		margin: var(--space-3) 0;
 	}
 	.preview img {
-		max-height: 240px;
+		max-height: calc(var(--space-7) * 4);
 		object-fit: cover;
 		border-radius: var(--radius-sm);
 	}
@@ -161,11 +166,11 @@
 	dl {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 0.25rem 1rem;
+		gap: var(--space-1) var(--space-3);
 		margin: 0;
 	}
 	dt {
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 	}
 	dd {
 		margin: 0;
@@ -174,7 +179,7 @@
 	.actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 0.5rem;
-		margin-top: 0.75rem;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
 	}
 </style>

@@ -2,11 +2,12 @@
 	import { page } from '$app/state';
 	import Seo from '$lib/components/Seo.svelte';
 	import { cityPath } from '$lib/event';
+	import { fmtNum } from '$lib/format';
 
 	let { data } = $props();
 	const withEvents = $derived(data.comuni.filter((c) => c.events > 0));
 	const without = $derived(data.comuni.filter((c) => !c.events));
-	const count = (n: number) => (n === 1 ? '1 evento' : `${n} eventi`);
+	const count = (n: number) => (n === 1 ? '1 evento' : `${fmtNum(n)} eventi`);
 </script>
 
 <Seo
@@ -43,29 +44,29 @@
 	.crumbs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
-		padding: 1.25rem 0 0.5rem;
-		font-size: 0.9rem;
+		gap: var(--space-2);
+		padding: var(--space-4) 0 var(--space-2);
+		font-size: var(--text-sm);
 		color: var(--muted);
 	}
 	.lead {
-		font-size: 1.05rem;
-		margin-bottom: 1.25rem;
+		font-size: var(--text-md);
+		margin-bottom: var(--space-4);
 	}
 	.comuni {
 		list-style: none;
-		margin: 0 0 1.5rem;
+		margin: 0 0 var(--space-4);
 		padding: 0;
 		display: grid;
-		gap: 0.4rem;
+		gap: var(--space-2);
 	}
 	.comune {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
-		min-height: 44px;
-		padding: 0.5rem 0.9rem;
+		gap: var(--space-3);
+		min-height: var(--control);
+		padding: var(--space-2) var(--space-3);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		background: var(--surface);
@@ -73,16 +74,17 @@
 		text-decoration: none;
 	}
 	.comune:hover {
-		border-color: var(--brand);
+		border-color: var(--accent);
 	}
 	.name {
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 	.n {
 		color: var(--muted);
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 </style>

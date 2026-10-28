@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { baseMap, cssVar, loadLeaflet } from '$lib/leaflet';
+	import MapPin from '@lucide/svelte/icons/map-pin';
+	import { mount, onMount, unmount } from 'svelte';
+	import { baseMap, loadLeaflet } from '$lib/leaflet';
 
 	// Mini-mappa con un segnaposto. Con onmove il segnaposto si trascina (o si sposta toccando la mappa).
 	let {
@@ -15,6 +16,7 @@
 	let map: import('leaflet').Map | null = null;
 	let marker: import('leaflet').Marker | null = null;
 	let loaded = $state(false);
+	let pin: ReturnType<typeof mount> | null = null;
 
 	// La mappa (Leaflet + tessere OSM) si carica solo quando arriva vicino allo schermo.
 	onMount(() => {
@@ -31,12 +33,10 @@
 		const init = () => loadLeaflet().then((L) => {
 			if (cancelled) return;
 			map = baseMap(L, el, { interactive: true });
-			const icon = L.divIcon({
-				className: 'pin-icon',
-				html: `<svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true"><path fill="${cssVar('--brand')}" stroke="#fff" stroke-width="1.5" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg>`,
-				iconSize: [36, 36],
-				iconAnchor: [18, 34]
-			});
+			const pinEl = document.createElement('span');
+			pinEl.className = 'pin';
+			pin = mount(MapPin, { target: pinEl, props: { size: 24, 'aria-hidden': 'true' } });
+			const icon = L.divIcon({ className: 'pin-icon', html: pinEl, iconSize: [24, 24], iconAnchor: [12, 22] });
 			marker = L.marker([lat, lng], { icon, draggable: !!onmove, keyboard: !!onmove, title: label }).addTo(map);
 			map.setView([lat, lng], zoom);
 			if (onmove) {
@@ -53,6 +53,7 @@
 		});
 		return () => {
 			cancelled = true;
+			if (pin) unmount(pin);
 			io.disconnect();
 			map?.remove();
 		};
@@ -78,7 +79,7 @@
 <style>
 	.wrap {
 		position: relative;
-		height: 240px;
+		height: calc(var(--space-7) * 4);
 		border-radius: var(--radius);
 		overflow: hidden;
 		border: 1px solid var(--border);
@@ -93,5 +94,12 @@
 	.wrap :global(.pin-icon) {
 		background: none;
 		border: none;
+	}
+	.wrap :global(.pin) {
+		display: block;
+		color: var(--accent);
+	}
+	.wrap :global(.pin svg) {
+		fill: var(--surface);
 	}
 </style>

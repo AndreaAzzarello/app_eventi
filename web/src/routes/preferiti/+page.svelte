@@ -19,9 +19,9 @@
 
 <style>
 	.page {
-		padding-top: 1.5rem;
+		padding-top: var(--space-4);
 	}
 	.notice {
-		margin-bottom: 1.25rem;
+		margin-bottom: var(--space-4);
 	}
 </style>

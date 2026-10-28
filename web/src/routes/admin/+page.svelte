@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { PAGE_SIZE, deleteEvent, listEvents } from '$lib/admin';
-	import Icon from '$lib/components/Icon.svelte';
+	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import { formatWhen } from '$lib/dates';
+	import { CATEGORY_ICONS } from '$lib/categoryIcons';
 	import { CATEGORIES, eventPath, type Event } from '$lib/event';
+	import { fmtNum } from '$lib/format';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Trash from '@lucide/svelte/icons/trash';
 	import { toast } from '$lib/toast.svelte';
 
 	let events = $state<Event[] | null>(null);
@@ -50,7 +55,7 @@
 
 <div class="head">
 	<h1>Eventi</h1>
-	<a class="btn btn-primary" href="/admin/eventi/nuovo"><Icon name="plus" size={18} /> Nuovo evento</a>
+	<a class="btn btn-primary" href="/admin/eventi/nuovo"><Plus size={20} aria-hidden="true" /> Nuovo evento</a>
 </div>
 
 <div class="field search">
@@ -59,26 +64,28 @@
 </div>
 
 {#if error}
-	<p class="notice notice-error" role="alert">{error} <button class="btn btn-sm" onclick={() => load()}>Riprova</button></p>
+	<ErrorMessage>{error}</ErrorMessage>
+	<button class="btn btn-sm" onclick={() => load()}>Riprova</button>
 {:else if events === null}
-	<div class="skeleton" style="height: 240px" aria-hidden="true"></div>
+	<div class="skeleton" style="height: calc(var(--space-7) * 4)" aria-hidden="true"></div>
 {:else}
-	<p class="muted" role="status">{shown.length} eventi{q ? ' trovati' : ''}</p>
+	<p class="muted" role="status">{fmtNum(shown.length)} eventi{q ? ' trovati' : ''}</p>
 	<ul class="rows">
 		{#each shown as e (e.id)}
+			{@const Cat = CATEGORY_ICONS[e.category]}
 			<li class="card row">
 				<div class="info">
 					<a href={eventPath(e)} class="title">{e.title}</a>
 					<span class="muted">{formatWhen(e.startTime, e.endTime)} · {e.city || e.address}</span>
 					<span class="tags">
-						<span class="badge">{CATEGORIES[e.category]}</span>
-						<span class="badge" class:badge-warn={e.source === 'user'}>{SOURCE[e.source]}</span>
-						{#if !e.geohash}<span class="badge badge-danger">Senza geohash</span>{/if}
+						<span class="badge"><Cat size={16} aria-hidden="true" /> {CATEGORIES[e.category]}</span>
+						<span class="badge">{SOURCE[e.source]}</span>
+						{#if !e.geohash}<span class="badge">Senza geohash</span>{/if}
 					</span>
 				</div>
 				<div class="actions">
-					<a class="btn btn-sm" href="/admin/eventi/{e.id}" aria-label="Modifica {e.title}"><Icon name="edit" size={16} /> Modifica</a>
-					<button class="btn btn-sm btn-danger" onclick={() => ask(e)} aria-label="Elimina {e.title}"><Icon name="trash" size={16} /></button>
+					<a class="btn btn-sm" href="/admin/eventi/{e.id}" aria-label="Modifica {e.title}"><Pencil size={16} aria-hidden="true" /> Modifica</a>
+					<button class="btn btn-sm btn-danger" onclick={() => ask(e)} aria-label="Elimina {e.title}"><Trash size={16} aria-hidden="true" /> Elimina</button>
 				</div>
 			</li>
 		{/each}
@@ -101,51 +108,54 @@
 		justify-content: space-between;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: var(--space-3);
 	}
 	.search {
-		max-width: 480px;
+		max-width: var(--w-dialog);
 	}
 	.rows {
 		list-style: none;
 		padding: 0;
 		margin: 0;
 		display: grid;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.row {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
-		padding: 0.75rem 1rem;
+		gap: var(--space-3);
+		padding: var(--space-3);
 	}
 	.info {
 		display: grid;
-		gap: 0.2rem;
+		gap: var(--space-1);
 		min-width: 0;
 	}
+	.muted {
+		font-variant-numeric: tabular-nums;
+	}
 	.title {
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 		color: var(--text);
 		overflow-wrap: anywhere;
 	}
 	.tags {
 		display: flex;
-		gap: 0.3rem;
+		gap: var(--space-2);
 		flex-wrap: wrap;
 	}
 	.actions {
 		display: flex;
-		gap: 0.35rem;
+		gap: var(--space-2);
 		flex: none;
 	}
 	.more {
-		margin-top: 1rem;
+		margin-top: var(--space-3);
 	}
 	.dlg-actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 </style>

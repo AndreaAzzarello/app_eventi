@@ -1,17 +1,19 @@
 <script lang="ts">
+	import List from '@lucide/svelte/icons/list';
+	import Map from '@lucide/svelte/icons/map';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import EventList from '$lib/components/EventList.svelte';
 	import EventsMap from '$lib/components/EventsMap.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import Icon from '$lib/components/Icon.svelte';
 	import LocationPicker, { type ChosenPlace } from '$lib/components/LocationPicker.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { SITE_NAME } from '$lib/config';
 	import type { Event } from '$lib/event';
 	import { applyFilter, filterFromParams, filterToParams, type Filter } from '$lib/filters';
 	import { DEFAULT_PLACE, distanceKm, SNAP_MARGIN_KM, snapCoord } from '$lib/geo';
+	import { fmtNum } from '$lib/format';
 	import { homePlace } from '$lib/session.svelte';
 	import { KEYS, readJson, writeJson } from '$lib/storage';
 
@@ -114,7 +116,7 @@
 	}
 
 	const summary = $derived(
-		`${visible.length === 1 ? '1 evento' : `${visible.length} eventi`} entro ${filter.radiusKm} km`
+		`${visible.length === 1 ? '1 evento' : `${fmtNum(visible.length)} eventi`} entro ${filter.radiusKm} km`
 	);
 </script>
 
@@ -139,10 +141,10 @@
 		<p class="summary" aria-live="polite">{loading ? 'Cerco eventi…' : summary}</p>
 		<div class="tabs" role="tablist" aria-label="Vista">
 			<button role="tab" id="tab-list" aria-controls="panel-list" aria-selected={view === 'list'} onclick={() => (view = 'list')}>
-				<Icon name="list" size={18} /> Lista
+				<List size={20} aria-hidden="true" /> Lista
 			</button>
 			<button role="tab" id="tab-map" aria-controls="panel-map" aria-selected={view === 'map'} onclick={() => (view = 'map')}>
-				<Icon name="map" size={18} /> Mappa
+				<Map size={20} aria-hidden="true" /> Mappa
 			</button>
 		</div>
 	</div>
@@ -191,14 +193,14 @@
 
 <style>
 	.first-visit {
-		margin: 1.5rem 0;
-		padding: 1.5rem 1.25rem;
+		margin: var(--space-4) 0;
+		padding: var(--space-4);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		background: var(--surface);
 		display: grid;
 		justify-items: start;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.first-visit h2,
 	.first-visit p {
@@ -209,66 +211,66 @@
 		flex-wrap: wrap;
 		align-items: end;
 		justify-content: space-between;
-		gap: 0.75rem 1.5rem;
-		padding: 1.5rem 0 1.1rem;
+		gap: var(--space-3) var(--space-4);
+		padding: var(--space-4) 0 var(--space-3);
 	}
 	.intro h1 {
 		margin: 0;
 	}
 	.accent {
-		color: var(--brand);
-		font-style: italic;
+		color: var(--accent);
+		font-style: normal;
 	}
 	.toolbar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1rem;
-		margin: 1rem 0 0.75rem;
+		gap: var(--space-3);
+		margin: var(--space-3) 0;
 	}
 	.summary {
 		margin: 0;
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 		color: var(--muted);
+		font-variant-numeric: tabular-nums;
 	}
 	.tabs {
 		display: inline-flex;
-		padding: 3px;
-		border-radius: 999px;
+		padding: var(--space-1);
+		border-radius: var(--radius);
 		background: var(--surface-2);
 		border: 1px solid var(--border);
 	}
 	.tabs button {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
-		min-height: 40px;
-		padding: 0 0.9rem;
+		gap: var(--space-2);
+		min-height: var(--control-sm);
+		padding: 0 var(--space-3);
 		border: none;
-		border-radius: 999px;
+		border-radius: var(--radius-sm);
 		background: none;
 		color: var(--text);
-		font: 600 0.9rem var(--font-body);
+		font: var(--fw-strong) var(--text-sm) var(--font-body);
 		cursor: pointer;
 	}
 	.tabs [aria-selected='true'] {
 		background: var(--surface);
-		box-shadow: var(--shadow);
-		color: var(--brand);
+		color: var(--accent);
 	}
 	.split[data-view='list'] .map-pane,
 	.split[data-view='map'] .list-pane {
 		display: none;
 	}
 	.map-pane {
-		height: calc(100dvh - var(--header-h) - 140px);
-		min-height: 360px;
+		height: calc(100dvh - var(--header-h) - var(--space-7) * 2);
+		min-height: calc(var(--space-7) * 5);
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	@media (min-width: 960px) {
 		.tabs {
@@ -277,7 +279,7 @@
 		.split {
 			display: grid;
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-			gap: 1.5rem;
+			gap: var(--space-4);
 			align-items: start;
 		}
 		.split .list-pane,
@@ -286,8 +288,8 @@
 		}
 		.map-pane {
 			position: sticky;
-			top: calc(var(--header-h) + 16px);
-			height: calc(100vh - var(--header-h) - 32px);
+			top: calc(var(--header-h) + var(--space-3));
+			height: calc(100vh - var(--header-h) - var(--space-5));
 		}
 	}
 </style>

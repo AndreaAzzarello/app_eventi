@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { authMessage, completeEmailLink, isEmailLink, safeNext, savedEmail } from '$lib/auth';
+	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import LoginPanel from '$lib/components/LoginPanel.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { session } from '$lib/session.svelte';
@@ -61,7 +62,7 @@
 				<input id="confirm-email" type="email" autocomplete="email" required bind:value={email} />
 			</div>
 			<button class="btn btn-primary" disabled={busy}>{busy ? 'Accesso…' : 'Accedi'}</button>
-			{#if error}<p class="error-text" role="alert">{error}</p>{/if}
+			{#if error}<ErrorMessage>{error}</ErrorMessage>{/if}
 		</form>
 	{:else if session.status !== 'ready' || session.user}
 		<p class="muted" role="status">Un momento…</p>
@@ -73,19 +74,19 @@
 <style>
 	.page {
 		display: grid;
-		gap: 1.5rem;
-		padding-top: 2rem;
+		gap: var(--space-4);
+		padding-top: var(--space-5);
 		justify-items: start;
 	}
 	@media (min-width: 900px) {
 		.page {
-			grid-template-columns: 1fr 440px;
+			grid-template-columns: 1fr var(--w-dialog);
 			align-items: start;
 		}
 	}
 	.confirm {
-		padding: 1.5rem;
-		max-width: 440px;
+		padding: var(--space-4);
+		max-width: var(--w-dialog);
 		width: 100%;
 	}
 </style>

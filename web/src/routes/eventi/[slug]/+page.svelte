@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import FavoriteButton from '$lib/components/FavoriteButton.svelte';
-	import Icon from '$lib/components/Icon.svelte';
 	import PinMap from '$lib/components/PinMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { siteUrl } from '$lib/config';
-	import { formatWhen } from '$lib/dates';
-	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, isFree, runningLabel } from '$lib/event';
+	import { formatWhen, sentence } from '$lib/dates';
+	import { CATEGORY_ICONS } from '$lib/categoryIcons';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import MapPin from '@lucide/svelte/icons/map-pin';
+	import Share2 from '@lucide/svelte/icons/share-2';
+	import Ticket from '@lucide/svelte/icons/ticket';
+	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, runningLabel } from '$lib/event';
 	import { imageSources } from '$lib/images';
 	import { buildIcs } from '$lib/ics';
 	import { eventJsonLd, safeJson } from '$lib/jsonld';
@@ -25,6 +31,7 @@
 			`${CATEGORIES[e.category]} a ${e.city || e.address}: ${formatWhen(e.startTime, e.endTime, now)}${e.venueName ? `, ${e.venueName}` : ''}.`
 	);
 
+	const Cat = $derived(CATEGORY_ICONS[e.category]);
 	const source = $derived(eventSource(e));
 	const jsonLdTag = $derived('<script type="application/ld+json">' + safeJson(eventJsonLd(e, url)) + '</' + 'script>');
 
@@ -62,7 +69,7 @@
 </svelte:head>
 
 <article class="container narrow detail">
-	<a class="back" href="/"><Icon name="back" size={18} /> Tutti gli eventi</a>
+	<a class="back" href="/"><ArrowLeft size={20} aria-hidden="true" /> Tutti gli eventi</a>
 
 	{#if ended}
 		<p class="notice" role="note"><strong>Evento concluso.</strong> Lo lasciamo qui per memoria: cerca le prossime date in home.</p>
@@ -86,9 +93,9 @@
 	{/if}
 
 	<div class="tags">
-		<span class="badge badge-brand">{CATEGORIES[e.category]}</span>
+		<span class="badge"><Cat size={16} aria-hidden="true" /> {CATEGORIES[e.category]}</span>
 		{#if running}<span class="badge">{running}</span>{/if}
-		<span class="badge" class:badge-free={isFree(e)}>{PRICE_TYPES[e.priceType]}</span>
+		<span class="badge">{PRICE_TYPES[e.priceType]}</span>
 		{#if isForKids(e) && e.category !== 'kids'}<span class="badge">Per bambini</span>{/if}
 	</div>
 
@@ -96,11 +103,11 @@
 
 	<dl class="facts">
 		<div>
-			<dt><Icon name="calendar" /><span class="visually-hidden">Quando</span></dt>
-			<dd class="when">{formatWhen(e.startTime, e.endTime, now)}</dd>
+			<dt><Calendar size={24} aria-hidden="true" /><span class="visually-hidden">Quando</span></dt>
+			<dd class="when">{sentence(formatWhen(e.startTime, e.endTime, now))}</dd>
 		</div>
 		<div>
-			<dt><Icon name="pin" /><span class="visually-hidden">Dove</span></dt>
+			<dt><MapPin size={24} aria-hidden="true" /><span class="visually-hidden">Dove</span></dt>
 			<dd>
 				{#if e.venueName}<strong>{e.venueName}</strong><br />{/if}
 				{#if e.approxLocation}<span class="approx">Luogo da confermare</span>{:else}{e.address}{/if}
@@ -114,11 +121,11 @@
 		<FavoriteButton id={e.id} title={e.title} label />
 		{#if e.ticketUrl}
 			<a class="btn btn-primary" href={e.ticketUrl} target="_blank" rel="noopener noreferrer nofollow">
-				<Icon name="ticket" size={18} /> Biglietti
+				<Ticket size={20} aria-hidden="true" /> Biglietti
 			</a>
 		{/if}
-		<button class="btn" onclick={downloadIcs}><Icon name="calendar" size={18} /> Aggiungi al calendario</button>
-		<button class="btn" onclick={share}><Icon name="share" size={18} /> Condividi</button>
+		<button class="btn" onclick={downloadIcs}><Calendar size={20} aria-hidden="true" /> Aggiungi al calendario</button>
+		<button class="btn" onclick={share}><Share2 size={20} aria-hidden="true" /> Condividi</button>
 	</div>
 
 	{#if e.shortDescription}
@@ -129,7 +136,7 @@
 		<div class="where-head">
 			<h2 id="map-h">Come arrivare</h2>
 			<a class="btn btn-sm" href={mapsUrl} target="_blank" rel="noopener noreferrer">
-				<Icon name="external" size={16} /> Apri in Maps
+				<ExternalLink size={16} aria-hidden="true" /> Apri in Maps
 			</a>
 		</div>
 		{#if e.approxLocation}
@@ -149,22 +156,22 @@
 
 <style>
 	.detail {
-		padding-top: 1rem;
+		padding-top: var(--space-3);
 	}
 	.back {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
-		min-height: 44px;
+		gap: var(--space-2);
+		min-height: var(--control);
 		color: var(--muted);
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 		text-decoration: none;
 	}
 	.back:hover {
-		color: var(--brand);
+		color: var(--accent);
 	}
 	.notice {
-		margin: 0.5rem 0 1rem;
+		margin: var(--space-2) 0 var(--space-3);
 	}
 	.hero {
 		width: 100%;
@@ -172,73 +179,68 @@
 		aspect-ratio: 2 / 1;
 		object-fit: cover;
 		border-radius: var(--radius);
-		margin: 0.5rem 0 1.25rem;
+		margin: var(--space-2) 0 var(--space-4);
 		background: var(--surface-2);
 	}
 	.tags {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin: 0.5rem 0 0.75rem;
+		gap: var(--space-2) var(--space-3);
+		margin: var(--space-2) 0 var(--space-3);
 	}
 	h1 {
 		overflow-wrap: anywhere;
 	}
 	.facts {
 		display: grid;
-		gap: 0.9rem;
-		margin: 1.25rem 0;
+		gap: var(--space-3);
+		margin: var(--space-4) 0;
 	}
 	.facts div {
 		display: grid;
-		grid-template-columns: 28px 1fr;
-		gap: 0.6rem;
+		grid-template-columns: var(--space-5) 1fr;
+		gap: var(--space-2);
 	}
 	.facts dt {
-		color: var(--brand);
-		padding-top: 2px;
+		color: var(--muted);
 	}
 	.facts dd {
 		margin: 0;
 	}
 	.when {
-		font-weight: 600;
-		font-size: 1.08rem;
-	}
-	.when::first-letter {
-		text-transform: uppercase;
+		font-weight: var(--fw-strong);
+		font-size: var(--text-lg);
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin: 1.25rem 0 1.5rem;
+		gap: var(--space-2);
+		margin: var(--space-4) 0;
 	}
 	.desc {
-		font-size: 1.08rem;
-		line-height: 1.7;
+		font-size: var(--text-lg);
+		line-height: var(--lh-body);
 		white-space: pre-line;
 		overflow-wrap: anywhere;
 	}
 	.where {
-		margin-top: 2rem;
+		margin-top: var(--space-5);
 	}
 	.where-head {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
-		margin-bottom: 0.75rem;
+		gap: var(--space-3);
+		margin-bottom: var(--space-3);
 	}
 	.where-head h2 {
 		margin: 0;
 	}
 	.approx {
-		font-style: italic;
 		color: var(--muted);
 	}
 	.source {
-		margin-top: 1.5rem;
-		font-size: 0.9rem;
+		margin-top: var(--space-4);
+		font-size: var(--text-sm);
 	}
 </style>

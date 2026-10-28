@@ -5,7 +5,13 @@
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
 	import { page } from '$app/state';
-	import Icon from '$lib/components/Icon.svelte';
+	import Heart from '@lucide/svelte/icons/heart';
+	import Moon from '@lucide/svelte/icons/moon';
+	import Plus from '@lucide/svelte/icons/plus';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import Sun from '@lucide/svelte/icons/sun';
+	import User from '@lucide/svelte/icons/user';
+	import X from '@lucide/svelte/icons/x';
 	import { favorites, session } from '$lib/session.svelte';
 	import { KEYS, readJson, writeJson } from '$lib/storage';
 	import { dismiss, toasts } from '$lib/toast.svelte';
@@ -29,8 +35,8 @@
 	}
 
 	const nav = [
-		{ href: '/proponi', label: 'Proponi', icon: 'plus' },
-		{ href: '/preferiti', label: 'Preferiti', icon: 'heart' }
+		{ href: '/proponi', label: 'Proponi', icon: Plus },
+		{ href: '/preferiti', label: 'Preferiti', icon: Heart }
 	] as const;
 	const active = (href: string) => page.url.pathname.startsWith(href);
 </script>
@@ -45,18 +51,17 @@
 	<div class="container bar">
 		<a class="brand" href="/" aria-label="Eventi Vicini, home">
 			<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
-				<path fill="var(--brand)" d="M16 2a11 11 0 0 0-11 11c0 8.2 11 17 11 17s11-8.8 11-17A11 11 0 0 0 16 2z" />
-				<rect x="10.5" y="9" width="11" height="10" rx="2" fill="none" stroke="var(--brand-ink)" stroke-width="2" />
-				<path d="M10.5 12.5h11M13.5 7.5v3M18.5 7.5v3" stroke="var(--brand-ink)" stroke-width="2" stroke-linecap="round" />
+				<path fill="var(--accent)" d="M16 2a11 11 0 0 0-11 11c0 8.2 11 17 11 17s11-8.8 11-17A11 11 0 0 0 16 2z" />
+				<rect x="10.5" y="9" width="11" height="10" rx="2" fill="none" stroke="var(--accent-ink)" stroke-width="2" />
+				<path d="M10.5 12.5h11M13.5 7.5v3M18.5 7.5v3" stroke="var(--accent-ink)" stroke-width="2" stroke-linecap="round" />
 			</svg>
 			<span>Eventi <em>Vicini</em></span>
 		</a>
 		<nav aria-label="Principale">
 			{#each nav as item (item.href)}
 				<a href={item.href} class="nav-link" aria-current={active(item.href) ? 'page' : undefined}>
-					<Icon name={item.icon} size={18} />
+					<item.icon size={20} aria-hidden="true" />
 					<span class="nav-text">{item.label}</span>
-					{#if item.href === '/preferiti' && favorites.ids.length}<span class="count">{favorites.ids.length}</span>{/if}
 				</a>
 			{/each}
 			{#if session.user}
@@ -66,16 +71,16 @@
 				</a>
 				{#if session.user.isAdmin}
 					<a href="/admin" class="nav-link" aria-current={active('/admin') ? 'page' : undefined}>
-						<Icon name="sliders" size={18} /><span class="nav-text">Admin</span>
+						<SlidersHorizontal size={20} aria-hidden="true" /><span class="nav-text">Admin</span>
 					</a>
 				{/if}
 			{:else}
 				<a href="/accedi" class="nav-link" aria-current={active('/accedi') ? 'page' : undefined}>
-					<Icon name="user" size={18} /><span class="nav-text">Accedi</span>
+					<User size={20} aria-hidden="true" /><span class="nav-text">Accedi</span>
 				</a>
 			{/if}
 			<button class="nav-link theme" onclick={toggleTheme} aria-label="Cambia tema chiaro/scuro">
-				<span class="sun"><Icon name="sun" size={18} /></span><span class="moon"><Icon name="moon" size={18} /></span>
+				<span class="sun"><Sun size={20} aria-hidden="true" /></span><span class="moon"><Moon size={20} aria-hidden="true" /></span>
 			</button>
 		</nav>
 	</div>
@@ -97,7 +102,7 @@
 			<a href="/termini">Termini</a>
 		</nav>
 		<p class="muted small">
-			Eventi dai siti istituzionali dei Comuni (fonte citata in ogni scheda) e dagli utenti. Mappe ©
+			Eventi dai siti istituzionali dei Comuni (fonte citata in ogni scheda) e dagli utenti. Mappe &copy;
 			<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.
 		</p>
 	</div>
@@ -108,7 +113,7 @@
 		<div class="toast" role="status">
 			<span>{t.text}</span>
 			{#if t.action}<a class="btn btn-primary btn-sm" href={t.action.href} onclick={() => dismiss(t.id)}>{t.action.label}</a>{/if}
-			<button class="btn btn-ghost btn-sm close" onclick={() => dismiss(t.id)} aria-label="Chiudi avviso"><Icon name="x" size={16} /></button>
+			<button class="btn btn-ghost btn-sm close" onclick={() => dismiss(t.id)} aria-label="Chiudi avviso"><X size={16} aria-hidden="true" /></button>
 		</div>
 	{/each}
 </div>
@@ -116,40 +121,38 @@
 <style>
 	.skip {
 		position: absolute;
-		left: 8px;
-		top: -60px;
+		left: var(--space-2);
+		top: calc(-1 * var(--header-h));
 		z-index: 100;
-		padding: 0.6rem 1rem;
+		padding: var(--space-2) var(--space-3);
 		background: var(--text);
 		color: var(--bg);
 		border-radius: var(--radius-sm);
 	}
 	.skip:focus {
-		top: 8px;
+		top: var(--space-2);
 	}
 	.site-header {
 		position: sticky;
 		top: 0;
 		z-index: 1000;
-		background: color-mix(in srgb, var(--bg) 88%, transparent);
-		backdrop-filter: saturate(1.4) blur(10px);
-		-webkit-backdrop-filter: saturate(1.4) blur(10px);
+		background: var(--bg);
 		border-bottom: 1px solid var(--border);
 	}
 	.bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		height: var(--header-h);
 	}
 	.brand {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		color: var(--text);
 		text-decoration: none;
-		font: 650 1.2rem/1 var(--font-display);
+		font: var(--fw-strong) var(--text-lg)/1 var(--font-display);
 		white-space: nowrap;
 		min-width: 0;
 	}
@@ -162,29 +165,29 @@
 	}
 	.brand em,
 	.foot-brand em {
-		font-style: italic;
-		color: var(--brand);
+		font-style: normal;
+		color: var(--accent);
 	}
 	nav[aria-label='Principale'] {
 		display: flex;
 		align-items: center;
-		gap: 0.15rem;
+		gap: var(--space-1);
 		flex-shrink: 0;
 	}
 	.nav-link {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
-		min-height: 44px;
-		min-width: 44px;
+		gap: var(--space-2);
+		min-height: var(--control);
+		min-width: var(--control);
 		justify-content: center;
-		padding: 0 0.6rem;
+		padding: 0 var(--space-2);
 		border: none;
-		border-radius: 999px;
+		border-radius: var(--radius);
 		background: none;
 		color: var(--text);
-		font: 600 0.92rem var(--font-body);
+		font: var(--fw-strong) var(--text-sm) var(--font-body);
 		text-decoration: none;
 		cursor: pointer;
 	}
@@ -193,7 +196,7 @@
 		color: var(--text);
 	}
 	.nav-link[aria-current='page'] {
-		color: var(--brand);
+		color: var(--accent);
 	}
 	.nav-text {
 		position: absolute;
@@ -203,29 +206,18 @@
 		clip: rect(0 0 0 0);
 		white-space: nowrap;
 	}
-	.count {
-		position: absolute;
-		top: 4px;
-		right: 2px;
-		min-width: 18px;
-		height: 18px;
-		padding: 0 4px;
-		border-radius: 999px;
-		background: var(--brand);
-		color: var(--brand-ink);
-		font-size: 0.7rem;
-		line-height: 18px;
-		text-align: center;
-	}
 	.avatar {
 		display: grid;
 		place-items: center;
-		width: 26px;
-		height: 26px;
-		border-radius: 50%;
-		background: var(--brand);
-		color: var(--brand-ink);
-		font-size: 0.8rem;
+		width: var(--control-sm);
+		height: var(--control-sm);
+		border-radius: var(--radius-full);
+		background: var(--accent);
+		color: var(--accent-ink);
+		font-size: var(--text-sm);
+	}
+	.theme {
+		border-radius: var(--radius-full);
 	}
 	.theme .moon {
 		display: none;
@@ -233,21 +225,27 @@
 	:global([data-theme='dark']) .theme .sun {
 		display: none;
 	}
-	:global([data-theme='dark']) .theme .moon {
+	:global([data-theme='dark']) .theme {
+		border-radius: var(--radius-full);
+	}
+	.theme .moon {
 		display: inline;
 	}
 	@media (prefers-color-scheme: dark) {
 		:global(:root:not([data-theme='light'])) .theme .sun {
 			display: none;
 		}
-		:global(:root:not([data-theme='light'])) .theme .moon {
+		:global(:root:not([data-theme='light'])) .theme {
+		border-radius: var(--radius-full);
+	}
+	.theme .moon {
 			display: inline;
 		}
 	}
 	@media (max-width: 419px) {
 		.brand {
-			font-size: 1.05rem;
-			gap: 0.4rem;
+			font-size: var(--text-md);
+			gap: var(--space-1);
 		}
 		nav[aria-label='Principale'] {
 			gap: 0;
@@ -264,42 +262,39 @@
 			overflow: visible;
 			clip: auto;
 		}
-		.count {
-			position: static;
-		}
 	}
 	main {
-		min-height: calc(100vh - var(--header-h) - 200px);
+		min-height: calc(100vh - var(--header-h) - var(--space-7) * 3);
 		outline: none;
 	}
 	.site-footer {
-		margin-top: 4rem;
+		margin-top: var(--space-7);
 		border-top: 1px solid var(--border);
 		background: var(--surface-2);
-		padding: 2rem 0 5rem;
+		padding: var(--space-5) 0 var(--space-7);
 	}
 	.foot {
 		display: grid;
-		gap: 1rem;
+		gap: var(--space-3);
 	}
 	.foot-brand {
-		font: 650 1.15rem var(--font-display);
-		margin: 0 0 0.3rem;
+		font: var(--fw-strong) var(--text-lg) var(--font-display);
+		margin: 0 0 var(--space-1);
 	}
 	.foot nav {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.25rem 1.25rem;
+		gap: var(--space-1) var(--space-4);
 	}
 	.foot nav a {
 		display: inline-flex;
 		align-items: center;
-		min-height: 44px;
+		min-height: var(--control);
 		color: var(--text);
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 	}
 	.small {
-		font-size: 0.85rem;
+		font-size: var(--text-sm);
 	}
 	.small a {
 		color: inherit;
@@ -315,35 +310,28 @@
 	.toasts {
 		position: fixed;
 		left: 50%;
-		bottom: max(16px, env(safe-area-inset-bottom));
+		bottom: max(var(--space-3), env(safe-area-inset-bottom));
 		transform: translateX(-50%);
 		z-index: 2000;
 		display: grid;
-		gap: 0.5rem;
-		width: min(560px, calc(100vw - 32px));
+		gap: var(--space-2);
+		width: min(var(--w-dialog), 100% - 2 * var(--space-3));
 	}
 	.toast {
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 0.5rem 0.75rem;
-		padding: 0.7rem 0.6rem 0.7rem 1rem;
+		gap: var(--space-2) var(--space-3);
+		padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
 		border-radius: var(--radius);
 		background: var(--text);
 		color: var(--bg);
-		box-shadow: var(--shadow-lift);
-		animation: rise 0.25s var(--ease);
+		box-shadow: var(--shadow-overlay);
 	}
 	.toast span {
-		flex: 1 1 200px;
+		flex: 1;
 	}
 	.toast .close {
 		--b-fg: var(--bg);
-	}
-	@keyframes rise {
-		from {
-			transform: translateY(12px);
-			opacity: 0;
-		}
 	}
 </style>

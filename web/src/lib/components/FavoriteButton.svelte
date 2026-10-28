@@ -1,20 +1,16 @@
 <script lang="ts">
+	import Heart from '@lucide/svelte/icons/heart';
 	import { favorites } from '$lib/session.svelte';
 	import { toast } from '$lib/toast.svelte';
-	import Icon from './Icon.svelte';
 
 	let { id, title, label = false }: { id: string; title: string; label?: boolean } = $props();
 	const on = $derived(favorites.has(id));
-	let pop = $state(false);
 
 	async function click(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
 		try {
-			if (await favorites.toggle(id)) {
-				pop = true;
-				setTimeout(() => (pop = false), 400);
-			}
+			await favorites.toggle(id);
 		} catch {
 			toast('Non sono riuscito a salvare il preferito. Riprova.');
 		}
@@ -25,13 +21,12 @@
 	type="button"
 	class="fav"
 	class:on
-	class:pop
 	class:with-label={label}
 	aria-pressed={on}
 	aria-label={label ? undefined : on ? `Togli “${title}” dai preferiti` : `Aggiungi “${title}” ai preferiti`}
 	onclick={click}
 >
-	<Icon name="heart" filled={on} size={label ? 18 : 20} />
+	<Heart size={label ? 16 : 20} fill={on ? 'currentColor' : 'none'} aria-hidden="true" />
 	{#if label}<span>{on ? 'Nei preferiti' : 'Salva'}</span>{/if}
 </button>
 
@@ -40,37 +35,33 @@
 		display: inline-grid;
 		place-items: center;
 		grid-auto-flow: column;
-		gap: 0.4em;
-		min-width: 44px;
-		min-height: 44px;
-		border-radius: 999px;
+		gap: var(--space-2);
+		min-width: var(--control);
+		min-height: var(--control);
+		border-radius: var(--radius);
 		border: 1px solid transparent;
-		background: color-mix(in srgb, var(--surface) 88%, transparent);
+		background: var(--surface);
 		color: var(--muted);
 		cursor: pointer;
 		transition:
-			color 0.15s,
-			transform 0.2s var(--ease),
-			background-color 0.15s;
+			color var(--dur),
+			background-color var(--dur);
 	}
 	.fav:hover {
-		color: var(--brand);
+		color: var(--accent);
 		background: var(--surface-2);
 	}
 	.on {
-		color: var(--brand);
-	}
-	.pop {
-		transform: scale(1.18);
+		color: var(--accent);
 	}
 	.with-label {
-		padding: 0 1rem;
+		padding: 0 var(--space-3);
 		border-color: var(--border);
-		font: 600 0.95rem var(--font-body);
+		font: var(--fw-strong) var(--text-md) var(--font-body);
 		color: var(--text);
 	}
 	.with-label.on {
-		color: var(--brand);
+		color: var(--accent);
 		border-color: currentColor;
 	}
 </style>

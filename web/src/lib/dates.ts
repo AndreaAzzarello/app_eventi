@@ -97,6 +97,9 @@ export function shortDay(start: number, now = Date.now()): string {
 }
 const cardDayFmt = new Intl.DateTimeFormat('it-IT', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short' });
 
+/** Prima lettera maiuscola: "lun 3 nov" -> "Lun 3 nov". */
+export const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export const formatTime = (ms: number) => timeFmt.format(ms);
 
 /** Valore per <input type="datetime-local"> in ora italiana, e ritorno. */

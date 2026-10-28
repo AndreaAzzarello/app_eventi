@@ -12,7 +12,9 @@
 		sendEmailLink
 	} from '$lib/auth';
 	import FavoritesList from '$lib/components/FavoritesList.svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Trash from '@lucide/svelte/icons/trash';
+	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import LoginPanel from '$lib/components/LoginPanel.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { formatWhen } from '$lib/dates';
@@ -122,8 +124,6 @@
 			deleting = false;
 		}
 	}
-
-	const badge = { pending: 'badge-warn', approved: 'badge-free', rejected: 'badge-danger' } as const;
 </script>
 
 <Seo title="Il mio account" noindex />
@@ -132,7 +132,7 @@
 	<h1>Il mio account</h1>
 
 	{#if session.status !== 'ready'}
-		<div class="skeleton" style="height: 200px" aria-hidden="true"></div>
+		<div class="skeleton" style="height: var(--space-7)" aria-hidden="true"></div>
 	{:else if !session.user}
 		<LoginPanel next="/account" />
 	{:else}
@@ -164,12 +164,12 @@
 		<section class="block" id="proposte" aria-labelledby="prop-h">
 			<div class="head">
 				<h2 id="prop-h">Le mie proposte</h2>
-				<a class="btn btn-sm" href="/proponi"><Icon name="plus" size={16} /> Nuova</a>
+				<a class="btn btn-sm" href="/proponi"><Plus size={16} aria-hidden="true" /> Nuova</a>
 			</div>
 			{#if subsError}
-				<p class="notice notice-error">{subsError} <button class="btn btn-sm" onclick={loadSubs}>Riprova</button></p>
+				<div class="notice err-row"><ErrorMessage>{subsError}</ErrorMessage> <button class="btn btn-sm" onclick={loadSubs}>Riprova</button></div>
 			{:else if subs === null}
-				<div class="skeleton" style="height: 80px" aria-hidden="true"></div>
+				<div class="skeleton" style="height: var(--space-7)" aria-hidden="true"></div>
 			{:else if subs.length === 0}
 				<p class="muted">Non hai ancora proposto eventi.</p>
 			{:else}
@@ -177,7 +177,7 @@
 					{#each subs as s (s.id)}
 						<li class="card sub">
 							<div>
-								<span class="badge {badge[s.status]}">{STATUS_LABEL[s.status]}</span>
+								<span class="badge">{STATUS_LABEL[s.status]}</span>
 								<h3>{s.title}</h3>
 								<p class="muted">{formatWhen(s.startTime, s.endTime)} · {s.city}</p>
 								{#if s.status === 'rejected' && s.rejectReason}<p class="reason"><strong>Motivo:</strong> {s.rejectReason}</p>{/if}
@@ -200,7 +200,7 @@
 				riferimento a te. L’operazione non si può annullare.
 			</p>
 			<button class="btn btn-danger" onclick={() => ((deleteError = ''), (reauthSent = false), dialog.showModal())}>
-				<Icon name="trash" size={18} /> Elimina account e dati
+				<Trash size={20} aria-hidden="true" /> Elimina account e dati
 			</button>
 		</section>
 	{/if}
@@ -209,17 +209,18 @@
 <dialog bind:this={dialog} aria-labelledby="del-title">
 	<h2 id="del-title">Eliminare davvero l’account?</h2>
 	{#if reauthSent}
-		<p class="notice notice-ok" role="status">
+		<p class="notice" role="status">
 			Per sicurezza ti abbiamo mandato un link a <strong>{session.user?.email}</strong>: aprilo da questo dispositivo per
 			confermare l’eliminazione.
 		</p>
 		<div class="row"><button class="btn" onclick={() => dialog.close()}>Chiudi</button></div>
 	{:else}
 		<p>Perderai preferiti e proposte. Se è passato un po’ dall’ultimo accesso ti chiederemo di confermare chi sei.</p>
-		{#if deleteError}<p class="error-text" role="alert">{deleteError}</p>{/if}
+		{#if deleteError}<ErrorMessage>{deleteError}</ErrorMessage>{/if}
 		<div class="row">
 			<button class="btn" onclick={() => dialog.close()} disabled={deleting}>Annulla</button>
-			<button class="btn btn-primary danger-btn" onclick={confirmDelete} disabled={deleting}>
+			<button class="btn btn-danger" onclick={confirmDelete} disabled={deleting}>
+				<Trash size={20} aria-hidden="true" />
 				{deleting ? 'Elimino…' : 'Sì, elimina tutto'}
 			</button>
 		</div>
@@ -228,19 +229,19 @@
 
 <style>
 	.page {
-		padding-top: 1.5rem;
+		padding-top: var(--space-4);
 		display: grid;
-		gap: 1.5rem;
+		gap: var(--space-4);
 	}
 	.page h1 {
 		margin: 0;
 	}
 	.block.card {
-		padding: 1.25rem;
+		padding: var(--space-4);
 	}
 	.profile {
 		display: grid;
-		gap: 0 1rem;
+		gap: 0 var(--space-3);
 	}
 	@media (min-width: 560px) {
 		.profile {
@@ -253,17 +254,23 @@
 	.row {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		align-items: center;
 		justify-content: flex-end;
 	}
 	.profile .row {
 		justify-content: flex-start;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 	.head {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
+	}
+	.err-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
 		align-items: center;
 	}
 	.subs {
@@ -271,36 +278,26 @@
 		padding: 0;
 		margin: 0;
 		display: grid;
-		gap: 0.6rem;
+		gap: var(--space-3);
 	}
 	.sub {
 		display: flex;
 		justify-content: space-between;
 		align-items: start;
-		gap: 1rem;
-		padding: 0.9rem 1rem;
+		gap: var(--space-3);
+		padding: var(--space-3);
 	}
 	.sub h3 {
-		margin: 0.4rem 0 0.15rem;
+		margin: var(--space-2) 0 var(--space-1);
 	}
 	.sub p {
 		margin: 0;
 	}
 	.reason {
-		margin-top: 0.4rem !important;
-		color: var(--danger);
+		margin-top: var(--space-2) !important;
 	}
 	.danger {
 		border-top: 1px solid var(--border);
-		padding-top: 1.5rem;
-	}
-	.danger-btn {
-		--b-bg: var(--danger);
-		--b-border: var(--danger);
-		--b-fg: var(--surface);
-	}
-	.danger-btn:hover {
-		background: var(--danger);
-		filter: brightness(1.1);
+		padding-top: var(--space-4);
 	}
 </style>

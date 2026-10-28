@@ -38,27 +38,26 @@
 
 <style>
 	.page {
-		padding-top: 1.5rem;
+		padding-top: var(--space-4);
 	}
 	.tabs {
 		display: flex;
-		gap: 0.25rem;
+		gap: var(--space-1);
 		border-bottom: 1px solid var(--border);
-		margin-bottom: 1.5rem;
+		margin-bottom: var(--space-4);
 	}
 	.tabs a {
 		display: inline-flex;
 		align-items: center;
-		min-height: 44px;
-		padding: 0 1rem;
+		min-height: var(--control);
+		padding: 0 var(--space-3);
 		color: var(--muted);
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 		text-decoration: none;
-		border-bottom: 3px solid transparent;
-		margin-bottom: -1px;
+		border-bottom: 2px solid transparent;
 	}
 	.tabs a[aria-current='page'] {
-		color: var(--brand);
-		border-color: var(--brand);
+		color: var(--accent);
+		border-color: var(--accent);
 	}
 </style>

@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { loadEvent, saveEvent } from '$lib/admin';
 	import EventForm from '$lib/components/EventForm.svelte';
-	import Icon from '$lib/components/Icon.svelte';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import { eventPath, type Event, type EventInput } from '$lib/event';
 	import { toast } from '$lib/toast.svelte';
 
@@ -18,11 +18,11 @@
 	}
 </script>
 
-<a class="back" href="/admin"><Icon name="back" size={18} /> Tutti gli eventi</a>
+<a class="back" href="/admin"><ArrowLeft size={20} aria-hidden="true" /> Tutti gli eventi</a>
 <h1>{id ? 'Modifica evento' : 'Nuovo evento'}</h1>
 
 {#if existing === undefined}
-	<div class="skeleton" style="height: 400px" aria-hidden="true"></div>
+	<div class="skeleton" style="height: calc(var(--space-7) * 6)" aria-hidden="true"></div>
 {:else if id && existing === null}
 	<p class="notice">Evento non trovato.</p>
 {:else}
@@ -36,17 +36,17 @@
 	.back {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
-		min-height: 44px;
+		gap: var(--space-2);
+		min-height: var(--control);
 		color: var(--muted);
-		font-weight: 600;
+		font-weight: var(--fw-strong);
 		text-decoration: none;
 	}
 	.notice {
-		margin-bottom: 1rem;
-		max-width: 760px;
+		margin-bottom: var(--space-3);
+		max-width: var(--w-prose);
 	}
 	.narrow {
-		max-width: 760px;
+		max-width: var(--w-prose);
 	}
 </style>

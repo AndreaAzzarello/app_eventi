@@ -14,7 +14,9 @@
 	} from '$lib/event';
 	import { geohashOf, type Place } from '$lib/geo';
 	import { reversePlace, searchPlaces, type GeoResult } from '$lib/geocode';
-	import Icon from './Icon.svelte';
+	import Search from '@lucide/svelte/icons/search';
+	import MapPin from '@lucide/svelte/icons/map-pin';
+	import ErrorMessage from './ErrorMessage.svelte';
 	import PinMap from './PinMap.svelte';
 
 	let {
@@ -178,7 +180,7 @@
 
 <form class="event-form" novalidate onsubmit={submit}>
 	{#if submitted && Object.keys(errors).length}
-		<div class="notice notice-error summary" tabindex="-1" bind:this={summaryEl} role="alert">
+		<div class="notice summary" tabindex="-1" bind:this={summaryEl} role="alert">
 			<strong>Controlla questi campi:</strong>
 			<ul>
 				{#each Object.entries(errors) as [k, msg] (k)}
@@ -193,7 +195,7 @@
 		<div class="field">
 			<label for="f-title">Titolo *</label>
 			<input id="f-title" type="text" bind:value={title} maxlength={LIMITS.title} required aria-invalid={!!err('title')} aria-describedby="e-title" />
-			{#if err('title')}<span id="e-title" class="error-text">{err('title')}</span>{/if}
+			{#if err('title')}<ErrorMessage id="e-title">{err('title')}</ErrorMessage>{/if}
 		</div>
 		<div class="field">
 			<label for="f-desc">Descrizione</label>
@@ -222,13 +224,13 @@
 			<div class="field">
 				<label for="f-start">Inizio *</label>
 				<input id="f-start" type="datetime-local" bind:value={start} required aria-invalid={!!err('startTime')} aria-describedby="e-start" />
-				{#if err('startTime')}<span id="e-start" class="error-text">{err('startTime')}</span>{/if}
+				{#if err('startTime')}<ErrorMessage id="e-start">{err('startTime')}</ErrorMessage>{/if}
 			</div>
 			<div class="field">
 				<label for="f-end">Fine</label>
 				<input id="f-end" type="datetime-local" bind:value={end} min={start} aria-invalid={!!err('endTime')} aria-describedby="e-end h-end" />
 				<span id="h-end" class="hint">Se la lasci vuota coincide con l’inizio. Ora italiana.</span>
-				{#if err('endTime')}<span id="e-end" class="error-text">{err('endTime')}</span>{/if}
+				{#if err('endTime')}<ErrorMessage id="e-end">{err('endTime')}</ErrorMessage>{/if}
 			</div>
 		</div>
 	</fieldset>
@@ -244,20 +246,20 @@
 			<div class="with-btn">
 				<input id="f-address" type="text" bind:value={address} maxlength={LIMITS.address} required placeholder="Via, numero, città" aria-invalid={!!err('address')} aria-describedby="e-address" />
 				<button id="f-find" type="button" class="btn" onclick={find} disabled={geoBusy}>
-					<Icon name="search" size={18} /> {geoBusy ? 'Cerco…' : 'Trova'}
+					<Search size={20} aria-hidden="true" /> {geoBusy ? 'Cerco…' : 'Trova'}
 				</button>
 			</div>
-			{#if err('address')}<span id="e-address" class="error-text">{err('address')}</span>{/if}
+			{#if err('address')}<ErrorMessage id="e-address">{err('address')}</ErrorMessage>{/if}
 		</div>
 		{#if candidates.length}
 			<ul class="candidates">
 				{#each candidates as c (c.lat + ',' + c.lng)}
-					<li><button type="button" class="btn btn-sm" onclick={() => setFrom(c)}><Icon name="pin" size={16} /> {c.label}</button></li>
+					<li><button type="button" class="btn btn-sm" onclick={() => setFrom(c)}><MapPin size={16} aria-hidden="true" /> {c.label}</button></li>
 				{/each}
 			</ul>
 		{/if}
 		<p class="hint" role="status">{geoMsg}</p>
-		{#if err('place')}<p class="error-text">{err('place')}</p>{/if}
+		{#if err('place')}<ErrorMessage>{err('place')}</ErrorMessage>{/if}
 		{#if lat != null && lng != null}
 			<PinMap {lat} {lng} label="Posizione dell’evento: trascina il segnaposto per correggerla" onmove={moved} />
 			<p class="hint">Trascina il segnaposto o tocca la mappa per correggere la posizione.</p>
@@ -269,46 +271,48 @@
 		<div class="field">
 			<label for="f-ticket">Link biglietti o informazioni</label>
 			<input id="f-ticket" type="url" bind:value={ticketUrl} placeholder="https://" inputmode="url" aria-invalid={!!err('ticketUrl')} aria-describedby="e-ticket" />
-			{#if err('ticketUrl')}<span id="e-ticket" class="error-text">{err('ticketUrl')}</span>{/if}
+			{#if err('ticketUrl')}<ErrorMessage id="e-ticket">{err('ticketUrl')}</ErrorMessage>{/if}
 		</div>
 		<div class="field">
 			<label for="f-image">Immagine (link)</label>
 			<input id="f-image" type="url" bind:value={imageUrl} placeholder="https://…/foto.jpg" inputmode="url" aria-invalid={!!err('imageUrl')} aria-describedby="h-image e-image" />
 			<span id="h-image" class="hint">Solo un link a un’immagine già online, che hai il diritto di usare.</span>
-			{#if err('imageUrl')}<span id="e-image" class="error-text">{err('imageUrl')}</span>{/if}
+			{#if err('imageUrl')}<ErrorMessage id="e-image">{err('imageUrl')}</ErrorMessage>{/if}
 		</div>
 		<div class="field">
 			<label for="f-tags">Tag</label>
 			<input id="f-tags" type="text" bind:value={tags} placeholder="all'aperto, family" aria-describedby="h-tags e-tags" />
 			<span id="h-tags" class="hint">Separati da virgola. “family” o “kids” lo mostrano anche nel filtro Bambini.</span>
-			{#if err('tags')}<span id="e-tags" class="error-text">{err('tags')}</span>{/if}
+			{#if err('tags')}<ErrorMessage id="e-tags">{err('tags')}</ErrorMessage>{/if}
 		</div>
 	</fieldset>
 
-	{#if saveError}<p class="notice notice-error" role="alert">{saveError}</p>{/if}
+	{#if saveError}<ErrorMessage>{saveError}</ErrorMessage>{/if}
 	<button class="btn btn-primary submit" disabled={saving}>{saving ? 'Salvataggio…' : submitLabel}</button>
 </form>
 
 <style>
 	.event-form {
 		display: grid;
-		gap: 1.25rem;
+		gap: var(--space-4);
 	}
 	fieldset {
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 1rem 1rem 0.25rem;
+		padding: var(--space-3) var(--space-3) var(--space-1);
 		margin: 0;
 		background: var(--surface);
 		min-width: 0;
 	}
 	legend {
-		padding: 0 0.4rem;
-		font: 600 1.05rem var(--font-display);
+		padding: 0 var(--space-2);
+		font-family: var(--font-display);
+		font-weight: var(--fw-strong);
+		font-size: var(--text-lg);
 	}
 	.grid2 {
 		display: grid;
-		gap: 0 1rem;
+		gap: 0 var(--space-3);
 	}
 	@media (min-width: 560px) {
 		.grid2 {
@@ -317,7 +321,7 @@
 	}
 	.with-btn {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.with-btn input {
 		flex: 1;
@@ -325,23 +329,22 @@
 	.candidates {
 		list-style: none;
 		padding: 0;
-		margin: 0 0 0.5rem;
+		margin: 0 0 var(--space-2);
 		display: grid;
-		gap: 0.35rem;
+		gap: var(--space-1);
 		justify-items: start;
 	}
 	.summary ul {
-		margin: 0.4rem 0 0;
-		padding-left: 1.2rem;
+		margin: var(--space-2) 0 0;
+		padding-left: var(--space-4);
 	}
 	.summary a {
 		color: inherit;
 	}
 	.submit {
 		justify-self: start;
-		min-width: 12rem;
 	}
 	fieldset :global(.wrap) {
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 </style>

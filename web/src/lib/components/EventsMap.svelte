@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { mount, onMount, unmount } from 'svelte';
+	import { CATEGORY_ICONS } from '$lib/categoryIcons';
 	import { eventPath, type Event } from '$lib/event';
 	import type { LatLng } from '$lib/geo';
 	import { baseMap, cssVar, loadLeaflet, type Leaflet } from '$lib/leaflet';
@@ -23,7 +24,8 @@
 	let L: Leaflet | null = $state(null);
 	let map: import('leaflet').Map | null = null;
 	let layer: import('leaflet').LayerGroup | null = null;
-	let markers: Record<string, import('leaflet').CircleMarker> = {};
+	let markers: Record<string, import('leaflet').Marker> = {};
+	let mounted: ReturnType<typeof mount>[] = [];
 	let failed = $state(false);
 
 	onMount(() => {
@@ -38,6 +40,7 @@
 			.catch(() => (failed = true));
 		return () => {
 			cancelled = true;
+			mounted.forEach((m) => unmount(m));
 			map?.remove();
 		};
 	});
@@ -54,48 +57,53 @@
 		return div;
 	}
 
+	// Marker neutro con l'icona della categoria: la categoria si legge dall'icona, non dal colore.
+	function markerIcon(lib: Leaflet, e: Event) {
+		const el = document.createElement('span');
+		el.className = 'ev-marker';
+		mounted.push(mount(CATEGORY_ICONS[e.category], { target: el, props: { size: 16, 'aria-hidden': 'true' } }));
+		return lib.divIcon({ className: 'ev-marker-wrap', html: el, iconSize: [32, 32], iconAnchor: [16, 16] });
+	}
+
 	// Ridisegna marker e cerchio quando cambiano eventi, centro o raggio.
 	$effect(() => {
 		if (!L || !map || !layer) return;
-		const brand = cssVar('--brand');
+		const accent = cssVar('--accent');
 		layer.clearLayers();
+		mounted.forEach((m) => unmount(m));
+		mounted = [];
 		markers = {};
-		map.fitBounds(L.latLng(center.lat, center.lng).toBounds(radiusKm * 2000), { padding: [12, 12] });
+		map.fitBounds(L.latLng(center.lat, center.lng).toBounds(radiusKm * 2000), { padding: [16, 16] });
 		L.circle([center.lat, center.lng], {
 			radius: radiusKm * 1000,
-			color: brand,
-			weight: 1.5,
+			color: accent,
+			weight: 2,
 			opacity: 0.6,
-			fillOpacity: 0.04,
+			fill: false,
 			interactive: false
 		}).addTo(layer);
 		L.circleMarker([center.lat, center.lng], {
 			radius: 6,
-			color: '#fff',
+			color: cssVar('--surface'),
 			weight: 2,
-			fillColor: '#2563eb',
+			fillColor: cssVar('--text'),
 			fillOpacity: 1,
 			interactive: false
 		}).addTo(layer);
 		for (const e of events) {
-			const m = L.circleMarker([e.lat, e.lng], {
-				radius: 8,
-				color: '#fff',
-				weight: 2,
-				fillColor: brand,
-				fillOpacity: 0.95
-			})
+			markers[e.id] = L.marker([e.lat, e.lng], { icon: markerIcon(L, e), title: e.title })
 				.bindPopup(() => popup(e))
 				.on('mouseover', () => onhover?.(e.id))
 				.on('mouseout', () => onhover?.(null))
 				.addTo(layer);
-			markers[e.id] = m;
 		}
 	});
 
 	$effect(() => {
-		for (const [id, m] of Object.entries(markers)) m.setStyle({ radius: id === highlighted ? 12 : 8 });
-		if (highlighted) markers[highlighted]?.bringToFront();
+		for (const [id, m] of Object.entries(markers)) {
+			m.getElement()?.classList.toggle('active', id === highlighted);
+			m.setZIndexOffset(id === highlighted ? 1000 : 0);
+		}
 	});
 </script>
 
@@ -109,7 +117,7 @@
 	.wrap {
 		position: relative;
 		height: 100%;
-		min-height: 320px;
+		min-height: calc(var(--space-7) * 5);
 		border-radius: var(--radius);
 		overflow: hidden;
 		border: 1px solid var(--border);
@@ -131,9 +139,27 @@
 		color: var(--muted);
 	}
 	.wrap :global(.map-popup-title) {
-		font: 600 1rem var(--font-display);
+		font: var(--fw-strong) var(--text-md) var(--font-display);
 	}
 	.wrap :global(.leaflet-popup-content p) {
-		margin: 0.3rem 0 0;
+		margin: var(--space-1) 0 0;
+	}
+	.wrap :global(.ev-marker-wrap) {
+		background: none;
+		border: none;
+	}
+	.wrap :global(.ev-marker) {
+		display: grid;
+		place-items: center;
+		width: var(--control-sm);
+		height: var(--control-sm);
+		border: 2px solid var(--border-strong);
+		border-radius: var(--radius-full);
+		background: var(--surface);
+		color: var(--text);
+	}
+	.wrap :global(.ev-marker-wrap.active .ev-marker) {
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 </style>

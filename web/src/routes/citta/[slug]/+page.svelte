@@ -4,6 +4,7 @@
 	import EventList from '$lib/components/EventList.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { compareEvents } from '$lib/event';
+	import { fmtNum } from '$lib/format';
 
 	let { data } = $props();
 	let now = $state(Date.now());
@@ -15,7 +16,7 @@
 
 <Seo
 	title={`Eventi a ${name}`}
-	description={`${data.events.length} eventi in programma a ${where}${data.region ? `, ${data.region}` : ''}: concerti, sagre, mostre, mercatini e attività per bambini.`}
+	description={`${fmtNum(data.events.length)} eventi in programma a ${where}${data.region ? `, ${data.region}` : ''}: concerti, sagre, mostre, mercatini e attività per bambini.`}
 	path={page.url.pathname}
 />
 
@@ -28,7 +29,7 @@
 	</nav>
 	<h1>Eventi a {name}</h1>
 	<p class="muted lead">
-		{visible.length === 1 ? 'Un evento in programma' : `${visible.length} eventi in programma`} a {where}.
+		{visible.length === 1 ? 'Un evento in programma' : `${fmtNum(visible.length)} eventi in programma`} a {where}.
 	</p>
 	<EventList events={visible} {now}>
 		{#snippet empty()}
@@ -42,13 +43,13 @@
 	.crumbs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
-		padding: 1.25rem 0 0.5rem;
-		font-size: 0.9rem;
+		gap: var(--space-2);
+		padding: var(--space-4) 0 var(--space-2);
+		font-size: var(--text-sm);
 		color: var(--muted);
 	}
 	.lead {
-		font-size: 1.05rem;
-		margin-bottom: 1.25rem;
+		font-size: var(--text-md);
+		margin-bottom: var(--space-4);
 	}
 </style>

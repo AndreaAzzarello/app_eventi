@@ -30,7 +30,7 @@
 	</p>
 
 	{#if session.status !== 'ready'}
-		<div class="skeleton" style="height: 320px" aria-hidden="true"></div>
+		<div class="skeleton" style="height: var(--w-dialog)" aria-hidden="true"></div>
 		<p class="visually-hidden" role="status">Caricamento…</p>
 	{:else if !session.user}
 		<LoginPanel
@@ -46,10 +46,10 @@
 
 <style>
 	.page {
-		padding-top: 1.5rem;
+		padding-top: var(--space-4);
 	}
 	.lead {
-		font-size: 1.05rem;
-		margin-bottom: 1.5rem;
+		font-size: var(--text-md);
+		margin-bottom: var(--space-4);
 	}
 </style>
