@@ -29,6 +29,7 @@ from mapping import (KIDS_RE, LONG_RUNNING_DAYS, ROME, category_from_title, even
 log = logging.getLogger("importer")
 
 MAX_DETAILS = 40  # dettagli scaricati per comune a ogni import
+SUMMARY_LINKS = 6  # link ad altri eventi, senza data strutturata: la pagina è un riepilogo
 TYPICAL_PATHS = ["/vivere-il-comune/eventi/", "/novita/eventi/", "/eventi/", "/evento/"]
 MONTHS = {m: i for i, m in enumerate(
     "gennaio febbraio marzo aprile maggio giugno luglio agosto settembre ottobre novembre dicembre".split(), 1)}
@@ -267,11 +268,13 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
         desc = html_to_text(ld.get("description")) or desc
     if when is None:  # (c)
         when = from_calendar_link(tree)
+    exact = when is not None  # data da dati strutturati: una pagina riassuntiva non ne ha
     main = tree.css_first("main") or tree.body
     main_text = _text_of(main)
     sec = _section(tree, "date-e-orari", "dataora", "orari")
     if when is None and sec is not None:  # (d) elenco puntato "27 ott · 20:45 - 22:00" della sezione "Date e orari"
         when = _next_point(sec, today)
+        exact = when is not None
     if when is None:  # (d) Dal/Al + orari della sezione
         dates = _dal_al(tree, today)
         if dates:
@@ -285,6 +288,9 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
             when = span(dates[0], dates[1], parse_hours(main_text[at.start(): at.start() + 120]) if at else [])
     if when is None:
         return None
+    host, here = urlsplit(url).netloc, urlsplit(url).path.rstrip("/")
+    others = {h for a in (tree.css_first("main") or tree.body).css("a[href]")
+              if (h := _event_href(urljoin(url, a.attributes.get("href") or ""), host, here))}
     sec = _section(tree, "costi", "costo")
     price_text = _text_of(sec) if sec is not None else _heading_section(tree, "costi")
     tipo = ""
@@ -298,7 +304,8 @@ def parse_detail(page: str, url: str, today: date, fetch=None) -> dict | None:
         desc = html_to_text(sec.html)
     return {"title": title, "start": when[0], "end": when[1], "venue": venue, "street": street, "description": desc,
             "price_text": price_text or (_clean(str(ld.get("isAccessibleForFree"))) if ld and ld.get("isAccessibleForFree") else ""),
-            "tipo": tipo, "image": _image(tree, url), "url": urljoin(url, canonical), "recurring": bool(RECUR_RE.search(main_text))}
+            "tipo": tipo, "image": _image(tree, url), "url": urljoin(url, canonical), "recurring": bool(RECUR_RE.search(main_text)),
+            "summary": not exact and len(others) >= SUMMARY_LINKS}
 
 
 def _next_point(sec, today: date) -> tuple[datetime, datetime] | None:
@@ -450,6 +457,7 @@ class DesignComuniHtmlAdapter:
             "sourceUrl": d["url"],
             "approxLocation": False,
             "_geocode": geocode_queries(street, d["venue"], self.city),
+            **({"_excluded": "pagina riassuntiva"} if d["summary"] else {}),
         }
 
 

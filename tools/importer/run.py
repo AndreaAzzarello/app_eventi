@@ -25,6 +25,7 @@ from geo import PROVINCES, enrich, in_viewbox, slugify
 from geocode import Geocoder
 from mapping import ROME, content_hash, dedupe_key, html_to_text, is_long_running, one_line
 from registry import USER_AGENT
+from relevance import exclusion_reason
 
 HERE = Path(__file__).parent
 WORKERS = 4  # fonti scaricate in parallelo
@@ -32,8 +33,9 @@ log = logging.getLogger("importer")
 
 
 def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: datetime,
-            horizon_days: int, stats: dict[str, dict] | None = None) -> list[dict]:
-    """stats (opzionale): per fonte {"events", "skipped", "error"}; "error" None = la fonte ha risposto."""
+            horizon_days: int, stats: dict[str, dict] | None = None, excluded: list[dict] | None = None) -> list[dict]:
+    """stats (opzionale): per fonte {"events", "skipped", "excluded", "error"}; "error" None = la fonte ha risposto.
+    excluded (opzionale): riceve le pagine scartate dal filtro anti-avvisi, {"id", "title", "reason", "source", "region"}."""
     events: dict[tuple, dict] = {}
     stats = {} if stats is None else stats
 
@@ -50,13 +52,19 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
     # di richieste del giro finisce, i più lontani restano senza geocoding e lo prendono nei giorni dopo.
     pending = []
     for name, (found, error) in zip(names, fetched):
-        stats[name] = {"events": 0, "skipped": 0, "error": error}
+        stats[name] = {"events": 0, "skipped": 0, "excluded": 0, "error": error}
         if error:
             log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
         pending += [(name, ev) for ev in found]
     pending.sort(key=lambda p: (p[1]["startTime"], p[1]["sourceUrl"]))
     for name, ev in pending:
         source: Adapter = SOURCES[name]
+        if reason := ev.pop("_excluded", None) or exclusion_reason(ev["title"]):  # prima del geocoding: costa una richiesta
+            stats[name]["excluded"] += 1
+            if excluded is not None:
+                excluded.append({"id": ev["id"], "title": ev["title"], "reason": reason, "source": name,
+                                 "region": slugify(source.region)})
+            continue
         locate(ev, source, geocoder)
         if ev["lat"] is None:
             stats[name]["skipped"] += 1
@@ -71,7 +79,8 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
         if events.setdefault(dedupe_key(ev), ev) is ev:
             stats[name]["events"] += 1
     for name in names:
-        log.info("%s: %d eventi, %d senza coordinate", name, stats[name]["events"], stats[name]["skipped"])
+        log.info("%s: %d eventi, %d senza coordinate, %d esclusi", name, stats[name]["events"],
+                 stats[name]["skipped"], stats[name]["excluded"])
     return list(events.values())
 
 
@@ -155,11 +164,12 @@ def stale_updates(docs: dict[str, dict], seen_ids: set[str], ok_hosts: set[str],
 
 
 def plan_writes(events: list[dict], existing: dict[str, dict], ok_hosts: set[str], now_ms: int,
-                horizon_ms: int) -> dict:
+                horizon_ms: int, excluded: set[str] = frozenset()) -> dict:
     """Cosa scrivere: solo gli eventi nuovi o con hash diverso (o da ripristinare), più gli spariti dalla fonte.
 
     existing: id → campi del documento già nel database (PROJECTION). Gli eventi con `source == manual`
-    (modificati dall'admin) non si toccano.
+    (modificati dall'admin) non si toccano. excluded: id scartati dal filtro anti-avvisi; se sono già nel
+    database si nascondono subito (removedAt), senza aspettare il 2° giro.
     """
     write, unchanged, kept_manual = [], 0, 0
     for ev in events:
@@ -172,7 +182,11 @@ def plan_writes(events: list[dict], existing: dict[str, dict], ok_hosts: set[str
             unchanged += 1
         else:
             write.append(ev)
-    stale = stale_updates(existing, {ev["id"] for ev in events}, ok_hosts, now_ms, horizon_ms)
+    stale = stale_updates(existing, {ev["id"] for ev in events} | excluded, ok_hosts, now_ms, horizon_ms)
+    for doc_id in excluded:
+        d = existing.get(doc_id)
+        if d and d.get("source") == "scraper" and not d.get("removedAt"):
+            stale[doc_id] = {"removedAt": now_ms}
     return {"write": write, "unchanged": unchanged, "kept_manual": kept_manual, "stale": stale}
 
 
@@ -186,7 +200,8 @@ def commit_in_batches(db, ops: list) -> None:
 
 
 def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, horizon_days: int = 60,
-          regions: set[str] | None = None, db=None, max_writes: int = MAX_WRITES, max_reads: int = MAX_READS) -> dict:
+          regions: set[str] | None = None, db=None, max_writes: int = MAX_WRITES, max_reads: int = MAX_READS,
+          excluded: set[str] = frozenset()) -> dict:
     """Upsert incrementale. Una sola lettura di proiezione degli eventi scraper delle regioni in elaborazione
     (id + contentHash + …), poi si scrive solo ciò che è cambiato. Si ferma prima di scrivere se le quote
     stimate superano max_writes/max_reads. Restituisce le statistiche (letti, scritti, invariati, nascosti)."""
@@ -207,14 +222,14 @@ def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, h
     existing = {d.id: d.to_dict() or {} for d in query.select(PROJECTION).stream()}
     reads += len(existing)
     # Id non trovati (nuovi, o vecchi documenti senza importRegion): un get_all per createdAt e source manual.
-    missing = [ev["id"] for ev in events if ev["id"] not in existing]
+    missing = [ev["id"] for ev in events if ev["id"] not in existing]  # gli esclusi sono tutti nella proiezione o non esistono
     if reads + len(missing) > max_reads:
         raise QuotaExceeded(f"letture stimate {reads + len(missing)} > {max_reads}: non scrivo")
     elsewhere = {d.id: d.to_dict() or {} for i in range(0, len(missing), GET_ALL_CHUNK)
                  for d in db.get_all([coll.document(x) for x in missing[i:i + GET_ALL_CHUNK]], field_paths=PROJECTION)
                  if d.exists}
     reads += len(missing)
-    plan = plan_writes(events, existing | elsewhere, ok_hosts or set(), now_ms, horizon_days * 86_400_000)
+    plan = plan_writes(events, existing | elsewhere, ok_hosts or set(), now_ms, horizon_days * 86_400_000, excluded)
     n_writes = len(plan["write"]) + len(plan["stale"])
     if n_writes > max_writes:
         raise QuotaExceeded(f"scritture stimate {n_writes} > {max_writes}: non scrivo")
@@ -281,6 +296,20 @@ def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_
     return len(by_region)
 
 
+def excluded_report(excluded: list[dict], sample: int = 20) -> str:
+    """Per regione: quanti avvisi il filtro ha lasciato fuori e per quale motivo; poi i titoli di esempio."""
+    lines = ["Esclusi dal filtro anti-avvisi:"]
+    for region in sorted({x["region"] for x in excluded}):
+        mine = [x for x in excluded if x["region"] == region]
+        by_reason = ", ".join(f"{r} {n}" for r, n in Counter(x["reason"] for x in mine).most_common())
+        lines.append(f"  {region}: {len(mine)} ({by_reason})")
+    if not excluded:
+        lines.append("  nessuno")
+    step = max(1, len(excluded) // sample)  # esempi sparsi su tutte le regioni, non solo i primi
+    lines += [f"  - [{x['region']}/{x['source']}] {x['title']} ({x['reason']})" for x in excluded[::step][:sample]]
+    return "\n".join(lines)
+
+
 def summary(stats: dict[str, dict], sources: dict) -> str:
     """Tabella eventi per comune, errori e comuni a zero; va anche nel riepilogo del job GitHub."""
     lines = ["| comune | eventi | senza coordinate | errore |", "|---|---|---|---|"]
@@ -322,12 +351,14 @@ def main(argv: list[str] | None = None) -> int:
         geocoder = Geocoder(client, HERE / "geocache.json", args.max_geocode,
                             float(os.environ.get("NOMINATIM_INTERVAL", "1")))
         stats: dict[str, dict] = {}
+        excluded: list[dict] = []
         try:
-            events = collect(client, geocoder, names, now, args.horizon_days, stats)
+            events = collect(client, geocoder, names, now, args.horizon_days, stats, excluded)
             centers = {} if args.dry_run or args.source else find_centers(names, geocoder)
         finally:
             geocoder.save()
     summary(stats, SOURCES)
+    print(excluded_report(excluded))
     log.info("Totale dopo deduplica: %d (richieste Nominatim: %d)", len(events), geocoder.requests)
     if geocoder.deferred:
         log.warning("Geocoding: %d richieste rimandate oltre il budget di %d, servono circa %d giorni "
@@ -348,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
     ok_hosts = {urlsplit(SOURCES[n].base).netloc for n, st in stats.items() if st["error"] is None}
     try:
         stats = write(events, now, ok_hosts, args.horizon_days, {slugify(SOURCES[n].region) for n in names},
-                      max_writes=args.max_writes, max_reads=args.max_reads)
+                      max_writes=args.max_writes, max_reads=args.max_reads, excluded={x["id"] for x in excluded})
     except QuotaExceeded as e:
         log.error("%s", e)
         return 2
@@ -358,7 +389,7 @@ def main(argv: list[str] | None = None) -> int:
         stats["writes"] += write_coverage(firestore_client(), events, names, centers, int(now.timestamp() * 1000))
     if args.stats_out:
         args.stats_out.write_text(json.dumps(stats | {
-            "region": "+".join(sorted({slugify(SOURCES[n].region) for n in names})), "events": len(events),
+            "region": "+".join(sorted({slugify(SOURCES[n].region) for n in names})), "events": len(events), "excluded": len(excluded),
             "sources": len(names), "geocode": geocoder.requests, "deferred": len(geocoder.deferred)}), encoding="utf-8")
     return 0
 
