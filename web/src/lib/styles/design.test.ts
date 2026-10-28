@@ -48,6 +48,10 @@ function scan(pick: (text: string) => string | null, fromCss = true): Hit[] {
 }
 const none = (hits: Hit[]) => expect(hits.map((h) => `${h.at}  ${h.text}`)).toEqual([]);
 
+// Eccezione documentata in /admin/stile: la "G" ufficiale a colori richiesta dalle linee guida di Google.
+const GOOGLE_LOGO = 'src/lib/components/GoogleLogo.svelte';
+const GOOGLE_COLORS = ['#4285F4', '#34A853', '#FBBC05', '#EA4335'];
+
 describe('design system', () => {
 	it('spaziature, raggi e dimensioni solo da token (ammessi 0, 1px e 2px per i filetti)', () =>
 		none(
@@ -67,8 +71,14 @@ describe('design system', () => {
 						? t.trim()
 						: null,
 				false
-			)
+			).filter((h) => !h.at.startsWith(GOOGLE_LOGO))
 		));
+
+	it('unica eccezione ai colori: la "G" di Google, con i quattro colori ufficiali e nient’altro', () => {
+		const svg = readFileSync(join(process.cwd(), GOOGLE_LOGO), 'utf8');
+		const used = [...svg.matchAll(/#[0-9a-fA-F]{6}\b/g)].map((m) => m[0].toUpperCase());
+		expect(new Set(used)).toEqual(new Set(GOOGLE_COLORS));
+	});
 
 	it('font-weight solo 400 e 600', () =>
 		none(

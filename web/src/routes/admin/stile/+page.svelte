@@ -29,6 +29,7 @@
 	import Utensils from '@lucide/svelte/icons/utensils';
 	import X from '@lucide/svelte/icons/x';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
+	import GoogleLogo from '$lib/components/GoogleLogo.svelte';
 	import { CATEGORIES } from '$lib/event';
 	import { fmtNum, monthKeys, monthLine } from '$lib/format';
 
@@ -117,6 +118,12 @@
 			</li>
 		{/each}
 	</ul>
+	<h3>Unica eccezione: il logo Google</h3>
+	<p class="muted">
+		Le linee guida di “Accedi con Google” richiedono la “G” ufficiale a quattro colori, quindi <code>GoogleLogo.svelte</code> è l’unico file
+		con esadecimali fuori da <code>tokens.css</code>. <code>design.test.ts</code> ammette solo quel file e solo i quattro colori ufficiali.
+	</p>
+	<p class="row"><GoogleLogo size={24} /> <GoogleLogo size={20} /> <GoogleLogo size={16} /></p>
 	<h3>Scala dei grigi</h3>
 	<ul class="plain grays">
 		{#each grays as g (g)}
