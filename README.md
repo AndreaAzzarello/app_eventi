@@ -63,7 +63,8 @@ web/
   src/
     routes/            pagine e API: /, /eventi/[slug], /citta/[slug], /proponi,
                        /preferiti, /account, /accedi, /admin, /privacy, /termini,
-                       /api/events, /api/geocode, sitemap.xml, robots.txt, /offline
+                       /api/events, /api/geocode, sitemap.xml, robots.txt, /offline,
+                       /admin/statistiche, /admin/stile
     lib/
       server/          firestore.ts (lettura REST), cache.ts (header di cache), legal.ts
       firebase/        caricamento lazy dell'SDK Firebase lato browser
@@ -72,6 +73,7 @@ web/
       geo.ts           raggi, geohash, griglia della cache, distanza
       geocode.ts       ricerca comuni e indirizzi via /api/geocode
       images.ts        srcset delle immagini di terze parti (scale Plone)
+      styles/          tokens.css (design system) e design.test.ts (controllo automatico)
       *.test.ts        test unitari (Vitest)
     service-worker.ts  PWA: app shell e pagina offline
   e2e/                 test Playwright (desktop e mobile)
@@ -224,6 +226,18 @@ La CI non esegue i test E2E Playwright. Il test dell'importer gira nel workflow 
 
 ---
 
+## 6b. Design system
+
+Un solo file di token, `web/src/lib/styles/tokens.css`; riferimento visivo in `/admin/stile` (colori misurati nel tema in uso, tipografia, icone, componenti).
+
+- **Spaziatura**: `--space-1..7` = 4, 8, 16, 24, 32, 48, 64 px. Raggi `--radius-sm/--radius/--radius-full`, controlli `--control` (48) e `--control-sm` (32). Nel CSS dei componenti non ci sono misure assolute (ammessi solo 0, 1px, 2px per filetti e outline).
+- **Colore**: dieci grigi caldi (`--gray-50..900`) e un solo accento, il terracotta (`--accent`), per azioni primarie, link, focus e stato attivo. L'errore (`--danger`, cremisi) si usa solo con icona e testo, tramite `ErrorMessage.svelte` o `.btn-danger`. Tema chiaro e scuro con `light-dark()` in un solo blocco; `data-theme` lo forza. Niente gradienti, glow o ombre colorate: l'unica ombra è `--shadow-overlay` (dialog, menu, toast).
+- **Tipografia**: pesi 400 e 600, scala `--text-xs..3xl`; Fraunces 600 (un solo file) per i titoli. Mai maiuscolo forzato.
+- **Icone**: solo Lucide (`@lucide/svelte`, import per singola icona), 16/20/24, tratto 2. Le categorie hanno un'icona (`lib/categoryIcons.ts`), non un colore.
+- **Numeri**: `fmtNum()` (`lib/format.ts`), formato italiano 1.234, `tabular-nums` dove sono allineati.
+- **Controllo automatico**: `web/src/lib/styles/design.test.ts` (parte di `npm test` e della CI) fallisce per misure fuori scala, esadecimali/rgb fuori dai token, `font-weight` diversi da 400/600, `text-transform: uppercase|capitalize`, gradienti, `backdrop-filter`, emoji, `var(--danger)` fuori dai file ammessi; verifica anche contrasto WCAG AA di ogni coppia testo/sfondo in entrambi i temi e che l'errore sia lontano almeno 25° di tinta dall'accento.
+- **Screenshot di revisione**: `REVIEW_SHOTS=before|after` con `playwright test review-shots` (dentro `emulators:exec`, come `test:e2e`) salva home, città, regione, dettaglio e admin a 360, 390 e desktop, in chiaro e scuro, in `web/.review/<valore>/` (non committata).
+
 ## 7. Deploy su Cloudflare Pages
 
 Nessun deploy è stato ancora fatto. Questi sono i passi da eseguire.
@@ -275,6 +289,7 @@ Il modello dati e le motivazioni stanno in `firebase/firestore.rules`. Riassunto
 - Ogni evento deve avere i campi previsti, con tipi e limiti di lunghezza (coincidono con `LIMITS` in `web/src/lib/event.ts`). Le URL (immagine, biglietti, fonte) devono essere vuote o `http(s)`, per escludere `javascript:` e `data:`.
 - **`submissions`** (proposte degli utenti): creazione da utente autenticato con `status: 'pending'`. Il contatore `pendingCount` dell'autore cambia nello stesso batch della proposta; massimo 5 proposte in attesa. Solo l'admin cambia lo stato, una volta sola (approvata con `eventId`, rifiutata con motivo). L'autore vede le proprie proposte e può ritirarle.
 - **`users/{uid}`**: lettura e modifica solo del proprietario, su pochi campi (nome, città, contatore). Il profilo non si cancella con proposte in attesa. Sotto `favorites/{eventId}` ci sono i preferiti dell'utente.
+- **`coverage/{regione}`** e **`stats/{regione}_{AAAA-MM}`**: lettura pubblica, scrittura negata a tutti i client (le scrive l'importer con l'Admin SDK).
 - Tutto il resto è chiuso (`allow read, write: if false`).
 
 Indici composti: `events` per `geohash` + `endTime`, per `endTime` + `geohash` e per `citySlug` + `endTime`; `submissions` per `ownerId` + `createdAt` e per `status` + `createdAt`.
@@ -301,6 +316,12 @@ Il codice è in `tools/importer/`. Legge gli eventi pubblici dei comuni e li scr
 8. **Eventi spariti dalla fonte**: un evento `scraper` che non compare più nella lista di una fonte letta con successo (e inizia entro l'orizzonte) riceve `missingRuns`. Al 2° import consecutivo senza l'evento riceve `removedAt`: la webapp lo nasconde (`web/src/lib/server/firestore.ts`), non lo cancella. Se la fonte non risponde, il conteggio non cambia.
 
 Le fonti sono scaricate in parallelo (4 worker, `WORKERS` in `run.py`); geocoding e scrittura restano in sequenza.
+
+### Statistiche mensili: `stats/{regione}_{AAAA-MM}`
+
+Ogni import scrive, per ogni regione elaborata, un documento del mese corrente (ora di Roma) con `events` (eventi attivi nel mese), `comuni` (comuni con almeno un evento), `cities` (le prime 10 città per eventi) e `name`. L'import vede solo eventi in corso o futuri, quindi il documento conserva anche gli id già contati nei giorni precedenti (campo `ids`, per comune) e li unisce a quelli del giorno: un evento finito a metà mese resta nel totale. Costo: 1 lettura e 1 scrittura per regione al giorno, contate in `reads`/`writes` delle statistiche dell'import. Non si scrivono con `--dry-run` né con `--source`.
+
+La webapp li legge con una `batchGet` a maschera (esclude `ids`) per `/regione/[slug]` (mese corrente e precedente, 2 letture, cache 5 minuti) e con una query client-side per `/admin/statistiche`. Se il mese corrente non ha dati non si mostra nulla; se manca il precedente si mostra solo il numero del mese. Il confronto è perciò disponibile dal secondo mese di raccolta.
 
 ### Adapter HTML `design_comuni_html`
 
