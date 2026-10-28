@@ -25,5 +25,7 @@ for (const theme of ['light', 'dark']) {
 		for (const [name, path] of PAGES) for (const [size, w, h] of SIZES) await shoot(name, path, w, h, size);
 		await signInByEmail(page, 'azzatubo@gmail.com', '/admin');
 		for (const [size, w, h] of SIZES) await shoot('admin', '/admin', w, h, size);
+		// Pagine nate con il nuovo design: non hanno un "prima".
+		for (const [name, path] of [['statistiche', '/admin/statistiche'], ['stile', '/admin/stile']]) await shoot(name, path, 390, 844, '390');
 	});
 }

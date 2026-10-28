@@ -225,20 +225,14 @@
 	:global([data-theme='dark']) .theme .sun {
 		display: none;
 	}
-	:global([data-theme='dark']) .theme {
-		border-radius: var(--radius-full);
-	}
-	.theme .moon {
+	:global([data-theme='dark']) .theme .moon {
 		display: inline;
 	}
 	@media (prefers-color-scheme: dark) {
 		:global(:root:not([data-theme='light'])) .theme .sun {
 			display: none;
 		}
-		:global(:root:not([data-theme='light'])) .theme {
-		border-radius: var(--radius-full);
-	}
-	.theme .moon {
+		:global(:root:not([data-theme='light'])) .theme .moon {
 			display: inline;
 		}
 	}

@@ -204,7 +204,7 @@
 	.space-row,
 	.type-row {
 		display: grid;
-		grid-template-columns: var(--space-7) 1fr;
+		grid-template-columns: calc(var(--space-7) * 2) 1fr;
 		align-items: center;
 		gap: var(--space-3);
 		padding-block: var(--space-1);
@@ -244,7 +244,7 @@
 	}
 	.icon-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(var(--space-7), 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-7) * 2), 1fr));
 		gap: var(--space-3);
 	}
 	.icon-grid li {
@@ -276,5 +276,6 @@
 	}
 	code {
 		font-size: var(--text-sm);
+		overflow-wrap: anywhere;
 	}
 </style>

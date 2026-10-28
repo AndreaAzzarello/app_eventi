@@ -124,10 +124,12 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: var(--space-3);
 		padding: var(--space-3);
 	}
 	.info {
+		flex: 1 1 calc(var(--space-7) * 4);
 		display: grid;
 		gap: var(--space-1);
 		min-width: 0;
@@ -138,7 +140,7 @@
 	.title {
 		font-weight: var(--fw-strong);
 		color: var(--text);
-		overflow-wrap: anywhere;
+		overflow-wrap: break-word;
 	}
 	.tags {
 		display: flex;
