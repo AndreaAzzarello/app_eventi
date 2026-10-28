@@ -56,3 +56,15 @@ def test_copertura_con_alias():
     centers = {("Trentino-Alto Adige", "bolzano"): (46.5, 11.35), ("Trentino-Alto Adige", "modena"): (44.6, 10.9)}
     doc = run.coverage_doc("Trentino-Alto Adige", src, [], centers, 1)
     assert [(c["slug"], c.get("alt")) for c in doc["comuni"]] == [("bolzano", "Bozen"), ("modena", None)]
+
+
+@pytest.mark.parametrize("region,expected", [
+    ("Trentino-Alto Adige/Südtirol", "Trentino-Alto Adige"),
+    ("Valle d'Aosta/Vallée d'Aoste", "Valle d'Aosta"),
+    ("Lombardia", "Lombardia"),
+])
+def test_regione_con_nome_bilingue_diventa_il_nome_italiano(region, expected):
+    """Nominatim scrive la regione in due lingue; lo slug della pagina regione è quello italiano."""
+    ev = {"city": "Modena", "citySlug": "modena", "province": "MO", "region": region}
+    run.use_italian_name(ev)
+    assert ev["region"] == expected

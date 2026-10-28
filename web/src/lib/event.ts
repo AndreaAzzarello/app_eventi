@@ -140,6 +140,17 @@ export const eventPath = (e: Pick<Event, 'id' | 'title'>) =>
 export const idFromSlug = (slug: string) => slug.slice(slug.lastIndexOf('-') + 1);
 export const cityPath = (citySlug: string) => `/citta/${citySlug}`;
 
+/** Fonte da mostrare nel dettaglio: la fonte regionale Open Data Hub è citata col suo nome e la licenza dei dati (CC0). */
+export function eventSource(e: Pick<Event, 'source' | 'sourceUrl'>): { text: string; href?: string } {
+	if (e.source === 'user') return { text: 'Segnalato da un utente e verificato dalla redazione' };
+	if (!e.sourceUrl) return { text: 'Redazione di Eventi Vicini' };
+	const host = new URL(e.sourceUrl).hostname.replace(/^www\./, '');
+	if (host === 'tourism.opendatahub.com') return { text: 'Open Data Hub Alto Adige / Südtirol (dati CC0)', href: 'https://opendatahub.com/' };
+	const m = /^comune\.([a-z-]+)\./.exec(host);
+	const name = m ? `Comune di ${m[1].split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')}` : host;
+	return { text: name, href: e.sourceUrl };
+}
+
 /** "Live, outdoor , ,kids" → [live, outdoor, kids], minuscoli e senza doppioni (come parseTags in Dart). */
 export const parseTags = (raw: string) => [
 	...new Set(

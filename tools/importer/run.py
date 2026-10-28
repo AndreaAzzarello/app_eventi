@@ -62,6 +62,7 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
         pending += [(name, ev) for ev in found]
     pending.sort(key=lambda p: (p[1]["startTime"], p[1]["sourceUrl"]))
+    owner: dict[tuple, str] = {}  # chiave di deduplica → fonte che ha tenuto l'evento
     for name, ev in pending:
         source: Adapter = SOURCES[name]
         if reason := ev.pop("_excluded", None) or exclusion_reason(ev["title"]):  # prima del geocoding: costa una richiesta
@@ -75,14 +76,19 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             stats[name]["skipped"] += 1
             log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
             continue
-        enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
+        enrich(ev, ev.pop("_place", None) or place_of(geocoder, ev, source), fallback_place(source))
         use_italian_name(ev)
         clean_texts(ev)
         if is_long_running(ev):
             ev["longRunning"] = True
         ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
         ev["contentHash"] = content_hash(ev)
-        if events.setdefault(dedupe_key(ev), ev) is ev:
+        key, kept = dedupe_key(ev), owner.get(dedupe_key(ev))
+        # stesso evento da più fonti: vince quella comunale, più ricca, su una fonte regionale (Open Data Hub)
+        if kept is None or (getattr(SOURCES[kept], "regional", False) and not getattr(source, "regional", False)):
+            if kept is not None:
+                stats[kept]["events"] -= 1
+            events[key], owner[key] = ev, name
             stats[name]["events"] += 1
     for name in names:
         log.info("%s: %d eventi, %d senza coordinate, %d esclusi", name, stats[name]["events"],
@@ -107,6 +113,8 @@ ALT = alt_index(read_rows())
 def use_italian_name(ev: dict) -> None:
     """Comuni bilingui: city e citySlug restano il nome ufficiale italiano (slug stabile), l'alias va in cityAlt."""
     hit = ALT.get((ev["province"], ev["citySlug"]))
+    if ev.get("region"):
+        ev["region"] = ev["region"].split("/")[0].strip()  # "Trentino-Alto Adige/Südtirol" → nome italiano (slug della pagina regione)
     if hit:
         ev["city"], ev["citySlug"], ev["cityAlt"] = hit[0], slugify(hit[0]), hit[1]
         if ev.get("locality") and ALT.get((ev["province"], slugify(ev["locality"]))) == hit:
@@ -385,6 +393,8 @@ def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], 
     centers = {}
     for n in names:
         s = SOURCES[n]
+        if getattr(s, "regional", False):
+            continue  # fonte regionale: non è un comune
         try:
             hit = geocoder.lookup(f"{s.city}, {PROVINCES.get(s.province, (s.province,))[0]}", s.viewbox, essential=True)
         except httpx.HTTPError as e:
@@ -399,7 +409,8 @@ def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_
     """Una scrittura al giorno per regione (coverage/{slug})."""
     by_region: dict[str, list] = {}
     for n in names:
-        by_region.setdefault(SOURCES[n].region, []).append(SOURCES[n])
+        if not getattr(SOURCES[n], "regional", False):
+            by_region.setdefault(SOURCES[n].region, []).append(SOURCES[n])
     for region, sources in by_region.items():
         db.collection("coverage").document(slugify(region)).set(coverage_doc(region, sources, events, centers, now_ms))
     return len(by_region)

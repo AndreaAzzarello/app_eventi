@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { romeTime } from './dates';
-import { compareEvents, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, validateEvent, type EventInput } from './event';
+import { compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, validateEvent, type EventInput } from './event';
 
 const sample = (over: Partial<EventInput> = {}): EventInput => ({
 	title: 'Concerto in piazza',
@@ -112,5 +112,20 @@ describe('longRunning e ordinamento', () => {
 		expect(runningLabel(ev('x', now - 20 * day, end))).toBe('In corso fino al 12 nov');
 		expect(runningLabel(ev('Mostra di foto', now - 20 * day, end, { category: 'culture' }))).toBe('Mostra');
 		expect(runningLabel(ev('x', now - 20 * day, end, { category: 'culture', tags: ['mostra'] }))).toBe('Mostra');
+	});
+});
+
+describe('eventSource', () => {
+	it('cita Open Data Hub col suo nome e la licenza dei dati', () => {
+		expect(eventSource({ source: 'scraper', sourceUrl: 'https://tourism.opendatahub.com/v1/Event/ABC' })).toEqual({
+			text: 'Open Data Hub Alto Adige / Südtirol (dati CC0)',
+			href: 'https://opendatahub.com/'
+		});
+	});
+
+	it('i comuni restano Comune di …, le proposte e gli eventi senza fonte hanno la loro dicitura', () => {
+		expect(eventSource({ source: 'scraper', sourceUrl: 'https://www.comune.san-giorgio.mo.it/e/1' }).text).toMatch(/^Comune di San/);
+		expect(eventSource({ source: 'user', sourceUrl: '' }).text).toMatch(/utente/);
+		expect(eventSource({ source: 'manual', sourceUrl: '' }).text).toBe('Redazione di Eventi Vicini');
 	});
 });

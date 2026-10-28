@@ -1,0 +1,2110 @@
+{
+ "TotalResults": 8,
+ "TotalPages": 1,
+ "CurrentPage": 1,
+ "NextPage": null,
+ "Items": [
+  {
+   "Id": "E325FEF2909D426C9BB19CFD4B679291",
+   "Self": "https://tourism.opendatahub.com/v1/Event/E325FEF2909D426C9BB19CFD4B679291",
+   "_Meta": {
+    "Id": "E325FEF2909D426C9BB19CFD4B679291",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-10-27T22:20:29.1003033+00:00",
+    "UpdateInfo": {
+     "Revision": 5,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-10-27T22:20:29.1003033+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Advent im Lärchenwald",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent in the Larch Forest",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Avvento nel bosco di larici",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "0",
+   "DateEnd": "2026-12-25T18:00:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.38548278808594,
+     "Longitude": 11.527535438537598,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "E325FEF2909D426C9BB19CFD4B679291"
+    }
+   },
+   "Latitude": 46.38548278808594,
+   "DateBegin": "2026-12-11T16:00:00",
+   "Districts": [
+    {
+     "Id": "1F2D6C32749344B99EB4404835E48F7E",
+     "Self": "https://tourism.opendatahub.com/v1/District/1F2D6C32749344B99EB4404835E48F7E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-12-11T00:00:00",
+     "End": "18:00:00",
+     "From": "2026-12-11T00:00:00",
+     "Begin": "16:00:00",
+     "ToUTC": 1797008400000.0,
+     "FromUTC": 1797001200000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "16:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "16:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-18T00:00:00",
+     "End": "18:00:00",
+     "From": "2026-12-18T00:00:00",
+     "Begin": "16:00:00",
+     "ToUTC": 1797613200000.0,
+     "FromUTC": 1797606000000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "16:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "16:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-25T00:00:00",
+     "End": "18:00:00",
+     "From": "2026-12-25T00:00:00",
+     "Begin": "16:00:00",
+     "ToUTC": 1798218000000.0,
+     "FromUTC": 1798210800000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "16:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "16:00:00"
+      }
+     ]
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.38548278808594,
+     "Longitude": 11.527535438537598,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 11.527535438537598,
+   "OdhActive": true,
+   "Shortname": "Advent im Lärchenwald",
+   "SmgActive": true,
+   "DateEndUTC": 1798218000000.0,
+   "DistrictId": "1F2D6C32749344B99EB4404835E48F7E",
+   "LastChange": "2026-10-27T11:34:42.5653436+00:00",
+   "DistrictIds": [
+    "1F2D6C32749344B99EB4404835E48F7E"
+   ],
+   "FirstImport": "2026-10-27T11:34:42.5653432+00:00",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "Url": "http://www.eggental.com",
+     "City": "Obereggen",
+     "Address": "Località Obereggen 25",
+     "ZipCode": "39050",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "Url": "http://www.eggental.com",
+     "City": "Obereggen",
+     "Address": "Località Obereggen 25",
+     "ZipCode": "39050",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "Url": "http://www.eggental.com",
+     "City": "Obereggen",
+     "Address": "Località Obereggen 25",
+     "ZipCode": "39050",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1797001200000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 96.0,
+    "DistanceToMunicipality": 8429.0
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "522822C751CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Eggental Tourimus / Val d'Ega Turismo",
+      "de": "Eggental Tourismus",
+      "en": "Eggental Tourimus / Val d'Ega Turismo",
+      "fr": "Eggental Tourimus / Val d'Ega Turismo",
+      "it": "Val d'Ega Turismo",
+      "nl": "Eggental Tourimus / Val d'Ega Turismo",
+      "pl": "Eggental Tourimus / Val d'Ega Turismo",
+      "ru": "Дойчнофен - Оберегген/Nova Ponente"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/522822C751CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633A21C24E11D18F1B006097B8970B",
+     "Name": {
+      "cs": "Oblast Eggental Dolomity",
+      "de": "Dolomitenregion Eggental",
+      "en": "Dolomites Region Eggental",
+      "fr": "Région des Dolomites Eggental",
+      "it": "Regione dolomitica Val d'Ega",
+      "nl": "Dolomietenregio Eggental",
+      "pl": "Region Eggental w Dolomitach",
+      "ru": "регион Эггенталь, Доломиты"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633A21C24E11D18F1B006097B8970B"
+    },
+    "DistrictInfo": {
+     "Id": "1F2D6C32749344B99EB4404835E48F7E",
+     "Name": {
+      "cs": "Obereggen/Obereggen",
+      "de": "Obereggen",
+      "en": "Obereggen/Obereggen",
+      "fr": "Obereggen/Obereggen",
+      "it": "Obereggen",
+      "nl": "Obereggen/Obereggen",
+      "pl": "Obereggen/Obereggen",
+      "ru": "Оберегген"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/1F2D6C32749344B99EB4404835E48F7E"
+    },
+    "MunicipalityInfo": {
+     "Id": "7D76788DFB264AE6A8FF8F4A064ADDE4",
+     "Name": {
+      "cs": "Deutschnofen/Nova Ponente",
+      "de": "Deutschnofen",
+      "en": "Deutschnofen/Nova Ponente",
+      "fr": "Deutschnofen/Nova Ponente",
+      "it": "Nova Ponente",
+      "nl": "Deutschnofen/Nova Ponente",
+      "pl": "Deutschnofen/Nova Ponente",
+      "ru": "Дойчнофен/Nova Ponente"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/7D76788DFB264AE6A8FF8F4A064ADDE4"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-11T00:00:00",
+    "2026-12-18T00:00:00",
+    "2026-12-25T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": false
+   },
+   "EventDatesBegin": [
+    "2026-12-11T00:00:00",
+    "2026-12-18T00:00:00",
+    "2026-12-25T00:00:00"
+   ],
+   "EventDateCounter": 3,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "49AF75A35C144D289DAF37FF120B09BB",
+   "Self": "https://tourism.opendatahub.com/v1/Event/49AF75A35C144D289DAF37FF120B09BB",
+   "_Meta": {
+    "Id": "49AF75A35C144D289DAF37FF120B09BB",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-10-14T22:19:07.9004475+00:00",
+    "UpdateInfo": {
+     "Revision": 17,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-08-29T08:32:14.2076699+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/LTS/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-10-14T22:19:07.9004475+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Advent im Reichhalterstübele",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent in the \"Reichhalterstübele\"",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Racconti d'Avvento con suoni di cetra (in lingua tedesca)",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "1",
+   "DateEnd": "2026-12-12T16:30:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.6151008605957,
+     "Longitude": 11.14330005645752,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "49AF75A35C144D289DAF37FF120B09BB"
+    }
+   },
+   "Latitude": 46.6151008605957,
+   "DateBegin": "2026-12-12T15:30:00",
+   "Districts": [
+    {
+     "Id": "79CBD79851C911D18F1400A02427D15E",
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD79851C911D18F1400A02427D15E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-12-12T00:00:00",
+     "End": "16:30:00",
+     "From": "2026-12-12T00:00:00",
+     "Begin": "15:30:00",
+     "ToUTC": 1797089400000.0,
+     "FromUTC": 1797085800000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "15:30:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "15:30:00"
+      }
+     ]
+    }
+   ],
+   "EventUrls": [
+    {
+     "Url": {
+      "de": "https://mysuedtirol.info/de/veranstaltungen?eventid=49AF75A35C144D289DAF37FF120B09BB",
+      "en": "https://mysuedtirol.info/en/events?eventid=49AF75A35C144D289DAF37FF120B09BB",
+      "it": "https://mysuedtirol.info/it/eventi?eventid=49AF75A35C144D289DAF37FF120B09BB",
+      "nl": "https://mysuedtirol.info/de/veranstaltungen?eventid=86F2FB8FC0364AB0A2642C117F00E375"
+     },
+     "Type": "bookingUrl"
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.6151008605957,
+     "Longitude": 11.14330005645752,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 11.14330005645752,
+   "OdhActive": true,
+   "Shortname": "Advent im Reichhalterstübele",
+   "SmgActive": true,
+   "DateEndUTC": 1797089400000.0,
+   "DistrictId": "79CBD79851C911D18F1400A02427D15E",
+   "LastChange": "2026-09-28T22:16:13.1536482+00:00",
+   "DistrictIds": [
+    "79CBD79851C911D18F1400A02427D15E"
+   ],
+   "FirstImport": "2026-08-29T08:32:14.2076732+00:00",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "Url": "http://www.weihnachteninlana.it",
+     "City": "Lana",
+     "Address": "Metzergasse 2",
+     "ZipCode": "39011",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "Url": "http://www.weihnachteninlana.it",
+     "City": "Lana",
+     "Address": "Via Macello 2",
+     "ZipCode": "39011",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "Url": "http://www.natalealana.it",
+     "City": "Lana",
+     "Address": "Via Macello 2",
+     "ZipCode": "39011",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1797085800000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 1080.0,
+    "DistanceToMunicipality": 148.0
+   },
+   "EventBooking": {
+    "BookingUrl": {
+     "de": {
+      "Url": "https://mysuedtirol.info/de/veranstaltungen?eventid=49AF75A35C144D289DAF37FF120B09BB"
+     },
+     "en": {
+      "Url": "https://mysuedtirol.info/en/events?eventid=49AF75A35C144D289DAF37FF120B09BB"
+     },
+     "it": {
+      "Url": "https://mysuedtirol.info/it/eventi?eventid=49AF75A35C144D289DAF37FF120B09BB"
+     },
+     "nl": {
+      "Url": "https://mysuedtirol.info/de/veranstaltungen?eventid=86F2FB8FC0364AB0A2642C117F00E375"
+     }
+    }
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "522822B451CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Lana a okolí",
+      "de": "Lana und Umgebung",
+      "en": "Lana and environs",
+      "fr": "Lana et environs",
+      "it": "Lana e dintorni",
+      "nl": "Lana en omgeving",
+      "pl": "Lana i okolice",
+      "ru": "Лана и окрестности"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/522822B451CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633A20C24E11D18F1B006097B8970B",
+     "Name": {
+      "cs": "Meran/Merano a okolí",
+      "de": "Meran und Umgebung",
+      "en": "Meran/Merano and environs",
+      "fr": "Meran/Merano et environs",
+      "it": "Merano e dintorni",
+      "nl": "Meran/Merano en omgeving",
+      "pl": "Meran/Merano i okolice",
+      "ru": "Меран/Merano и окрестности"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633A20C24E11D18F1B006097B8970B"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD79851C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Mitterlana/Lana di Mezzo",
+      "de": "Mitterlana",
+      "en": "Mitterlana/Lana di Mezzo",
+      "fr": "Mitterlana/Lana di Mezzo",
+      "it": "Lana di Mezzo",
+      "nl": "Mitterlana/Lana di Mezzo",
+      "pl": "Mitterlana/Lana di Mezzo",
+      "ru": "Лана ди Меццо"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD79851C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "0EECEC93283E42488CBE0EB3B94CD339",
+     "Name": {
+      "cs": "Lana",
+      "de": "Lana",
+      "en": "Lana",
+      "fr": "Lana",
+      "it": "Lana",
+      "nl": "Lana",
+      "pl": "Lana",
+      "ru": "Лана"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/0EECEC93283E42488CBE0EB3B94CD339"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-12T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": true
+   },
+   "EventDatesBegin": [
+    "2026-12-12T00:00:00"
+   ],
+   "EventDateCounter": 1,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "722CD6CEBDA846DDAB1BB2861C557439",
+   "Self": "https://tourism.opendatahub.com/v1/Event/722CD6CEBDA846DDAB1BB2861C557439",
+   "_Meta": {
+    "Id": "722CD6CEBDA846DDAB1BB2861C557439",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-09-22T22:20:18.2162504+00:00",
+    "UpdateInfo": {
+     "Revision": 10,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-02-11T13:49:02.6010689+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/LTS/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-09-22T22:20:18.2162504+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Advent im Schloss Kastelbell",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent at Kastelbell Castle",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Avvento al Castello di Castelbello",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "0",
+   "DateEnd": "2026-12-20T22:00:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.62810134887695,
+     "Longitude": 10.898099899291992,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "722CD6CEBDA846DDAB1BB2861C557439"
+    }
+   },
+   "ODHTags": [
+    {
+     "Id": "mercatini nei dintorni",
+     "Self": "https://tourism.opendatahub.com/v1/ODHTag/mercatini nei dintorni"
+    },
+    {
+     "Id": "eventi_visite_guidate_mercatini",
+     "Self": "https://tourism.opendatahub.com/v1/ODHTag/eventi_visite_guidate_mercatini"
+    }
+   ],
+   "SmgTags": [
+    "mercatini nei dintorni",
+    "eventi_visite_guidate_mercatini"
+   ],
+   "Latitude": 46.62810134887695,
+   "DateBegin": "2026-12-18T17:00:00",
+   "Districts": [
+    {
+     "Id": "79CBD6CE51C911D18F1400A02427D15E",
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD6CE51C911D18F1400A02427D15E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-12-18T00:00:00",
+     "End": "22:00:00",
+     "From": "2026-12-18T00:00:00",
+     "Begin": "17:00:00",
+     "ToUTC": 1797627600000.0,
+     "FromUTC": 1797609600000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "17:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "17:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-19T00:00:00",
+     "End": "22:00:00",
+     "From": "2026-12-19T00:00:00",
+     "Begin": "14:00:00",
+     "ToUTC": 1797714000000.0,
+     "FromUTC": 1797685200000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "14:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "14:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-20T00:00:00",
+     "End": "22:00:00",
+     "From": "2026-12-20T00:00:00",
+     "Begin": "11:00:00",
+     "ToUTC": 1797800400000.0,
+     "FromUTC": 1797760800000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "11:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "11:00:00"
+      }
+     ]
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.62810134887695,
+     "Longitude": 10.898099899291992,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 10.898099899291992,
+   "OdhActive": true,
+   "Shortname": "Advent im Schloss Kastelbell",
+   "SmgActive": true,
+   "DateEndUTC": 1797800400000.0,
+   "DistrictId": "79CBD6CE51C911D18F1400A02427D15E",
+   "LastChange": "2026-09-21T15:12:45.4774465+00:00",
+   "DistrictIds": [
+    "79CBD6CE51C911D18F1400A02427D15E"
+   ],
+   "FirstImport": "2025-10-28T16:56:37.8184134+00:00",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "City": "39020 Kastelbell-Tschars",
+     "Address": "Schlossweg 1",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "City": "39020 Kastelbell-Tschars",
+     "Address": "Schlossweg 1",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "City": "39020 Castelbello-Ciardes",
+     "Address": "Via Castello 1",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1797609600000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 827.0,
+    "DistanceToMunicipality": 263.0
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "5228229B51CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Kastelbell/Castelbello-Tschars/Ciardes",
+      "de": "Kastelbell - Tschars",
+      "en": "Kastelbell/Castelbello-Tschars/Ciardes",
+      "fr": "Kastelbell/Castelbello-Tschars/Ciardes",
+      "it": "Castelbello - Ciardes",
+      "nl": "Kastelbell/Castelbello-Tschars/Ciardes",
+      "pl": "Kastelbell/Castelbello-Tschars/Ciardes",
+      "ru": "Кастельбелль - Чарс/Castelbello - Ciardes"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/5228229B51CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633A24C24E11D18F1B006097B8970B",
+     "Name": {
+      "cs": "Vinschgau/Val Venosta",
+      "de": "Vinschgau",
+      "en": "Vinschgau/Val Venosta",
+      "fr": "Vinschgau/Val Venosta",
+      "it": "Val Venosta",
+      "nl": "Vinschgau/Val Venosta",
+      "pl": "Vinschgau/Val Venosta",
+      "ru": "Финшгау/Val Venosta"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633A24C24E11D18F1B006097B8970B"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD6CE51C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Freiberg/Montefranco",
+      "de": "Freiberg",
+      "en": "Freiberg/Montefranco",
+      "fr": "Freiberg/Montefranco",
+      "it": "Montefranco",
+      "nl": "Freiberg/Montefranco",
+      "pl": "Freiberg/Montefranco",
+      "ru": "Монтефранко"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD6CE51C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "A5D89B8D0E084C6280B176790C0E3D19",
+     "Name": {
+      "cs": "Kastelbell-Tschars/Castelbello-Ciardes",
+      "de": "Kastelbell-Tschars",
+      "en": "Kastelbell-Tschars/Castelbello-Ciardes",
+      "fr": "Kastelbell-Tschars/Castelbello-Ciardes",
+      "it": "Castelbello-Ciardes",
+      "nl": "Kastelbell-Tschars/Castelbello-Ciardes",
+      "pl": "Kastelbell-Tschars/Castelbello-Ciardes",
+      "ru": "Кастельбелль - Чарс/Castelbello - Ciardes"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/A5D89B8D0E084C6280B176790C0E3D19"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-18T00:00:00",
+    "2026-12-19T00:00:00",
+    "2026-12-20T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": false
+   },
+   "EventDatesBegin": [
+    "2026-12-18T00:00:00",
+    "2026-12-19T00:00:00",
+    "2026-12-20T00:00:00"
+   ],
+   "EventDateCounter": 3,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "466C944620B646C9AA57122A8D466AC9",
+   "Self": "https://tourism.opendatahub.com/v1/Event/466C944620B646C9AA57122A8D466AC9",
+   "_Meta": {
+    "Id": "466C944620B646C9AA57122A8D466AC9",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-10-22T22:20:26.8670601+00:00",
+    "UpdateInfo": {
+     "Revision": 20,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2025-04-15T12:03:10.686192+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/LTS/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-10-22T22:20:26.8670601+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Adventkonzert mit dem Mädchenchor Wilten",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent concert with the Wilten Girls’ Choir",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Concerto d’Avvento con il coro femminile di Wilten",
+     "Language": "it"
+    },
+    "nl": {
+     "Title": "Advent concert with the Wilten Girls’ Choir",
+     "Language": "nl"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "1",
+   "DateEnd": "2026-12-08T18:30:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.617706298828125,
+     "Longitude": 10.588944435119629,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "466C944620B646C9AA57122A8D466AC9"
+    }
+   },
+   "Latitude": 46.617706298828125,
+   "DateBegin": "2026-12-08T17:30:00",
+   "Districts": [
+    {
+     "Id": "79CBD84E51C911D18F1400A02427D15E",
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD84E51C911D18F1400A02427D15E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-12-08T00:00:00",
+     "End": "18:30:00",
+     "From": "2026-12-08T00:00:00",
+     "Begin": "17:30:00",
+     "ToUTC": 1796751000000.0,
+     "FromUTC": 1796747400000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "17:30:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "17:30:00"
+      }
+     ]
+    }
+   ],
+   "EventUrls": [
+    {
+     "Url": {
+      "de": "https://mysuedtirol.info/de/veranstaltungen?eventid=466C944620B646C9AA57122A8D466AC9",
+      "en": "https://mysuedtirol.info/en/events?eventid=466C944620B646C9AA57122A8D466AC9",
+      "it": "https://mysuedtirol.info/it/eventi?eventid=466C944620B646C9AA57122A8D466AC9",
+      "nl": "https://mysuedtirol.info/de/veranstaltungen?eventid=466C944620B646C9AA57122A8D466AC9"
+     },
+     "Type": "bookingUrl"
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.617706298828125,
+     "Longitude": 10.588944435119629,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 10.588944435119629,
+   "OdhActive": true,
+   "Shortname": "Adventkonzert mit dem Mädchenchor Wilten",
+   "SmgActive": true,
+   "DateEndUTC": 1796751000000.0,
+   "DistrictId": "79CBD84E51C911D18F1400A02427D15E",
+   "LastChange": "2026-10-22T07:47:18.3999915+00:00",
+   "DistrictIds": [
+    "79CBD84E51C911D18F1400A02427D15E"
+   ],
+   "FirstImport": "2024-10-22T00:05:21.9374359",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it",
+    "nl"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "Url": "https://www.prad.info",
+     "City": "Prad am Stilfserjoch",
+     "Address": "Kreuzweg",
+     "ZipCode": "39026",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "Url": "https://www.prad.info",
+     "City": "Prad am Stilfserjoch",
+     "Address": "Kreuzweg",
+     "ZipCode": "39026",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "Url": "https://www.venosta.net/it/prato-allo-stelvio.html",
+     "City": "Prad am Stilfserjoch",
+     "Address": "Kreuzweg",
+     "ZipCode": "39026",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    },
+    "nl": {
+     "Url": "https://www.prad.info",
+     "City": "Prad am Stilfserjoch",
+     "Address": "Kreuzweg",
+     "ZipCode": "39026",
+     "Language": "nl",
+     "CountryCode": "IT",
+     "CountryName": "Italië"
+    }
+   },
+   "DateBeginUTC": 1796747400000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 768.0,
+    "DistanceToMunicipality": 224.0
+   },
+   "EventBooking": {
+    "BookingUrl": {
+     "de": {
+      "Url": "https://mysuedtirol.info/de/veranstaltungen?eventid=466C944620B646C9AA57122A8D466AC9"
+     },
+     "en": {
+      "Url": "https://mysuedtirol.info/en/events?eventid=466C944620B646C9AA57122A8D466AC9"
+     },
+     "it": {
+      "Url": "https://mysuedtirol.info/it/eventi?eventid=466C944620B646C9AA57122A8D466AC9"
+     },
+     "nl": {
+      "Url": "https://mysuedtirol.info/de/veranstaltungen?eventid=466C944620B646C9AA57122A8D466AC9"
+     }
+    }
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "93FC0A599C214E4585C720C50FE34949",
+     "Name": {
+      "cs": "Prad am Stilfserjoch/Prato allo Stelvio",
+      "de": "Prad am Stilfserjoch",
+      "en": "Prad am Stilfserjoch/Prato allo Stelvio",
+      "fr": "Prad am Stilfserjoch/Prato allo Stelvio",
+      "it": "Prato allo Stelvio",
+      "nl": "Prad am Stilfserjoch/Prato allo Stelvio",
+      "pl": "Prad am Stilfserjoch/Prato allo Stelvio",
+      "ru": "Прад-ам-Штильфсер-Йох/Prato allo Stelvio"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/93FC0A599C214E4585C720C50FE34949"
+    },
+    "RegionInfo": {
+     "Id": "D2633A24C24E11D18F1B006097B8970B",
+     "Name": {
+      "cs": "Vinschgau/Val Venosta",
+      "de": "Vinschgau",
+      "en": "Vinschgau/Val Venosta",
+      "fr": "Vinschgau/Val Venosta",
+      "it": "Val Venosta",
+      "nl": "Vinschgau/Val Venosta",
+      "pl": "Vinschgau/Val Venosta",
+      "ru": "Финшгау/Val Venosta"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633A24C24E11D18F1B006097B8970B"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD84E51C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Prad/Prato",
+      "de": "Prad",
+      "en": "Prad/Prato",
+      "fr": "Prad/Prato",
+      "it": "Prato",
+      "nl": "Prad/Prato",
+      "pl": "Prad/Prato",
+      "ru": "Прато"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD84E51C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "D9300718A9E3418DAB95ABF1E88736DA",
+     "Name": {
+      "cs": "Prad am Stilfser Joch/Prato allo Stelvio",
+      "de": "Prad am Stilfser Joch",
+      "en": "Prad am Stilfser Joch/Prato allo Stelvio",
+      "fr": "Prad am Stilfser Joch/Prato allo Stelvio",
+      "it": "Prato allo Stelvio",
+      "nl": "Prad am Stilfser Joch/Prato allo Stelvio",
+      "pl": "Prad am Stilfser Joch/Prato allo Stelvio",
+      "ru": "Прад-ам-Штильфсер-Йох/Prato allo Stelvio"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/D9300718A9E3418DAB95ABF1E88736DA"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-08T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": true
+   },
+   "EventDatesBegin": [
+    "2026-12-08T00:00:00"
+   ],
+   "EventDateCounter": 1,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    },
+    "nl": {
+     "Language": "nl"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "45415C690DD34B92B1365234310AEB1F",
+   "Self": "https://tourism.opendatahub.com/v1/Event/45415C690DD34B92B1365234310AEB1F",
+   "_Meta": {
+    "Id": "45415C690DD34B92B1365234310AEB1F",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-10-14T22:21:04.1389859+00:00",
+    "UpdateInfo": {
+     "Revision": 19,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-08-31T15:03:45.1693753+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/LTS/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-10-14T22:21:04.1389859+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Adventkonzert mit dem Männergesangverein Lana",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent concert of the \"Männergesangsverein\" men's choral society",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Concerto d'Avvento con il coro maschile \"Männergesangverein Lana\"",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "0",
+   "DateEnd": "2026-12-08T19:30:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.600101470947266,
+     "Longitude": 11.1628999710083,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "45415C690DD34B92B1365234310AEB1F"
+    }
+   },
+   "Latitude": 46.600101470947266,
+   "DateBegin": "2026-12-08T18:00:00",
+   "Districts": [
+    {
+     "Id": "79CBD79A51C911D18F1400A02427D15E",
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD79A51C911D18F1400A02427D15E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-12-08T00:00:00",
+     "End": "19:30:00",
+     "From": "2026-12-08T00:00:00",
+     "Begin": "18:00:00",
+     "ToUTC": 1796754600000.0,
+     "FromUTC": 1796749200000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "18:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "18:00:00"
+      }
+     ]
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.600101470947266,
+     "Longitude": 11.1628999710083,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 11.1628999710083,
+   "OdhActive": true,
+   "Shortname": "Adventkonzert mit dem Männergesangverein Lana",
+   "SmgActive": true,
+   "DateEndUTC": 1796754600000.0,
+   "DistrictId": "79CBD79A51C911D18F1400A02427D15E",
+   "LastChange": "2026-09-26T22:16:33.6418066+00:00",
+   "DistrictIds": [
+    "79CBD79A51C911D18F1400A02427D15E"
+   ],
+   "FirstImport": "2026-08-31T15:03:45.1693774+00:00",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "Url": "http://www.weihnachteninlana.it",
+     "City": "Lana",
+     "Address": "Schnatterpeckstr.",
+     "ZipCode": "39011",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "Url": "http://www.lanaregion.it",
+     "City": "Lana",
+     "Address": "Vis Schnatterpeck",
+     "ZipCode": "39011",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "Url": "http://www.natalealana.it",
+     "City": "Lana",
+     "Address": "Via Schnatterpeck",
+     "ZipCode": "39011",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1796749200000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 17.0,
+    "DistanceToMunicipality": 2238.0
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "522822B451CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Lana a okolí",
+      "de": "Lana und Umgebung",
+      "en": "Lana and environs",
+      "fr": "Lana et environs",
+      "it": "Lana e dintorni",
+      "nl": "Lana en omgeving",
+      "pl": "Lana i okolice",
+      "ru": "Лана и окрестности"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/522822B451CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633A20C24E11D18F1B006097B8970B",
+     "Name": {
+      "cs": "Meran/Merano a okolí",
+      "de": "Meran und Umgebung",
+      "en": "Meran/Merano and environs",
+      "fr": "Meran/Merano et environs",
+      "it": "Merano e dintorni",
+      "nl": "Meran/Merano en omgeving",
+      "pl": "Meran/Merano i okolice",
+      "ru": "Меран/Merano и окрестности"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633A20C24E11D18F1B006097B8970B"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD79A51C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Niederlana/Lana di Sotto",
+      "de": "Niederlana",
+      "en": "Niederlana/Lana di Sotto",
+      "fr": "Niederlana/Lana di Sotto",
+      "it": "Lana di Sotto",
+      "nl": "Niederlana/Lana di Sotto",
+      "pl": "Niederlana/Lana di Sotto",
+      "ru": "Лана ди Сотто"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD79A51C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "0EECEC93283E42488CBE0EB3B94CD339",
+     "Name": {
+      "cs": "Lana",
+      "de": "Lana",
+      "en": "Lana",
+      "fr": "Lana",
+      "it": "Lana",
+      "nl": "Lana",
+      "pl": "Lana",
+      "ru": "Лана"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/0EECEC93283E42488CBE0EB3B94CD339"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-08T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": false
+   },
+   "EventDatesBegin": [
+    "2026-12-08T00:00:00"
+   ],
+   "EventDateCounter": 1,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "E1C67FA356E34A46BB4329E3C8407FA0",
+   "Self": "https://tourism.opendatahub.com/v1/Event/E1C67FA356E34A46BB4329E3C8407FA0",
+   "_Meta": {
+    "Id": "E1C67FA356E34A46BB4329E3C8407FA0",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-09-30T22:19:59.3896962+00:00",
+    "UpdateInfo": {
+     "Revision": 4,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2025-12-13T23:13:32.0477066+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/LTS/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-09-30T22:19:59.3896962+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Adventliche Melodien des Kinder- und Jugendchors Oberrasen",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent Melodies by the Children’s and Youth Choir of Oberrasen",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Melodie dell’Avvento del coro di bambini e ragazzi di Rasun di Sopra",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "0",
+   "DateEnd": "2026-12-12T18:30:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.77899932861328,
+     "Longitude": 12.047300338745117,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "E1C67FA356E34A46BB4329E3C8407FA0"
+    }
+   },
+   "Latitude": 46.77899932861328,
+   "DateBegin": "2026-12-12T18:00:00",
+   "Districts": [
+    {
+     "Id": "79CBD87151C911D18F1400A02427D15E",
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD87151C911D18F1400A02427D15E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-12-12T00:00:00",
+     "End": "18:30:00",
+     "From": "2026-12-12T00:00:00",
+     "Begin": "18:00:00",
+     "ToUTC": 1797096600000.0,
+     "FromUTC": 1797094800000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "18:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "18:00:00"
+      }
+     ]
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.77899932861328,
+     "Longitude": 12.047300338745117,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 12.047300338745117,
+   "OdhActive": true,
+   "Shortname": "Adventliche Melodien des Kinder- und Jugendchors Oberrasen",
+   "SmgActive": true,
+   "DateEndUTC": 1797096600000.0,
+   "DistrictId": "79CBD87151C911D18F1400A02427D15E",
+   "LastChange": "2026-09-30T10:01:31.2799154+00:00",
+   "DistrictIds": [
+    "79CBD87151C911D18F1400A02427D15E"
+   ],
+   "FirstImport": "2025-11-06T09:35:00.6808436+00:00",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "Url": "https://www.antholzertal.com",
+     "City": "Niederrasen",
+     "Address": "Freizeitpark Niederrasen",
+     "ZipCode": "39030",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "Url": "https://www.antholzertal.com",
+     "City": "Rasen/Antholz",
+     "Address": "Recreation park Niederrasen",
+     "ZipCode": "39030",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "Url": "https://www.antholzertal.com",
+     "City": "Rasun di Sotto",
+     "Address": "Parco ricreativo Rasun di Sotto",
+     "ZipCode": "39030",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1797094800000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 559.0,
+    "DistanceToMunicipality": 254.0
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "522822D351CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Antholzertal/Valle Anterselva",
+      "de": "Antholzertal",
+      "en": "Antholzertal/Valle Anterselva",
+      "fr": "Antholzertal/Valle Anterselva",
+      "it": "Valle Anterselva",
+      "nl": "Antholzertal/Valle Anterselva",
+      "pl": "Antholzertal/Valle Anterselva",
+      "ru": "Антхольцерталь/Rasen in Valle di Anterselva"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/522822D351CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633B28A24E11D18F1B007088B8570A",
+     "Name": {
+      "cs": "Oblast Kronplatz Dolomity",
+      "de": "Dolomitenregion Kronplatz",
+      "en": "Dolomites Region Kronplatz/Plan de Corones",
+      "fr": "Région des Dolomites Kronplatz",
+      "it": "Regione dolomitica Plan de Corones",
+      "nl": "Dolomietenregio Kronplatz",
+      "pl": "Region Kronplatz w Dolomitach",
+      "ru": "Кронплатц/Plan de Corones"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633B28A24E11D18F1B007088B8570A"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD87151C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Neunhäusern/Nove Case",
+      "de": "Neunhäusern",
+      "en": "Neunhäusern/Nove Case",
+      "fr": "Neunhäusern/Nove Case",
+      "it": "Nove Case",
+      "nl": "Neunhäusern/Nove Case",
+      "pl": "Neunhäusern/Nove Case",
+      "ru": "Нове Казе"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD87151C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "F27E773C3D334208B21F67148ADA1A04",
+     "Name": {
+      "cs": "Rasen-Antholz/Rasun Anterselva",
+      "de": "Rasen-Antholz",
+      "en": "Rasen-Antholz/Rasun Anterselva",
+      "fr": "Rasen-Antholz/Rasun Anterselva",
+      "it": "Rasun Anterselva",
+      "nl": "Rasen-Antholz/Rasun Anterselva",
+      "pl": "Rasen-Antholz/Rasun Anterselva",
+      "ru": "Разен-Антхольц/Rasun Anterselva"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/F27E773C3D334208B21F67148ADA1A04"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-12T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": false
+   },
+   "EventDatesBegin": [
+    "2026-12-12T00:00:00"
+   ],
+   "EventDateCounter": 1,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "E96BA1DB36114626A1750B686B2A8CD7",
+   "Self": "https://tourism.opendatahub.com/v1/Event/E96BA1DB36114626A1750B686B2A8CD7",
+   "_Meta": {
+    "Id": "E96BA1DB36114626A1750B686B2A8CD7",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-07-21T12:06:23.4039852+00:00",
+    "UpdateInfo": {
+     "Revision": 4,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.push.import",
+       "LastUpdate": "2025-02-11T23:06:07.8674803+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/Raven/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-02-25T11:04:05.7244121+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.bz.it/LTS/event"
+      },
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-07-21T12:06:23.4039852+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Adventlicher Nachmittag",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent in Steinhau/Ahrntal valley",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Avvento a Cadipietra",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "0",
+   "DateEnd": "2026-12-12T21:00:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.9960823059082,
+     "Longitude": 11.980107307434082,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "E96BA1DB36114626A1750B686B2A8CD7"
+    }
+   },
+   "Latitude": 46.9960823059082,
+   "DateBegin": "2026-12-12T14:00:00",
+   "EventDate": [
+    {
+     "To": "2026-12-12T00:00:00",
+     "End": "21:00:00",
+     "From": "2026-12-12T00:00:00",
+     "Begin": "14:00:00",
+     "ToUTC": 1797105600000.0,
+     "FromUTC": 1797080400000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "14:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "14:00:00"
+      }
+     ]
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.9960823059082,
+     "Longitude": 11.980107307434082,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 11.980107307434082,
+   "OdhActive": true,
+   "Shortname": "Adventlicher Nachmittag",
+   "SmgActive": true,
+   "DateEndUTC": 1797105600000.0,
+   "LastChange": "2026-07-21T12:06:23.4049886+00:00",
+   "FirstImport": "2024-03-07T09:14:32.5207301",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "City": "Steinhaus",
+     "Address": "Musikpavillon",
+     "ZipCode": "39030",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "City": "Steinhaus/Ahrntal valley",
+     "Address": "fairground",
+     "ZipCode": "39030",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "City": "Cadipietra",
+     "Address": "padiglione delle feste",
+     "ZipCode": "39030",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1797080400000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 325.0,
+    "DistanceToMunicipality": 138.0
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "522822F751CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Ahrntal/Valle Aurina",
+      "de": "Ahrntal",
+      "en": "Ahrntal/Valle Aurina",
+      "fr": "Ahrntal/Valle Aurina",
+      "it": "Valle Aurina",
+      "nl": "Ahrntal/Valle Aurina",
+      "pl": "Ahrntal/Valle Aurina",
+      "ru": "Арнталь/Valle Aurina"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/522822F751CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633AAAA123F20F1A006096B4880B",
+     "Name": {
+      "cs": "Ahrntal/Valle Aurina",
+      "de": "Ahrntal",
+      "en": "Ahrntal/Valle Aurina",
+      "fr": "Ahrntal/Valle Aurina",
+      "it": "Valle Aurina",
+      "nl": "Ahrntal/Valle Aurina",
+      "pl": "Ahrntal/Valle Aurina",
+      "ru": "Арнталь/Valle Aurina"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633AAAA123F20F1A006096B4880B"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD9E951C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Steinhaus/Cadipietra",
+      "de": "Steinhaus",
+      "en": "Steinhaus/Cadipietra",
+      "fr": "Steinhaus/Cadipietra",
+      "it": "Cadipietra",
+      "nl": "Steinhaus/Cadipietra",
+      "pl": "Steinhaus/Cadipietra",
+      "ru": "Кадипьетра"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD9E951C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "64542726402740118771E58AA75D6428",
+     "Name": {
+      "cs": "Ahrntal/Valle Aurina",
+      "de": "Ahrntal",
+      "en": "Ahrntal/Valle Aurina",
+      "fr": "Ahrntal/Valle Aurina",
+      "it": "Valle Aurina",
+      "nl": "Ahrntal/Valle Aurina",
+      "pl": "Ahrntal/Valle Aurina",
+      "ru": "Арнталь/Valle Aurina"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/64542726402740118771E58AA75D6428"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-12-12T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": false
+   },
+   "EventDatesBegin": [
+    "2026-12-12T00:00:00"
+   ],
+   "EventDateCounter": 1,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  },
+  {
+   "Id": "669B68C1A1EF42FDAABCB40D14CE1C3F",
+   "Self": "https://tourism.opendatahub.com/v1/Event/669B68C1A1EF42FDAABCB40D14CE1C3F",
+   "_Meta": {
+    "Id": "669B68C1A1EF42FDAABCB40D14CE1C3F",
+    "Type": "event",
+    "Source": "lts",
+    "Reduced": true,
+    "LastUpdate": "2026-10-07T22:21:39.2735585+00:00",
+    "UpdateInfo": {
+     "Revision": 4,
+     "UpdatedBy": "lts.events.import",
+     "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event",
+     "UpdateHistory": [
+      {
+       "UpdatedBy": "lts.events.import",
+       "LastUpdate": "2026-10-07T22:21:39.2735585+00:00",
+       "UpdateSource": "http://tourism.importer.opendatahub.com/LTS/Event"
+      }
+     ]
+    }
+   },
+   "Active": true,
+   "Detail": {
+    "de": {
+     "Title": "Adventsführung",
+     "Language": "de"
+    },
+    "en": {
+     "Title": "Advent Guided Tour",
+     "Language": "en"
+    },
+    "it": {
+     "Title": "Visita guidata dell’Avvento",
+     "Language": "it"
+    }
+   },
+   "Source": "lts",
+   "Ticket": "1",
+   "DateEnd": "2026-12-20T16:30:00",
+   "GpsInfo": [
+    {
+     "Gpstype": "position",
+     "Latitude": 46.714900970458984,
+     "Longitude": 11.654800415039062,
+     "AltitudeUnitofMeasure": "m"
+    }
+   ],
+   "Gpstype": "position",
+   "Mapping": {
+    "lts": {
+     "rid": "669B68C1A1EF42FDAABCB40D14CE1C3F"
+    }
+   },
+   "Latitude": 46.714900970458984,
+   "DateBegin": "2026-11-29T15:00:00",
+   "Districts": [
+    {
+     "Id": "79CBD69151C911D18F1400A02427D15E",
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD69151C911D18F1400A02427D15E"
+    }
+   ],
+   "EventDate": [
+    {
+     "To": "2026-11-29T00:00:00",
+     "End": "16:30:00",
+     "From": "2026-11-29T00:00:00",
+     "Begin": "15:00:00",
+     "ToUTC": 1795966200000.0,
+     "FromUTC": 1795960800000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "15:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "15:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-06T00:00:00",
+     "End": "16:30:00",
+     "From": "2026-12-06T00:00:00",
+     "Begin": "15:00:00",
+     "ToUTC": 1796571000000.0,
+     "FromUTC": 1796565600000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "15:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "15:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-13T00:00:00",
+     "End": "16:30:00",
+     "From": "2026-12-13T00:00:00",
+     "Begin": "15:00:00",
+     "ToUTC": 1797175800000.0,
+     "FromUTC": 1797170400000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "15:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "15:00:00"
+      }
+     ]
+    },
+    {
+     "To": "2026-12-20T00:00:00",
+     "End": "16:30:00",
+     "From": "2026-12-20T00:00:00",
+     "Begin": "15:00:00",
+     "ToUTC": 1797780600000.0,
+     "FromUTC": 1797775200000.0,
+     "Cancelled": "0",
+     "SingleDays": false,
+     "EventCalculatedDay": {
+      "Day": "0001-01-01T00:00:00",
+      "Begin": "15:00:00"
+     },
+     "EventCalculatedDays": [
+      {
+       "Day": "0001-01-01T00:00:00",
+       "Begin": "15:00:00"
+      }
+     ]
+    }
+   ],
+   "EventUrls": [
+    {
+     "Url": {
+      "de": "https://mysuedtirol.info/de/veranstaltungen?eventid=D44C62E0E09F47E98245E7B679E54C2C",
+      "en": "https://mysuedtirol.info/en/events?eventid=D44C62E0E09F47E98245E7B679E54C2C",
+      "it": "https://mysuedtirol.info/it/eventi?eventid=D44C62E0E09F47E98245E7B679E54C2C"
+     },
+     "Type": "bookingUrl"
+    }
+   ],
+   "GpsPoints": {
+    "position": {
+     "Gpstype": "position",
+     "Latitude": 46.714900970458984,
+     "Longitude": 11.654800415039062,
+     "AltitudeUnitofMeasure": "m"
+    }
+   },
+   "Longitude": 11.654800415039062,
+   "OdhActive": true,
+   "Shortname": "Adventsführung",
+   "SmgActive": true,
+   "DateEndUTC": 1797780600000.0,
+   "DistrictId": "79CBD69151C911D18F1400A02427D15E",
+   "LastChange": "2026-10-07T11:00:03.1493022+00:00",
+   "DistrictIds": [
+    "79CBD69151C911D18F1400A02427D15E"
+   ],
+   "FirstImport": "2026-10-07T11:00:03.1493012+00:00",
+   "HasLanguage": [
+    "de",
+    "en",
+    "it"
+   ],
+   "LicenseInfo": {
+    "License": "CC0",
+    "ClosedData": false,
+    "LicenseHolder": "unknown"
+   },
+   "ContactInfos": {
+    "de": {
+     "Url": "http://www.brixen.org",
+     "City": "Brixen",
+     "Address": "Regensburger Allee 9",
+     "ZipCode": "39042",
+     "Language": "de",
+     "CountryCode": "IT",
+     "CountryName": "Italien"
+    },
+    "en": {
+     "Url": "http://www.brixen.org",
+     "City": "Brixen",
+     "Address": "Regensburger Allee 9",
+     "ZipCode": "39042",
+     "Language": "en",
+     "CountryCode": "IT",
+     "CountryName": "Italy"
+    },
+    "it": {
+     "Url": "http://www.brixen.org/",
+     "City": "Bressanone",
+     "Address": "Viale Ratisbona 9",
+     "ZipCode": "39042",
+     "Language": "it",
+     "CountryCode": "IT",
+     "CountryName": "Italia"
+    }
+   },
+   "DateBeginUTC": 1795960800000.0,
+   "DistanceInfo": {
+    "DistanceToDistrict": 64.0,
+    "DistanceToMunicipality": 209.0
+   },
+   "EventBooking": {
+    "BookingUrl": {
+     "de": {
+      "Url": "https://mysuedtirol.info/de/veranstaltungen?eventid=D44C62E0E09F47E98245E7B679E54C2C"
+     },
+     "en": {
+      "Url": "https://mysuedtirol.info/en/events?eventid=D44C62E0E09F47E98245E7B679E54C2C"
+     },
+     "it": {
+      "Url": "https://mysuedtirol.info/it/eventi?eventid=D44C62E0E09F47E98245E7B679E54C2C"
+     }
+    }
+   },
+   "LocationInfo": {
+    "TvInfo": {
+     "Id": "5228229751CA11D18F1400A02427D15E",
+     "Name": {
+      "cs": "Brixen/Bressanone",
+      "de": "Brixen",
+      "en": "Brixen/Bressanone",
+      "fr": "Brixen/Bressanone",
+      "it": "Bressanone",
+      "nl": "Brixen/Bressanone",
+      "pl": "Brixen/Bressanone",
+      "ru": "Бриксен/Bressanone"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/TourismAssociation/5228229751CA11D18F1400A02427D15E"
+    },
+    "RegionInfo": {
+     "Id": "D2633A1DC24E11D18F1B006097B8970B",
+     "Name": {
+      "cs": "Brixen/Bressanone a okolí",
+      "de": "Brixen und Umgebung",
+      "en": "Brixen/Bressanone and environs",
+      "fr": "Brixen/Bressanone et environs",
+      "it": "Bressanone e dintorni",
+      "nl": "Brixen/Bressanone en omgeving",
+      "pl": "Brixen/Bressanone i okolice",
+      "ru": "Бриксен/Bressanone и окрестности"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Region/D2633A1DC24E11D18F1B006097B8970B"
+    },
+    "DistrictInfo": {
+     "Id": "79CBD69151C911D18F1400A02427D15E",
+     "Name": {
+      "cs": "Brixen Stadt/Bressanone città",
+      "de": "Brixen Stadt",
+      "en": "Brixen Stadt/Bressanone città",
+      "fr": "Brixen Stadt/Bressanone città",
+      "it": "Bressanone città",
+      "nl": "Brixen Stadt/Bressanone città",
+      "pl": "Brixen Stadt/Bressanone città",
+      "ru": "Брессаноне читта"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/District/79CBD69151C911D18F1400A02427D15E"
+    },
+    "MunicipalityInfo": {
+     "Id": "2B2B22E275734BB990DE4A3FC98C6A18",
+     "Name": {
+      "cs": "Brixen/Bressanone",
+      "de": "Brixen",
+      "en": "Brixen/Bressanone",
+      "fr": "Brixen/Bressanone",
+      "it": "Bressanone",
+      "nl": "Brixen/Bressanone",
+      "pl": "Brixen/Bressanone",
+      "ru": "Бриксен/Bressanone"
+     },
+     "Self": "https://tourism.opendatahub.com/v1/Municipality/2B2B22E275734BB990DE4A3FC98C6A18"
+    }
+   },
+   "EventDatesEnd": [
+    "2026-11-29T00:00:00",
+    "2026-12-06T00:00:00",
+    "2026-12-13T00:00:00",
+    "2026-12-20T00:00:00"
+   ],
+   "EventProperty": {
+    "TicketRequired": true
+   },
+   "EventDatesBegin": [
+    "2026-11-29T00:00:00",
+    "2026-12-06T00:00:00",
+    "2026-12-13T00:00:00",
+    "2026-12-20T00:00:00"
+   ],
+   "EventDateCounter": 4,
+   "EventAdditionalInfos": {
+    "de": {
+     "Language": "de"
+    },
+    "en": {
+     "Language": "en"
+    },
+    "it": {
+     "Language": "it"
+    }
+   },
+   "AltitudeUnitofMeasure": "m"
+  }
+ ]
+}

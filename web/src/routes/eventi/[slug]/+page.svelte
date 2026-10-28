@@ -6,7 +6,7 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { siteUrl } from '$lib/config';
 	import { formatWhen } from '$lib/dates';
-	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, isForKids, isFree, runningLabel } from '$lib/event';
+	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, isFree, runningLabel } from '$lib/event';
 	import { imageSources } from '$lib/images';
 	import { buildIcs } from '$lib/ics';
 	import { eventJsonLd, safeJson } from '$lib/jsonld';
@@ -25,15 +25,7 @@
 			`${CATEGORIES[e.category]} a ${e.city || e.address}: ${formatWhen(e.startTime, e.endTime, now)}${e.venueName ? `, ${e.venueName}` : ''}.`
 	);
 
-	function sourceLabel(): { text: string; href?: string } {
-		if (e.source === 'user') return { text: 'Segnalato da un utente e verificato dalla redazione' };
-		if (!e.sourceUrl) return { text: 'Redazione di Eventi Vicini' };
-		const host = new URL(e.sourceUrl).hostname.replace(/^www\./, '');
-		const m = /^comune\.([a-z-]+)\./.exec(host);
-		const name = m ? `Comune di ${m[1].split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')}` : host;
-		return { text: name, href: e.sourceUrl };
-	}
-	const source = $derived(sourceLabel());
+	const source = $derived(eventSource(e));
 	const jsonLdTag = $derived('<script type="application/ld+json">' + safeJson(eventJsonLd(e, url)) + '</' + 'script>');
 
 	function downloadIcs() {

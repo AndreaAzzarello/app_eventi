@@ -12,13 +12,15 @@ from registry import base_url, read_rows
 
 from .base import Adapter, fallback_place
 from .design_comuni_html import DesignComuniHtmlAdapter
+from .opendatahub import OpenDataHubAdapter
 from .plone import PloneAdapter
 from .wordpress import WordpressAdapter
 
 log = logging.getLogger("importer")
 
 
-CMS_ADAPTERS = {"plone": PloneAdapter, "wordpress-dci": WordpressAdapter, "design_comuni_html": DesignComuniHtmlAdapter}
+CMS_ADAPTERS = {"plone": PloneAdapter, "wordpress-dci": WordpressAdapter, "design_comuni_html": DesignComuniHtmlAdapter,
+                "opendatahub": OpenDataHubAdapter}
 
 
 def load_sources(rows: list[dict] | None = None) -> dict[str, Adapter]:
