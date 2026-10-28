@@ -14,7 +14,7 @@ import os
 import sys
 import uuid
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -417,6 +417,48 @@ def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_
     return len(by_region)
 
 
+def month_bounds(now: datetime) -> tuple[str, int, int]:
+    """Mese di Roma di `now`: ("2026-11", inizio, fine esclusa) in millisecondi."""
+    start = now.astimezone(ROME).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    end = (start + timedelta(days=32)).replace(day=1)
+    return f"{start:%Y-%m}", int(start.timestamp() * 1000), int(end.timestamp() * 1000)
+
+
+TOP_CITIES = 10
+
+
+def month_stats_doc(region: str, month: str, month_events: list[dict], before: dict, now_ms: int) -> dict:
+    """Documento stats/{regione}_{AAAA-MM}: eventi attivi nel mese, comuni con eventi e città principali.
+
+    L'import vede solo gli eventi in corso o futuri: gli id già contati nei giorni scorsi (campo `ids`, per comune)
+    si uniscono a quelli di oggi, così un evento finito a metà mese resta nel totale.
+    """
+    ids: dict[str, list[str]] = {k: list(v) for k, v in (before.get("ids") or {}).items()}
+    names: dict[str, str] = dict(before.get("names") or {})
+    for ev in month_events:
+        slug = ev["citySlug"]
+        names[slug] = ev["city"]
+        if ev["id"] not in ids.setdefault(slug, []):
+            ids[slug].append(ev["id"])
+    top = sorted(ids, key=lambda k: (-len(ids[k]), k))[:TOP_CITIES]
+    return {"region": region, "month": month, "events": sum(len(v) for v in ids.values()),
+            "comuni": len(ids), "cities": [{"slug": k, "name": names.get(k, k), "n": len(ids[k])} for k in top],
+            "names": names, "ids": ids, "updatedAt": now_ms}
+
+
+def write_month_stats(db, events: list[dict], regions: set[str], now: datetime) -> tuple[int, int]:
+    """Una lettura e una scrittura al giorno per regione. Restituisce (letture, scritture)."""
+    month, start, end = month_bounds(now)
+    refs = {r: db.collection("stats").document(f"{r}_{month}") for r in sorted(regions)}
+    before = {d.reference.path: d.to_dict() or {} for d in db.get_all(list(refs.values()))}
+    batch = db.batch()
+    for r, ref in refs.items():
+        mine = [e for e in events if e["importRegion"] == r and e["startTime"] < end and e["endTime"] >= start]
+        batch.set(ref, month_stats_doc(r, month, mine, before.get(ref.path, {}), int(now.timestamp() * 1000)))
+    batch.commit()
+    return len(refs), len(refs)
+
+
 def excluded_report(excluded: list[dict], sample: int = 20) -> str:
     """Per regione: quanti avvisi il filtro ha lasciato fuori e per quale motivo; poi i titoli di esempio."""
     lines = ["Esclusi dal filtro anti-avvisi:"]
@@ -510,7 +552,12 @@ def main(argv: list[str] | None = None) -> int:
     if not args.source:  # con --source il conteggio per comune sarebbe parziale
         from db import client as firestore_client
 
-        stats["writes"] += write_coverage(firestore_client(), events, names, centers, int(now.timestamp() * 1000))
+        db = firestore_client()
+        stats["writes"] += write_coverage(db, events, names, centers, int(now.timestamp() * 1000))
+        reads, writes = write_month_stats(db, events, {slugify(SOURCES[n].region) for n in names
+                                                       if not getattr(SOURCES[n], "regional", False)}, now)
+        stats["reads"] += reads
+        stats["writes"] += writes
     if args.stats_out:
         args.stats_out.write_text(json.dumps(stats | {
             "region": "+".join(sorted({slugify(SOURCES[n].region) for n in names})), "events": len(events), "excluded": len(excluded),
