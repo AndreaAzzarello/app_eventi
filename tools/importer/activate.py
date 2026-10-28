@@ -11,12 +11,14 @@ Tutte le altre restano "da_verificare" con il motivo in `note` ("attivazione: �
 e quelle già "attivo" non si toccano.
 
 Uso:  python activate.py --regione lombardia [--dry-run] [--workers 8]
+      python activate.py --tutte --only-reason "nessun evento futuro valido"   # ricontrollo settimanale
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
+import os
 import re
 import sys
 from collections import Counter
@@ -47,7 +49,7 @@ def check(row: dict) -> str | None:
         return f"nessun adapter per il CMS {row['cms'] or 'non rilevato'}"
     if row["cms"] == "design_comuni_html" and not row["url_eventi"]:
         return "pagina eventi non trovata"
-    m = NOTE_TAG.match(row["note"])
+    m = NOTE_TAG.match(REASON.sub("", row["note"]))  # dopo un primo passaggio la nota comincia con "attivazione: …"
     if not m:
         return "licenza dei contenuti non verificata (serve licenses.py)"
     if m.group(2):
@@ -88,9 +90,30 @@ def fetch_events(row: dict, client: httpx.Client, now: datetime) -> tuple[list[d
         return [], f"dry-run: errore imprevisto ({type(e).__name__}: {str(e)[:80]})"
 
 
-def select(rows: list[dict], regions: set[str]) -> list[dict]:
-    """Solo da_verificare e candidato delle regioni indicate: manuale, escluso e attivo non si toccano mai."""
-    return [r for r in rows if slugify(r["regione"]) in regions and r["stato"] in TODO]
+def select(rows: list[dict], regions: set[str] | None, only_reason: str = "") -> list[dict]:
+    """Solo da_verificare e candidato delle regioni indicate (None = tutte): manuale, escluso e attivo non si toccano mai.
+
+    only_reason: solo le righe respinte l'ultima volta con questo motivo di dry-run (ricontrollo periodico)."""
+    prefix = f"attivazione: dry-run: {only_reason}" if only_reason else ""
+    return [r for r in rows if (regions is None or slugify(r["regione"]) in regions) and r["stato"] in TODO
+            and (not only_reason or (r["stato"] == "da_verificare" and r["note"].startswith(prefix)))]
+
+
+def summary_md(todo: list[dict], reasons: dict[str, str | None]) -> str:
+    """Riepilogo per GITHUB_STEP_SUMMARY: per regione, comuni rivalutati, attivati (nomi) e ancora respinti."""
+    lines = ["## Ricontrollo fonti", "", "| regione | rivalutati | attivati | ancora respinti |", "|---|---|---|---|"]
+    names: dict[str, list[str]] = {}
+    for region in sorted({r["regione"] for r in todo}):
+        rows = [r for r in todo if r["regione"] == region]
+        on = [r["comune"] for r in rows if reasons[r["codice_istat"]] is None]
+        names[region] = on
+        lines.append(f"| {region} | {len(rows)} | {len(on)} | {len(rows) - len(on)} |")
+    total = sum(len(v) for v in names.values())
+    lines += ["", f"**Totale**: {len(todo)} rivalutati, {total} attivati."]
+    for region, on in names.items():
+        if on:
+            lines += ["", f"Attivati in {region}: {', '.join(sorted(on))}."]
+    return "\n".join(lines)
 
 
 def note_with_reason(row: dict, reason: str | None) -> str:
@@ -100,16 +123,21 @@ def note_with_reason(row: dict, reason: str | None) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--regione", action="append", required=True, help="regione (ripetibile), per esempio lombardia")
+    p.add_argument("--regione", action="append", help="regione (ripetibile), per esempio lombardia")
+    p.add_argument("--tutte", action="store_true", help="tutte le regioni")
+    p.add_argument("--only-reason", default="",
+                   help='solo le righe respinte con questo motivo di dry-run, per esempio "nessun evento futuro valido"')
     p.add_argument("--dry-run", action="store_true", help="stampa l'esito senza scrivere i CSV")
     p.add_argument("--workers", type=int, default=8, help="comuni in parallelo (1 richiesta/s per host)")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
 
-    regions = {slugify(r) for r in args.regione}
+    if not args.regione and not args.tutte:
+        p.error("indica --regione <nome> (ripetibile) oppure --tutte")
+    regions = None if args.tutte else {slugify(r) for r in args.regione}
     rows = read_rows()
-    todo = select(rows, regions)
+    todo = select(rows, regions, args.only_reason)
     reasons: dict[str, str | None] = {}
     now = datetime.now(timezone.utc)
     now_ms = int(now.timestamp() * 1000)
@@ -155,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
     if not args.dry_run:
         write_rows(rows)
     by_reason = Counter(re.sub(r"\(.*", "", v).strip() for v in reasons.values() if v)
+    if path := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(summary_md(todo, reasons) + "\n")
     print(f"\nAttivi: {sum(1 for v in reasons.values() if v is None)} su {len(todo)}")
     for reason, n in by_reason.most_common():
         print(f"  {n:>4}  {reason}")

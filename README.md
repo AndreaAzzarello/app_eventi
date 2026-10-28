@@ -452,6 +452,15 @@ python activate.py --regione lombardia --dry-run   # tabella senza scrivere
 python activate.py --regione lombardia
 ```
 
+### Ricontrollo settimanale: `recheck-sources.yml`
+
+Molti comuni sono respinti con "nessun evento futuro valido" solo perché in quel momento non avevano eventi (fuori stagione). Ogni **domenica alle 23:00 ora italiana** il workflow riesegue `activate.py --tutte --only-reason "nessun evento futuro valido"`: rivaluta solo le righe `da_verificare` respinte per quel motivo e attiva quelle che ora rispettano **tutte** le condizioni a–d (le condizioni a–c sono quelle già registrate nel CSV, non vengono ricontrollate sui siti; il dry-run sì).
+
+- Riepilogo in `GITHUB_STEP_SUMMARY`: per regione, comuni rivalutati, attivati (con i nomi) e ancora respinti.
+- Se qualcosa cambia, il workflow fa il commit di `tools/importer/sources/*.csv` ("Ricontrollo settimanale: attivate N fonti…") e lo manda a `main` con `GITHUB_TOKEN` (permesso `contents: write`). L'import delle 06:17 del lunedì trova le nuove fonti già attive. Se `main` ha una regola di protezione che vieta il push al bot, il passaggio di commit fallisce: consenti al bot o apri una PR a mano.
+- Avvio manuale: Actions → Ricontrollo fonti → Run workflow (con `dry_run` non modifica nulla). Stessa cosa in locale: `python activate.py --tutte --only-reason "nessun evento futuro valido" --dry-run`.
+- Durata stimata 1-2 ore con circa 1.000 comuni (12 in parallelo, 1 richiesta al secondo per sito); timeout 240 minuti. Il commit del bot non rilancia altri workflow.
+
 ### Attivare una fonte a mano
 
 1. Verifica a mano la pagina eventi, le note legali (licenza, obbligo di citare la fonte, uso non commerciale se previsto) e il `robots.txt`.

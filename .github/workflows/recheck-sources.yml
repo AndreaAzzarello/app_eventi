@@ -1,0 +1,73 @@
+name: Ricontrollo fonti
+
+# Ogni domenica sera rifà il dry-run dei comuni respinti con "nessun evento futuro valido" (spesso fuori stagione)
+# e attiva quelli che ora rispettano tutte le condizioni della regola (vedi activate.py e README, sezione 9).
+# Il workflow aggiorna sources/*.csv e fa il commit da sé: l'import del mattino li trova già attivi.
+on:
+  schedule:
+    # Domenica alle 23:00 ora italiana, ben prima dell'import delle 06:17 del lunedì.
+    - cron: "0 23 * * 0"
+      timezone: "Europe/Rome"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Solo riepilogo, senza modificare i CSV né fare il commit"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # solo per il commit di tools/importer/sources
+
+concurrency:
+  group: recheck-sources
+  cancel-in-progress: false
+
+jobs:
+  recheck:
+    runs-on: ubuntu-latest
+    # Stima: ~1.000 comuni respinti, 12 in parallelo a 1 richiesta/s per sito, 1-2 ore. Limite GitHub: 6 ore.
+    timeout-minutes: 240
+    defaults:
+      run:
+        working-directory: tools/importer
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/importer/requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - run: python -m pytest -q tests
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            tools/importer/geocache.json
+            tools/importer/.httpcache
+          key: recheck-${{ github.run_id }}
+          restore-keys: recheck-
+
+      # Il riepilogo (rivalutati / attivati / ancora respinti, per regione) va in GITHUB_STEP_SUMMARY.
+      - name: Ricontrollo
+        run: >
+          python activate.py --tutte --only-reason "nessun evento futuro valido" --workers 12
+          ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Commit dei CSV aggiornati
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git add sources
+          if git diff --cached --quiet; then
+            echo "Nessuna fonte nuova da attivare." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          n=$(git diff --cached -U0 sources | grep -c '^+.*;attivo;' || true)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Ricontrollo settimanale: attivate $n fonti ora con eventi futuri"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
