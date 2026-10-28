@@ -166,3 +166,21 @@ for (const [id, data] of Object.entries(coverage)) {
 	if (!res.ok) throw new Error(`coverage/${id}: ${res.status} ${await res.text()}`);
 }
 console.log(`Inserite ${Object.keys(coverage).length} regioni in coverage`);
+
+// Come stats/{regione}_{AAAA-MM} scritto dall'importer: mese corrente e precedente (a ora di Roma).
+const rome = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit' }).formatToParts(new Date(now));
+const [yy, mm] = [Number(rome[0].value), Number(rome[2].value)];
+const key = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
+const stats = {
+	[`emilia-romagna_${key(yy, mm)}`]: { region: 'emilia-romagna', name: 'Emilia-Romagna', month: key(yy, mm), events: 412, comuni: 3, cities: [{ slug: 'modena', name: 'Modena', n: 250 }, { slug: 'bologna', name: 'Bologna', n: 162 }], updatedAt: now },
+	[`emilia-romagna_${mm === 1 ? key(yy - 1, 12) : key(yy, mm - 1)}`]: { region: 'emilia-romagna', name: 'Emilia-Romagna', month: mm === 1 ? key(yy - 1, 12) : key(yy, mm - 1), events: 374, comuni: 3, cities: [{ slug: 'modena', name: 'Modena', n: 230 }, { slug: 'bologna', name: 'Bologna', n: 144 }], updatedAt: now }
+};
+for (const [id, data] of Object.entries(stats)) {
+	const res = await fetch(`${BASE}/stats/${id}`, {
+		method: 'PATCH',
+		headers: { 'content-type': 'application/json', Authorization: 'Bearer owner' },
+		body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, enc(v)])) })
+	});
+	if (!res.ok) throw new Error(`stats/${id}: ${res.status} ${await res.text()}`);
+}
+console.log(`Inseriti ${Object.keys(stats).length} documenti in stats`);

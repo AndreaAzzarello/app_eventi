@@ -99,6 +99,17 @@ test('approvazione da parte dell’admin', async ({ page }) => {
 	await expect(page.locator('body')).not.toContainText('mario@example.org');
 });
 
+test('admin: statistiche mensili e pagina di stile', async ({ page }) => {
+	await signInByEmail(page, 'azzatubo@gmail.com', '/admin/statistiche');
+	await expect(page.getByRole('heading', { name: 'Statistiche' })).toBeVisible();
+	const row = page.getByRole('row', { name: /Emilia-Romagna/ });
+	await expect(row).toContainText('412');
+	await expect(row).toContainText('+38');
+	await page.getByRole('link', { name: 'Stile' }).click();
+	await expect(page.getByRole('heading', { name: 'Stile' })).toBeVisible();
+	await expect(page.getByText(/su sfondo/).first()).toBeVisible();
+});
+
 test('un utente normale non entra in admin', async ({ page }) => {
 	await signInByEmail(page, 'mario@example.org', '/admin');
 	await expect(page.getByText('Questo account non ha i permessi di amministrazione.')).toBeVisible();

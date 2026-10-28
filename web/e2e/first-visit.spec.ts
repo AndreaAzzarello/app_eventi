@@ -49,8 +49,12 @@ test('pagina regione e breadcrumb della città', async ({ page }) => {
 	await expect(page.getByRole('link', { name: /Modena/ })).toBeVisible();
 	expect(await noOverflow(page)).toBe(true);
 
+	// Confronto col mese precedente (seed: 412 contro 374), in testo semplice
+	await expect(page.getByText(/^412 eventi (a|ad) \w+ · \+38 rispetto (a|ad) \w+$/)).toBeVisible();
+
 	await page.goto('/regione/lombardia');
 	await expect(page.getByText('Como, Lecco')).toBeVisible();
+	await expect(page.getByText(/rispetto/)).toHaveCount(0); // nessuna statistica: nessun confronto
 
 	expect((await page.goto('/regione/inesistente'))!.status()).toBe(404);
 

@@ -11,7 +11,9 @@
 	});
 	const tabs = [
 		{ href: '/admin', label: 'Eventi' },
-		{ href: '/admin/proposte', label: 'Proposte' }
+		{ href: '/admin/proposte', label: 'Proposte' },
+		{ href: '/admin/statistiche', label: 'Statistiche' },
+		{ href: '/admin/stile', label: 'Stile' }
 	];
 </script>
 

@@ -427,7 +427,7 @@ def month_bounds(now: datetime) -> tuple[str, int, int]:
 TOP_CITIES = 10
 
 
-def month_stats_doc(region: str, month: str, month_events: list[dict], before: dict, now_ms: int) -> dict:
+def month_stats_doc(region: str, name: str, month: str, month_events: list[dict], before: dict, now_ms: int) -> dict:
     """Documento stats/{regione}_{AAAA-MM}: eventi attivi nel mese, comuni con eventi e città principali.
 
     L'import vede solo gli eventi in corso o futuri: gli id già contati nei giorni scorsi (campo `ids`, per comune)
@@ -441,20 +441,20 @@ def month_stats_doc(region: str, month: str, month_events: list[dict], before: d
         if ev["id"] not in ids.setdefault(slug, []):
             ids[slug].append(ev["id"])
     top = sorted(ids, key=lambda k: (-len(ids[k]), k))[:TOP_CITIES]
-    return {"region": region, "month": month, "events": sum(len(v) for v in ids.values()),
+    return {"region": region, "name": name, "month": month, "events": sum(len(v) for v in ids.values()),
             "comuni": len(ids), "cities": [{"slug": k, "name": names.get(k, k), "n": len(ids[k])} for k in top],
             "names": names, "ids": ids, "updatedAt": now_ms}
 
 
-def write_month_stats(db, events: list[dict], regions: set[str], now: datetime) -> tuple[int, int]:
+def write_month_stats(db, events: list[dict], regions: dict[str, str], now: datetime) -> tuple[int, int]:
     """Una lettura e una scrittura al giorno per regione. Restituisce (letture, scritture)."""
     month, start, end = month_bounds(now)
-    refs = {r: db.collection("stats").document(f"{r}_{month}") for r in sorted(regions)}
+    refs = {r: db.collection("stats").document(f"{r}_{month}") for r in sorted(regions)}  # slug → nome
     before = {d.reference.path: d.to_dict() or {} for d in db.get_all(list(refs.values()))}
     batch = db.batch()
     for r, ref in refs.items():
         mine = [e for e in events if e["importRegion"] == r and e["startTime"] < end and e["endTime"] >= start]
-        batch.set(ref, month_stats_doc(r, month, mine, before.get(ref.path, {}), int(now.timestamp() * 1000)))
+        batch.set(ref, month_stats_doc(r, regions[r], month, mine, before.get(ref.path, {}), int(now.timestamp() * 1000)))
     batch.commit()
     return len(refs), len(refs)
 
@@ -554,7 +554,7 @@ def main(argv: list[str] | None = None) -> int:
 
         db = firestore_client()
         stats["writes"] += write_coverage(db, events, names, centers, int(now.timestamp() * 1000))
-        reads, writes = write_month_stats(db, events, {slugify(SOURCES[n].region) for n in names
+        reads, writes = write_month_stats(db, events, {slugify(SOURCES[n].region): SOURCES[n].region for n in names
                                                        if not getattr(SOURCES[n], "regional", False)}, now)
         stats["reads"] += reads
         stats["writes"] += writes

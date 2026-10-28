@@ -90,3 +90,22 @@ export async function reject(s: Submission, reason: string) {
 	b.update(fs.doc(db, 'users', s.ownerId), { pendingCount: fs.increment(-1) });
 	await b.commit();
 }
+
+export interface RegionMonth {
+	region: string;
+	name: string;
+	month: string;
+	events: number;
+	comuni: number;
+	cities: { slug: string; name: string; n: number }[];
+}
+
+/** Statistiche mensili delle regioni (scritte dall'importer) per i mesi indicati; mai il campo `ids`, che qui non serve. */
+export async function listStats(months: string[]): Promise<RegionMonth[]> {
+	const { fs, db } = await session.start();
+	const snap = await fs.getDocs(fs.query(fs.collection(db, 'stats'), fs.where('month', 'in', months)));
+	return snap.docs.map((d) => {
+		const x = d.data();
+		return { region: x.region, name: x.name ?? x.region, month: x.month, events: x.events ?? 0, comuni: x.comuni ?? 0, cities: x.cities ?? [] };
+	});
+}

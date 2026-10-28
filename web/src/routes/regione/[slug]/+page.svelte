@@ -23,6 +23,7 @@
 	</nav>
 	<h1>Eventi in {data.name}</h1>
 	<p class="muted lead">{count(data.total)} in programma in {data.comuni.length} comuni coperti.</p>
+	{#if data.month}<p class="month">{data.month}</p>{/if}
 
 	<ul class="comuni">
 		{#each withEvents as c (c.slug)}
@@ -41,6 +42,10 @@
 </div>
 
 <style>
+	.month {
+		margin: 0 0 var(--space-4);
+		font-variant-numeric: tabular-nums;
+	}
 	.crumbs {
 		display: flex;
 		flex-wrap: wrap;

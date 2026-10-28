@@ -220,3 +220,28 @@ export async function getEvents(ids: string[]): Promise<Event[]> {
 	readCount += valid.length;
 	return (rows ?? []).flatMap((x) => (x.found && visible(x.found) ? [toEvent(x.found)] : []));
 }
+
+export interface MonthStats {
+	events: number;
+	comuni: number;
+}
+
+/** Statistiche del mese corrente e del precedente di una regione (stats/{regione}_{AAAA-MM}, scritte dall'importer). */
+export function monthStats(region: string, keys: { cur: string; prev: string }): Promise<{ cur: MonthStats | null; prev: MonthStats | null }> {
+	if (!/^[a-z0-9-]{1,70}$/.test(region)) return Promise.resolve({ cur: null, prev: null });
+	return cached(`stats:${region}:${keys.cur}`, async () => {
+		const r = root();
+		const names = [keys.cur, keys.prev].map((k) => `${r.name}/stats/${region}_${k}`);
+		const rows = await call<{ found?: Doc }[]>(':batchGet', {
+			documents: names,
+			mask: { fieldPaths: ['events', 'comuni'] } // senza `ids`, che pesa decine di KB
+		});
+		readCount += names.length;
+		const byName = new Map((rows ?? []).flatMap((x) => (x.found ? [[x.found.name, x.found] as const] : [])));
+		const read = (n: string): MonthStats | null => {
+			const f = byName.has(n) ? (decodeFields(byName.get(n)!.fields) as Partial<MonthStats>) : null;
+			return f && typeof f.events === 'number' ? { events: f.events, comuni: f.comuni ?? 0 } : null;
+		};
+		return { cur: read(names[0]), prev: read(names[1]) };
+	});
+}
