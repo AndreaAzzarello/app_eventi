@@ -1,7 +1,7 @@
 """Manifest locale degli hash: id → campi di PROJECTION (run.py) per regione, in manifests/<regione>.json.
 
 Evita la lettura giornaliera di tutti gli eventi da Firestore: il confronto parte dal manifest e la lettura
-completa (riconciliazione) avviene solo se il manifest manca, ha più di 7 giorni, non è coerente con
+completa (riconciliazione) avviene solo se il manifest manca, ha più di 8 giorni, non è coerente con
 importState/<regione> su Firestore o con --reconcile. Il `token` del manifest deve coincidere con quello di
 importState: lo cambia solo un import concluso, quindi un run interrotto o una cache persa portano alla
 riconciliazione. Le scritture sono idempotenti (id deterministici), quindi il fallback non duplica né cancella.
@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 VERSION = 1
-MAX_AGE_MS = 7 * 86_400_000
+MAX_AGE_MS = 8 * 86_400_000  # 7 giorni di scaglionamento (ci_report.reconcile_days) + 1 di tolleranza
 STATE = "importState"  # collezione con un documento {token, savedAt} per regione (solo Admin SDK)
 
 

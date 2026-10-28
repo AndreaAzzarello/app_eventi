@@ -174,7 +174,7 @@ def test_manifest_fallback_alla_riconciliazione(tmp_path, case):
     if case == "assente":
         (tmp_path / "lombardia.json").unlink()
     elif case == "vecchio":
-        now = datetime(2026, 11, 9, 6, 1, tzinfo=timezone.utc)  # più di 7 giorni dopo la riconciliazione
+        now = datetime(2026, 11, 10, 6, 1, tzinfo=timezone.utc)  # più di 8 giorni dopo la riconciliazione
     elif case == "reconcile":
         kw["reconcile"] = True
     elif case == "token":

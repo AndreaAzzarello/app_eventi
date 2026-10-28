@@ -36,8 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      regions: ${{ steps.matrix.outputs.regions }}
-      reads: ${{ steps.matrix.outputs.reads }}
+      include: ${{ steps.matrix.outputs.include }}
       writes: ${{ steps.matrix.outputs.writes }}
       geocode: ${{ steps.matrix.outputs.geocode }}
     steps:
@@ -50,24 +49,27 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m pytest -q tests
       # Regioni con almeno una fonte attiva e quote per job: le soglie giornaliere si dividono tra i job.
+      # Ogni regione si riconcilia con Firestore in un giorno fisso della settimana (ci_report.reconcile_days).
       - id: matrix
         env:
           ONLY: ${{ inputs.regione }}
+          RECONCILE: ${{ inputs.reconcile }}
         run: python ci_report.py matrix
 
   import:
     needs: plan
     runs-on: ubuntu-latest
-    # Stima: ~1 s per richiesta e host, 4 fonti in parallelo; Nominatim a 0,5 richieste/s per job (2 job = 1/s in tutto).
+    # Stima: ~1 s per richiesta e host, 4 fonti in parallelo; Nominatim a 0,25 richieste/s per job (4 job = 1/s in tutto).
     # Limite GitHub per job: 6 ore; sui repository pubblici i minuti dei runner standard sono gratuiti.
     timeout-minutes: 240
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 4
       matrix:
-        region: ${{ fromJSON(needs.plan.outputs.regions) }}
+        include: ${{ fromJSON(needs.plan.outputs.include) }}
     env:
-      NOMINATIM_INTERVAL: "2"
+      # 4 job in parallelo × 1 richiesta ogni 4 s = 1 richiesta al secondo in tutto verso Nominatim
+      NOMINATIM_INTERVAL: "4"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -90,11 +92,11 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: >
           python run.py --regione ${{ matrix.region }}
-          --max-reads ${{ needs.plan.outputs.reads }} --max-writes ${{ needs.plan.outputs.writes }}
+          --max-reads ${{ matrix.reads }} --max-writes ${{ needs.plan.outputs.writes }}
           --max-geocode ${{ needs.plan.outputs.geocode }}
           --stats-out stats-${{ matrix.region }}.json
           ${{ inputs.dry_run && '--dry-run' || '' }}
-          ${{ inputs.reconcile && '--reconcile' || '' }}
+          ${{ (inputs.reconcile || matrix.reconcile) && '--reconcile' || '' }}
       - uses: actions/upload-artifact@v4
         if: ${{ !inputs.dry_run }}
         with:

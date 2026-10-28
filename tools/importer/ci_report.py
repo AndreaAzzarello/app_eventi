@@ -2,6 +2,7 @@
 
   python ci_report.py matrix                       # regioni con fonti attive e quote per job → GITHUB_OUTPUT
   python ci_report.py summary <cartella> [cleanup.json]   # riepilogo unico → stdout e GITHUB_STEP_SUMMARY
+  python ci_report.py simulate [regioni.json]      # quote per giorno della settimana (scenario Italia)
 
 Quote Spark giornaliere (50.000 letture, 20.000 scritture, 20.000 cancellazioni) divise tra i job della matrice.
 """
@@ -11,7 +12,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from geo import slugify
 from registry import read_rows
@@ -20,11 +23,83 @@ QUOTA = {"reads": 50_000, "writes": 20_000, "deletes": 20_000}
 BUDGET = {"reads": 40_000, "writes": 15_000, "geocode": 3_000}  # con margine, vedi run.py
 
 
-def matrix(rows: list[dict], only: str = "") -> dict:
-    regions = sorted({slugify(r["regione"]) for r in rows if r["stato"] == "attivo"})
-    regions = [r for r in regions if not only or r == slugify(only)]
+RECONCILE_WEIGHT = 7  # una riconciliazione legge ~tutti gli eventi della regione: pesa come 7 giorni di import normale
+TURNOVER = 0.07  # quota di eventi nuovi o modificati ogni giorno (stima, vedi README §10)
+HORIZON_DAYS = 60
+
+
+def reconcile_days(weights: dict[str, int]) -> dict[str, int]:
+    """Giorno della settimana (0 = lunedì) in cui ogni regione si riconcilia con Firestore.
+
+    LPT deterministico: le regioni più pesanti per prime, ciascuna nel giorno meno carico (a parità, il primo).
+    Non dipende dall'ordine d'ingresso, quindi lo stesso input dà sempre la stessa assegnazione."""
+    load = [0] * 7
+    out: dict[str, int] = {}
+    for region in sorted(weights, key=lambda r: (-weights[r], r)):
+        day = min(range(7), key=lambda d: (load[d], d))
+        load[day] += weights[region]
+        out[region] = day
+    return out
+
+
+def matrix(rows: list[dict], only: str = "", weekday: int | None = None, force_reconcile: bool = False) -> dict:
+    """Regioni da importare con il budget di letture per job.
+
+    Il giorno di riconciliazione si assegna su tutte le regioni attive (anche con `only`), così non cambia
+    quando si lancia una regione sola. Il budget di 40.000 letture si divide in proporzione al peso
+    (fonti attive) × 7 per chi si riconcilia oggi: la somma non supera mai il budget."""
+    weights: dict[str, int] = {}
+    for r in rows:
+        if r["stato"] == "attivo":
+            weights[slugify(r["regione"])] = weights.get(slugify(r["regione"]), 0) + 1
+    days = reconcile_days(weights)
+    regions = [r for r in sorted(weights) if not only or r == slugify(only)]
     n = max(1, len(regions))
-    return {"regions": regions, **{k: v // n for k, v in BUDGET.items()}}
+    flags = {r: force_reconcile or (weekday is not None and days[r] == weekday) for r in regions}
+    shares = {r: weights[r] * (RECONCILE_WEIGHT if flags[r] else 1) for r in regions}
+    total = sum(shares.values()) or 1
+    include = [{"region": r, "reads": BUDGET["reads"] * shares[r] // total, "reconcile": flags[r]} for r in regions]
+    return {"regions": regions, "include": include, **{k: v // n for k, v in BUDGET.items() if k != "reads"}}
+
+
+def simulate(regions: dict[str, dict]) -> dict:
+    """Quote per giorno della settimana nello scenario dato.
+
+    regions: slug → {"events": N, "sources": comuni attivi}. Modello: ogni giorno importState (1) + eventi manuali
+    (1) + nuovi eventi in lettura; nel giorno assegnato la riconciliazione legge tutti gli eventi. Scritture:
+    eventi cambiati + 2 importState + 1 coverage per regione. Cancellazioni: la pulizia elimina ~eventi/60 al
+    giorno. Durata: 3 min + 0,15 min per fonte, regioni in parallelo su 4 job."""
+    days = reconcile_days({r: v["sources"] for r, v in regions.items()})
+    table = []
+    for d in range(7):
+        reads = writes = 0
+        minutes = []
+        for r, v in regions.items():
+            changed = round(v["events"] * TURNOVER)
+            reads += 2 + changed + (v["events"] if days[r] == d else 0)
+            writes += changed + 3
+            minutes.append(3 + 0.15 * v["sources"])
+        deletes = round(sum(v["events"] for v in regions.values()) / HORIZON_DAYS)
+        reads += deletes + 1  # la pulizia legge ciò che elimina
+        makespan = max(max(minutes), sum(minutes) / 4) if minutes else 0
+        table.append({"day": d, "reads": reads, "writes": writes, "deletes": deletes, "minutes": round(makespan),
+                      "user_reads": QUOTA["reads"] - reads,
+                      "worst": max(reads / QUOTA["reads"], writes / QUOTA["writes"], deletes / QUOTA["deletes"])})
+    return {"days": table, "assignment": days}
+
+
+DAYS = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
+
+
+def simulate_text(sim: dict) -> str:
+    lines = ["| giorno | letture | scritture | cancellazioni | durata job | letture per gli utenti | quota peggiore | riconciliano |",
+             "|---|---|---|---|---|---|---|---|"]
+    for t in sim["days"]:
+        who = ", ".join(r for r, d in sorted(sim["assignment"].items()) if d == t["day"]) or "-"
+        flag = " ⚠️" if t["worst"] > 0.8 else ""
+        lines.append(f"| {DAYS[t['day']]} | {t['reads']} | {t['writes']} | {t['deletes']} | ~{t['minutes']} min | "
+                     f"{t['user_reads']} | {t['worst']:.0%}{flag} | {who} |")
+    return "\n".join(lines)
 
 
 def summary(stats: list[dict], cleanup: dict | None) -> str:
@@ -49,8 +124,9 @@ def summary(stats: list[dict], cleanup: dict | None) -> str:
 
 def main(argv: list[str]) -> int:
     if argv[:1] == ["matrix"]:
-        m = matrix(read_rows(), os.environ.get("ONLY", ""))
-        out = "\n".join(f"{k}={json.dumps(v) if k == 'regions' else v}" for k, v in m.items())
+        m = matrix(read_rows(), os.environ.get("ONLY", ""), datetime.now(ZoneInfo("Europe/Rome")).weekday(),
+                   os.environ.get("RECONCILE") == "true")
+        out = "\n".join(f"{k}={json.dumps(v) if k in ('regions', 'include') else v}" for k, v in m.items())
         print(out)
         if path := os.environ.get("GITHUB_OUTPUT"):
             with open(path, "a", encoding="utf-8") as f:
@@ -65,6 +141,19 @@ def main(argv: list[str]) -> int:
         if path := os.environ.get("GITHUB_STEP_SUMMARY"):
             with open(path, "a", encoding="utf-8") as f:
                 f.write(text + "\n")
+        return 0
+    if argv[:1] == ["simulate"]:
+        if len(argv) > 1:
+            data = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
+        else:  # senza dati: fonti attive dei CSV, eventi = 4 per fonte (stima)
+            data = {}
+            for r in read_rows():
+                if r["stato"] == "attivo":
+                    v = data.setdefault(slugify(r["regione"]), {"events": 0, "sources": 0})
+                    v["events"] += 4
+                    v["sources"] += 1
+        sys.stdout.reconfigure(encoding="utf-8")
+        print(simulate_text(simulate(data)))
         return 0
     print(__doc__)
     return 2

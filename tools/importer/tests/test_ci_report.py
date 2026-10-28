@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from ci_report import matrix, summary  # noqa: E402
+from ci_report import BUDGET, QUOTA, matrix, reconcile_days, simulate, summary  # noqa: E402
 
 
 def row(regione, stato="attivo"):
@@ -13,7 +13,8 @@ def row(regione, stato="attivo"):
 
 def test_matrice_solo_regioni_con_fonti_attive_e_quote_divise():
     m = matrix([row("Emilia-Romagna"), row("Emilia-Romagna"), row("Lombardia"), row("Veneto", "candidato")])
-    assert m == {"regions": ["emilia-romagna", "lombardia"], "reads": 20_000, "writes": 7_500, "geocode": 1_500}
+    assert (m["regions"], m["writes"], m["geocode"]) == (["emilia-romagna", "lombardia"], 7_500, 1_500)
+    assert [j["reads"] for j in m["include"]] == [BUDGET["reads"] * 2 // 3, BUDGET["reads"] // 3]  # in proporzione alle fonti
     assert matrix([row("Lombardia"), row("Veneto")], only="Veneto")["regions"] == ["veneto"]
     assert matrix([])["regions"] == []
 
@@ -26,3 +27,33 @@ def test_riepilogo_unico_con_quote():
     assert "| lombardia | 5 | 100 | 150 |  | 10 | 90 | 1 | 7 | 0 |" in text
     assert "| letture | 250 | 50000 | ok |" in text and "| cancellazioni | 12 | 20000 | ok |" in text
     assert "oltre il 75%" in summary([{"region": "x", "events": 1, "reads": 40_000, "writes": 0, "unchanged": 0, "hidden": 0}], None)
+
+
+WEIGHTS = {f"r{i:02d}": w for i, w in enumerate([255, 157, 111, 86, 66, 54, 25, 16, 13, 12, 11, 90, 80, 70, 60, 50, 40, 30, 20, 10])}
+
+
+def test_riconciliazione_deterministica_bilanciata_e_indipendente_dall_ordine():
+    a = reconcile_days(WEIGHTS)
+    assert a == reconcile_days(dict(reversed(list(WEIGHTS.items()))))
+    load = [sum(w for r, w in WEIGHTS.items() if a[r] == d) for d in range(7)]
+    assert max(load) - min(load) <= max(WEIGHTS.values()) and set(a.values()) == set(range(7))
+    assert reconcile_days({}) == {} and reconcile_days({"x": 5}) == {"x": 0}
+
+
+def test_flag_riconciliazione_solo_nel_giorno_assegnato_e_budget_entro_il_limite():
+    rows = [row(r) for r, w in WEIGHTS.items() for _ in range(w)]
+    days = reconcile_days(WEIGHTS)
+    for weekday in range(7):
+        m = matrix(rows, weekday=weekday)
+        assert {j["region"] for j in m["include"] if j["reconcile"]} == {r for r, d in days.items() if d == weekday}
+        assert sum(j["reads"] for j in m["include"]) <= BUDGET["reads"]
+    assert all(j["reconcile"] for j in matrix(rows, force_reconcile=True)["include"])
+    only = matrix(rows, only="r00", weekday=days["r00"])  # con una sola regione il giorno non cambia
+    assert only["include"][0]["reconcile"] and only["include"][0]["reads"] <= BUDGET["reads"]
+
+
+def test_simulazione_italia_nessun_giorno_oltre_l_80_per_cento():
+    regions = {r: {"events": w * 20, "sources": w} for r, w in WEIGHTS.items()}  # scenario estremo: 20 eventi a fonte
+    sim = simulate(regions)
+    assert len(sim["days"]) == 7 and all(t["worst"] <= 0.8 for t in sim["days"])
+    assert all(t["reads"] <= BUDGET["reads"] for t in sim["days"]) and QUOTA["reads"] > BUDGET["reads"]
