@@ -26,7 +26,7 @@ from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox, slugify
 from geocode import Geocoder
 from mapping import ROME, content_hash, dedupe_key, html_to_text, is_long_running, one_line
-from registry import USER_AGENT
+from registry import USER_AGENT, read_rows
 from relevance import exclusion_reason
 
 HERE = Path(__file__).parent
@@ -76,6 +76,7 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
             continue
         enrich(ev, place_of(geocoder, ev, source), fallback_place(source))
+        use_italian_name(ev)
         clean_texts(ev)
         if is_long_running(ev):
             ev["longRunning"] = True
@@ -87,6 +88,29 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
         log.info("%s: %d eventi, %d senza coordinate, %d esclusi", name, stats[name]["events"],
                  stats[name]["skipped"], stats[name]["excluded"])
     return list(events.values())
+
+
+def alt_index(rows: list[dict]) -> dict[tuple[str, str], tuple[str, str]]:
+    """(sigla provincia, slug di ogni grafia) → (nome italiano, alias): "Bolzano - Bozen" e "Bozen" portano a Bolzano."""
+    out = {}
+    for r in rows:
+        if r["comune_alt"]:
+            it, alt = r["comune"], r["comune_alt"]
+            for name in (it, alt, f"{it} - {alt}", f"{alt} - {it}", f"{it}/{alt}", f"{alt}/{it}"):
+                out[(r["provincia"], slugify(name))] = (it, alt)
+    return out
+
+
+ALT = alt_index(read_rows())
+
+
+def use_italian_name(ev: dict) -> None:
+    """Comuni bilingui: city e citySlug restano il nome ufficiale italiano (slug stabile), l'alias va in cityAlt."""
+    hit = ALT.get((ev["province"], ev["citySlug"]))
+    if hit:
+        ev["city"], ev["citySlug"], ev["cityAlt"] = hit[0], slugify(hit[0]), hit[1]
+        if ev.get("locality") and ALT.get((ev["province"], slugify(ev["locality"]))) == hit:
+            del ev["locality"]  # Nominatim ripete il comune come frazione
 
 
 def clean_texts(ev: dict) -> None:
@@ -350,8 +374,9 @@ def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[t
         slug = slugify(s.city)
         if (region, slug) in centers:
             lat, lng = centers[(region, slug)]
+            alt = ALT.get((s.province, slug))
             comuni.append({"name": s.city, "slug": slug, "province": s.province, "lat": round(lat, 4),
-                           "lng": round(lng, 4), "events": counts.get(slug, 0)})
+                           "lng": round(lng, 4), "events": counts.get(slug, 0), **({"alt": alt[1]} if alt else {})})
     return {"name": region, "updatedAt": now_ms, "comuni": comuni}
 
 

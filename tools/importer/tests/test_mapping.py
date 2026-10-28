@@ -158,3 +158,13 @@ def test_html_to_text(raw, expected):
 def test_shorten_non_taglia_dentro_un_tag():
     out = shorten(html_to_text("<div><b>" + "parola " * 80 + "</b></div>"))
     assert len(out) <= 300 and out.endswith("…") and "<" not in out
+
+
+@pytest.mark.parametrize("title,expected", [
+    ("Kinderkonzert in der Bibliothek", "kids"), ("Weinverkostung im Keller", "food"), ("Berglauf Seiser Alm", "sport"),
+    ("Konzert der Musikkapelle", "music"), ("Bauernmarkt", "market"), ("Lesung mit Autorin", "culture"),
+    ("Spectacle pour enfants", "kids"), ("Dégustation de fromages", "food"), ("Concert de la chorale", "music"),
+    ("Marché de Noël", "market"), ("Exposition de photographies", "culture"),
+])
+def test_category_from_title_tedesco_francese(title, expected):
+    assert category_from_title(title) == expected

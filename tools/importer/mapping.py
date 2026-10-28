@@ -41,14 +41,14 @@ CULTURE_TYPES = {
 }
 # Se la tipologia manca o è generica, decide il titolo.
 KEYWORDS = [
-    ("kids", r"\b(bambin\w*|bimb\w*|burattin\w*|ludoteca|baby|ragazzi|piccoli|favol\w*)\b"),
-    ("food", r"\b(sagra|degustazion\w*|street food|enogastronom\w*|cena|pranzo|aperitiv\w*|polenta|tortell\w*|gnocco|vino|birra|tartuf\w*|castagn\w*|cucina|gastronom\w*|food)\b"),
-    ("sport", r"\b(corsa|camminata|maratona|torneo|partita|gara|sport\w*|bici\w*|ciclo\w*|trekking|yoga|ginnastica|nuoto|calcio|basket|pallavolo|tennis|podistic\w*|palio)\b"),
-    ("music", r"\b(concert\w*|music\w*|jazz|rock|orchestra|coro|corale|dj|band|serenata|opera|liric\w*|festival)\b"),
-    ("market", r"\b(mercat\w*|fiera|antiquariato|bancarell\w*|expo)\b"),
-    ("culture", r"\b(teatr\w*|mostra|spettacol\w*|cinema|film|proiezion\w*|libr\w*|museo|visita guidata|laboratorio|conferenza|convegno|presentazione|lettur\w*|incontro|commemorazion\w*|cerimonia|arte|storia)\b"),
+    ("kids", r"\b(bambin\w*|bimb\w*|burattin\w*|ludoteca|baby|ragazzi|piccoli|favol\w*|\w*kinder\w*|märchen|puppentheater|enfants?|jeunesse|contes?)\b"),  # + DE/FR
+    ("food", r"\b(sagra|degustazion\w*|street food|enogastronom\w*|cena|pranzo|aperitiv\w*|polenta|tortell\w*|gnocco|vino|birra|tartuf\w*|castagn\w*|cucina|gastronom\w*|food|\w*(?:wein|bier|verkostung|speck|knödel)\w*|törggelen|dégustation|repas|apéritif|fromages?|vins?|gastronomie|cuisine)\b"),
+    ("sport", r"\b(corsa|camminata|maratona|torneo|partita|gara|sport\w*|bici\w*|ciclo\w*|trekking|yoga|ginnastica|nuoto|calcio|basket|pallavolo|tennis|podistic\w*|palio|\w*lauf|lauf\w*|wander\w*|radtour\w*|turnier\w*|fußball|fussball|skirennen|course|randonnée|tournoi|cyclisme|vélo)\b"),
+    ("music", r"\b(concert\w*|music\w*|jazz|rock|orchestra|coro|corale|dj|band|serenata|opera|liric\w*|festival|\w*konzert\w*|musik\w*|chor|orchester|kapelle|oper|musique|chorale|orchestre|fanfare|opéra)\b"),
+    ("market", r"\b(mercat\w*|fiera|antiquariato|bancarell\w*|expo|\w*markt|märkte|marché|brocante|foire|vide-grenier|braderie)\b"),
+    ("culture", r"\b(teatr\w*|mostra|spettacol\w*|cinema|film|proiezion\w*|libr\w*|museo|visita guidata|laboratorio|conferenza|convegno|presentazione|lettur\w*|incontro|commemorazion\w*|cerimonia|arte|storia|theater\w*|ausstellung\w*|lesung|vortrag|kino|museum|führung|besichtigung|buchvorstellung|konferenz|tagung|feier|gedenk\w*|geschichte|kunst|théâtre|exposition|spectacle|cinéma|projection|lecture|musée|visite guidée|conférence|présentation|atelier|rencontre|cérémonie|commémoration|histoire)\b"),
 ]
-KIDS_RE = re.compile(r"bambin|bimb|ragazz|famigli|\b\d{1,2}\s*-\s*\d{1,2}\s*anni|piccoli|kids", re.I)
+KIDS_RE = re.compile(r"bambin|bimb|ragazz|famigli|kinder|familie|enfants|famille|\b\d{1,2}\s*-\s*\d{1,2}\s*anni|piccoli|kids", re.I)
 FREE_RE = re.compile(r"gratuit|gratis|gratutio|libero|free|non\s+(?:sono\s+)?previst\w+\s+cost|senza\s+costi|nessun\s+costo", re.I)
 EURO_RE = re.compile(r"(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro)|€\s*(\d+(?:[.,]\d{1,2})?)", re.I)
 

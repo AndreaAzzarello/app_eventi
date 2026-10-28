@@ -147,3 +147,33 @@ def test_pagine_archivio_saltate():
     from adapters.design_comuni_html import ARCHIVE_RE
     assert ARCHIVE_RE.search("/vivere-il-comune/eventi/archivio-eventi/")
     assert not ARCHIVE_RE.search("/vivere-il-comune/eventi/archivio-fotografico-in-mostra")
+
+
+ESCLUSI_DE_FR = [
+    ("Gemeinderatssitzung vom 12. November", "seduta di consiglio/giunta"),
+    ("Sitzung des Gemeindeausschusses", "seduta di consiglio/giunta"),
+    ("Kundmachung: Müllabfuhr an Allerheiligen", "avviso"),
+    ("Straßensperre Pustertaler Straße", "avviso"),
+    ("Veranstaltungen", "titolo generico"),
+    ("Alle Veranstaltungen 2026", "pagina riassuntiva"),
+    ("Séance du conseil municipal du 12 novembre", "seduta di consiglio/giunta"),
+    ("Avis de coupure d'eau", "avviso"),
+    ("Collecte des déchets: calendrier", "avviso"),
+    ("Événements", "titolo generico"),
+]
+TENUTI_DE_FR = [
+    "Konzert der Musikkapelle", "Vortrag: Geschichte des Dorfes", "Ausstellung im Rathaus",
+    "Informationsveranstaltung zur Müllentsorgung", "Weinfest am Dorfplatz", "Führung durch die Altstadt",
+    "Concert de la fanfare municipale", "Exposition de peinture", "Conférence sur l'histoire de la vallée",
+    "Marché de Noël", "Soirée jeux pour les enfants",
+]
+
+
+@pytest.mark.parametrize("title,reason", ESCLUSI_DE_FR)
+def test_esclusi_tedesco_francese(title, reason):
+    assert exclusion_reason(title) == reason
+
+
+@pytest.mark.parametrize("title", TENUTI_DE_FR)
+def test_eventi_veri_tedesco_francese_restano(title):
+    assert exclusion_reason(title) is None

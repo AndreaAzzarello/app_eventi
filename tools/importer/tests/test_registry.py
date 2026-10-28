@@ -340,3 +340,33 @@ def test_robots_errore_momentaneo_poi_ok():
     f.client = httpx.Client(transport=httpx.MockTransport(
         lambda req: next(seq) if req.url.path == "/robots.txt" else httpx.Response(200, text="ok")))
     assert f.get("https://www.c.it/x").status_code == 200
+
+
+FRASI_DE = [
+    ("Alle Inhalte dieser Website stehen unter der Lizenz Creative Commons Namensnennung 4.0 International.", "CC-BY-4.0"),
+    ("Die Texte und Bilder dürfen unter Angabe der Quelle gemäß CC BY 4.0 weiterverwendet werden.", "CC-BY-4.0"),
+    ("Inhalte: Creative Commons Namensnennung - Nicht kommerziell 4.0", "CC-BY-NC-4.0"),
+    ("Alle Rechte vorbehalten. Die Vervielfältigung der Inhalte ist untersagt.", "riservata"),
+    ("Offene Daten der Gemeinde: Lizenz CC0 (Public Domain).", "CC0"),
+]
+FRASI_FR = [
+    ("Les contenus de ce site sont publiés sous licence Creative Commons Attribution 4.0 International.", "CC-BY-4.0"),
+    ("Réutilisation des données autorisée selon la licence CC BY 4.0.", "CC-BY-4.0"),
+    ("Creative Commons Attribution - Pas d'utilisation commerciale 4.0", "CC-BY-NC-4.0"),
+    ("Tous droits réservés. Toute reproduction des contenus est interdite.", "riservata"),
+    ("Données ouvertes de la commune : licence CC0.", "CC0"),
+]
+
+
+@pytest.mark.parametrize("frase,atteso", FRASI_DE + FRASI_FR)
+def test_license_of_tedesco_francese(frase, atteso):
+    assert license_of(frase) == atteso
+
+
+def test_licenze_tedesco_pagina_impressum():
+    from licenses import best_sentence, classify
+
+    html = ("<footer><p>Impressum</p><p>Alle Inhalte dieser Website stehen unter der Lizenz Creative Commons "
+            "Namensnennung 4.0 International.</p><p>Die Software ist Open Source.</p></footer>")
+    frase = best_sentence(html)
+    assert license_of(frase) == "CC-BY-4.0" and classify(frase) == "contenuti"

@@ -30,16 +30,25 @@ from registry import USER_AGENT, base_url, read_rows, write_rows
 
 EXTRA = {"modena", "formigine", "sassuolo", "mirandola"}
 REPORT = Path(__file__).parent / "reports" / "licenze_er.md"
-LINK_TEXT = re.compile(r"note legali|termini d.uso|condizioni d.uso|licenz|privacy|condizioni di utilizzo|copyright", re.I)
-LINK_PATH = re.compile(r"note[-_]legali|termini|condizioni|licenz|privacy|copyright", re.I)
+LINK_TEXT = re.compile(r"note legali|termini d.uso|condizioni d.uso|licenz|privacy|condizioni di utilizzo|copyright|"
+                       r"impressum|rechtliche hinweise|nutzungsbedingungen|nutzungshinweise|lizenz|datenschutz|"
+                       r"mentions l[ée]gales|conditions d.utilisation|licence|confidentialit[ée]", re.I)
+LINK_PATH = re.compile(r"note[-_]legali|termini|condizioni|licenz|privacy|copyright|impressum|rechtliche|nutzung|lizenz|"
+                       r"datenschutz|mentions|licence|conditions", re.I)
 TYPICAL = ["/note-legali", "/it/note-legali", "/it-it/note-legali", "/note-legali-e-privacy", "/privacy",
-           "/it/privacy", "/termini-di-utilizzo", "/licenza", "/amministrazione-trasparente"]
+           "/it/privacy", "/termini-di-utilizzo", "/licenza", "/amministrazione-trasparente",
+           "/de/impressum", "/impressum", "/de/rechtliche-hinweise", "/rechtliche-hinweise",  # Alto Adige
+           "/fr/mentions-legales", "/mentions-legales", "/fr/conditions-d-utilisation"]  # Valle d'Aosta
 MAX_PAGES = 8
 LICENSE_HIT = re.compile(r"creative\s*commons|creativecommons\.org|\bcc[\s-]*by\b|\bcc0\b|\biodl\b|licenz|riutilizzo|riutilizzabil|riuso|"
-                         r"diritti riservati|copyright|riproduzione|diritto d.autore", re.I)
-SOFTWARE = re.compile(r"\btema\b|theme|software|codice|\bcode\b|design system|open source|github|sviluppat|"
+                         r"diritti riservati|copyright|riproduzione|diritto d.autore|"
+                         r"lizenz|weiterverwendung|wiederverwendung|rechte vorbehalten|urheberrecht|"
+                         r"licence|r[ée]utilisation|droits r[ée]serv[ée]s|droit d.auteur", re.I)
+SOFTWARE = re.compile(r"\btema\b|theme|software|codice|\bcode\b|design system|open source|github|sviluppat|quellcode|logiciel|"
                       r"riusabil|riuso del|template|\bplugin\b|agid", re.I)
-CONTENT = re.compile(r"contenut|testi|\bdati\b|immagin|informazioni|documenti|pubblicat|materiali|sito", re.I)
+CONTENT = re.compile(r"contenut|testi|\bdati\b|immagin|informazioni|documenti|pubblicat|materiali|sito|"
+                     r"inhalt|texte|\bdaten\b|bilder|informationen|dokumente|ver[öo]ffentlicht|website|"
+                     r"contenus|textes|donn[ée]es|images|documents|publi[ée]s|site web", re.I)
 BLOCK = re.compile(r"</?(p|div|li|ul|ol|br|h[1-6]|tr|td|footer|section|article|nav|header|table)\b[^>]*>", re.I)
 
 
@@ -54,7 +63,7 @@ def sentences(html: str) -> list[str]:
     out = []
     for line in h.split("\n"):
         line = " ".join(line.split())
-        out += [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-Ú])", line) if s.strip()]
+        out += [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Þ])", line) if s.strip()]
     return out
 
 
@@ -65,11 +74,11 @@ def best_sentence(html: str) -> str:
     ss = [s + " " + ss[i + 1] if len(s) < 60 and not s.endswith(".") and i + 1 < len(ss) else s for i, s in enumerate(ss)]
     hits = [s for s in ss if LICENSE_HIT.search(s) and 25 <= len(s)]
     def rank(s: str) -> int:
-        return 0 if re.search(r"creative\s*commons|creativecommons|\bcc[\s-]*by", s, re.I) else 1 if re.search(r"licenz", s, re.I) else 2
-    hits = [s for s in hits if rank(s) < 2 or re.search(r"riutilizzo|riutilizzabil|riuso|tutti i contenuti|riproduzione", s, re.I)]  # copyright/privacy generici no
+        return 0 if re.search(r"creative\s*commons|creativecommons|\bcc[\s-]*by", s, re.I) else 1 if re.search(r"licenz|lizenz|licence", s, re.I) else 2
+    hits = [s for s in hits if rank(s) < 2 or re.search(r"riutilizzo|riutilizzabil|riuso|tutti i contenuti|riproduzione|weiterverwendung|inhalt|r[ée]utilisation|contenus", s, re.I)]  # copyright/privacy generici no
     if not hits:
         return ""
-    s = min(hits, key=lambda s: (rank(s), license_of(s) == "non trovata", not re.search(r"riuso|riutilizz|contenut", s, re.I), len(s)))
+    s = min(hits, key=lambda s: (rank(s), license_of(s) == "non trovata", not re.search(r"riuso|riutilizz|contenut|inhalt|weiterverwendung|r[ée]utilisation|contenus", s, re.I), len(s)))
     if len(s) > 300 and (m := LICENSE_HIT.search(s)):  # tronca attorno alla licenza, non in testa
         a = max(0, min(m.start() - 150, len(s) - 300))
         s = s[a:a + 300]
@@ -80,7 +89,7 @@ def classify(sentence: str) -> str:
     if not sentence:
         return "non-trovata"
     sw, ct = bool(SOFTWARE.search(sentence)), bool(CONTENT.search(sentence))
-    if sw and not re.search(r"contenut|\bdati\b|testi", sentence, re.I):
+    if sw and not re.search(r"contenut|\bdati\b|testi|inhalt|\bdaten\b|texte|contenus|donn[ée]es|textes", sentence, re.I):
         return "solo-software"
     return "contenuti" if ct and not sw else "non-chiara"
 
@@ -131,7 +140,8 @@ def analyze(f: Fetcher, r: dict) -> dict:
             pages.append((str(resp.url), resp.text))
     found = []
     # clausola restrittiva sulla stessa pagina della licenza aperta: l'automatismo non può decidere
-    res["conflitto"] = any(re.search(r"esclusiva proprietà|tutti i diritti riservati", html, re.I) for _, html in pages[1:])
+    res["conflitto"] = any(re.search(r"esclusiva proprietà|tutti i diritti riservati|alle rechte vorbehalten|ausschlie(?:ß|ss)liches eigentum|"
+                                  r"tous droits r[ée]serv[ée]s|propri[ée]t[ée] exclusive", html, re.I) for _, html in pages[1:])
     for url, html in pages:
         if s := best_sentence(html):
             found.append((0 if re.search(r"creative\s*commons|creativecommons|\bcc[\s-]*by", s, re.I) else 1, url != base + "/", url, s))

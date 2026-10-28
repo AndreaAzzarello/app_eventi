@@ -12,6 +12,8 @@ from mapping import _norm
 
 #: titoli che da soli non dicono nulla (confronto sul titolo normalizzato, senza accenti né punteggiatura)
 GENERIC_TITLES = {
+    "veranstaltung", "veranstaltungen", "termin", "termine", "event", "events", "mitteilung",  # tedesco
+    "evenement", "evenements", "manifestation", "manifestations", "agenda", "actualite", "actualites",  # francese
     "evento", "eventi", "evento culturale", "evento sportivo", "evento musicale", "evento gastronomico",
     "evento pubblico", "mostra", "spettacolo", "manifestazione", "iniziativa", "iniziative", "appuntamento",
 }
@@ -23,12 +25,17 @@ SUMMARY_RE = re.compile(
     r"|^(?:programma|calendario|elenco)\b.*\beventi\b"
     r"|^eventi\b.*\b(?:programma|calendario)\b"
     r"|^programma (?:dell |della )?(?:estate|estivo|autunno|inverno|primavera)\b"
-    r"|^(?:estate|autunno|inverno|primavera) 20\d\d$")
+    r"|^(?:estate|autunno|inverno|primavera) 20\d\d$"
+    r"|^(?:alle |aktuelle )?(?:veranstaltungen|termine)(?: 20\d\d)?$|^veranstaltungs(?:kalender|programm|ubersicht)\b"
+    r"|^(?:tous les |calendrier des |programme des )?evenements(?: 20\d\d)?$"
+    r"|^(?:programme|calendrier) (?:des )?(?:manifestations|evenements)\b")
 
 #: sedute degli organi comunali
 SEDUTA_RE = re.compile(
     r"\b(?:sedut[ae]|convocazion[ei]|riunion[ei])\b.*\b(?:consigli\w*|giunta|commission\w*)\b"
-    r"|\b(?:consiglio|giunta)\s+(?:comunale|municipale)\b|\bcommissione\s+consiliare\b")
+    r"|\b(?:consiglio|giunta)\s+(?:comunale|municipale)\b|\bcommissione\s+consiliare\b"
+    r"|gemeinderat|stadtrat|gemeindeausschuss|ratssitzung|ausschusssitzung|\bsitzung\b.*\b(?:gemeinde|ausschuss|rat)"  # DE: composti
+    r"|\bconseil\s+(?:municipal|communal)\b|\bseance\b.*\bconseil\b|\bcommission\s+communale\b")
 
 #: avvisi alla cittadinanza; si salvano se il titolo dice che è un incontro pubblico (EVENT_WORD_RE)
 NOTICE_RE = re.compile(
@@ -38,7 +45,11 @@ NOTICE_RE = re.compile(
     r"|\bpeste\s+suina\b|\binfluenza\s+aviaria\b|\bzanzara\s+tigre\b"
     r"|\bband[oi]\b|\bgraduatoria\b"
     r"|\bsicurezza\s+stradale\b|\bchiusura\s+(?:al\s+traffico|strada|ufficio|uffici)\b|\bviabilit[aà]\b"
-    r"|\bsciopero\b|\binterruzione\s+(?:acqua|energia|servizio)\b")
+    r"|\bsciopero\b|\binterruzione\s+(?:acqua|energia|servizio)\b"
+    r"|kundmachung|bekanntmachung|amtliche\s+mitteilung|\bmull(?:abfuhr|entsorgung|kalender)?\b|muellabfuhr|restmull"  # DE
+    r"|abfallentsorgung|recyclinghof|stra(?:ss|ß)ensperre|sperrung|ausschreibung|\bwarnung\b|wasserunterbrechung"
+    r"|\bavis\b|\bdechets\b|\bordures\b|\bramassage\b|\balerte\b|\bcoupure\s+(?:d eau|d electricite|de courant)\b"  # FR
+    r"|fermeture\s+(?:de la route|du bureau|des bureaux)|appel d offres")
 #: truffe: avviso solo se il titolo è un allarme; "Come prevenire e difendersi dalle truffe" è un incontro
 TRUFFE_RE = re.compile(r"\b(?:attenzione|allerta|avviso|tentativi?|false?)\b.*\btruff\w*|\btruff\w*\b.*\b(?:in corso|anziani)\b")
 TRUFFE_KEEP_RE = re.compile(r"\b(?:come|prevenire|difendersi|difendere|difesa|proteggersi|riconoscere|imparare)\b")
@@ -46,7 +57,9 @@ TRUFFE_KEEP_RE = re.compile(r"\b(?:come|prevenire|difendersi|difendere|difesa|pr
 SEASON_RE = re.compile(r"\bstagione\s+(?:teatral\w*|concertistic\w*|cinematografic\w*|music\w*|lirica|di prosa|sinfonica)\b|^stagione\b")
 EVENT_WORD_RE = re.compile(
     r"\b(?:incontro|conferenza|serata|convegno|laboratori\w*|corso|spettacol\w*|concert\w*|mostra|cerimonia|festa|"
-    r"presentazione|assemblea|passeggiata|visita|giornata|workshop|evento)\b")
+    r"presentazione|assemblea|passeggiata|visita|giornata|workshop|evento)\b"
+    r"|veranstaltung|konzert|vortrag|ausstellung|lesung|\bfest\b|\bfeier\b|\bmarkt\b|wanderung|\bkurs\b|theater|\bfuhrung\b"  # DE
+    r"|\bconcert\b|\bspectacle\b|\bexposition\b|\bconference\b|\bsoiree\b|\bfete\b|\batelier\b|\bvisite\b|\brencontre\b")
 
 #: "Video: ..." come titolo di servizio
 VIDEO_RE = re.compile(r"^video\b|\bvideo\s+(?:messaggio|istituzionale|del sindaco|integrale)\b|\bdiretta\s+streaming\b")

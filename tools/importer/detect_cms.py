@@ -102,6 +102,19 @@ def find_link(html: str, base: str, kind: str) -> str:
 def license_of(text: str) -> str:
     t = " ".join(text.lower().split())
     ver = lambda m: f"-{m}" if m else ""  # noqa: E731
+    # Nome per esteso in tedesco/francese ("Creative Commons Namensnennung - Nicht kommerziell 4.0"): prima le varianti restrittive
+    if m := re.search(r"(?:namensnennung|attribution)\b([^.]{0,60}?)(?:(\d\.\d)|[.,;)]|$)", t):
+        rest = m.group(1)
+        v = ver(m.group(2) or (re.search(r"(\d\.\d)", t[m.end():m.end() + 6]) or [None, None])[1])
+        if re.search(r"nicht[- ]kommerziell|non[- ]?commercial|pas d.utilisation commerciale|sans usage commercial", rest):
+            return "CC-BY-NC" + v
+        if re.search(r"keine bearbeitung|no[- ]?deriv|pas de modification|sans modification", rest):
+            return "CC-BY-ND" + v
+        if re.search(r"gleichen bedingungen|share[- ]?alike|m[êe]mes conditions", rest):
+            return "CC-BY-SA" + v
+        # un trattino non riconosciuto dopo "Attribution" è una variante (NC, ND…): non è CC-BY semplice
+        if "creative commons" in t[:m.start()][-30:] and not rest.lstrip().startswith(("-", "–", "—")):
+            return "CC-BY" + v
     if m := re.search(r"creativecommons\.org/licenses/by-(nc|nd)[a-z-]*/(\d\.\d)|cc[\s-]*by[\s-]*(nc|nd)", t):
         return f"CC-BY-{(m.group(1) or m.group(3)).upper()}" + ver(m.group(2))  # restrittiva (NC o ND)
     if m := re.search(r"creativecommons\.org/licenses/by-sa/(\d\.\d)|cc[\s-]*by[\s-]*sa[\s-]*(\d\.\d)?", t):
@@ -112,7 +125,8 @@ def license_of(text: str) -> str:
         return "CC0"
     if re.search(r"\biodl\b|italian open data license", t):
         return "IODL"
-    if "tutti i diritti riservati" in t or "all rights reserved" in t:
+    if any(x in t for x in ("tutti i diritti riservati", "all rights reserved", "alle rechte vorbehalten",
+                            "tous droits réservés", "tous droits reserves")):
         return "riservata"
     return "non trovata"
 
