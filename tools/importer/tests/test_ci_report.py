@@ -23,6 +23,6 @@ def test_riepilogo_unico_con_quote():
               "sources": 5, "geocode": 7, "deferred": 0},
              {"region": "veneto", "events": 50, "reads": 60, "writes": 0, "unchanged": 50, "hidden": 0}]
     text = summary(stats, {"reads": 40, "deleted": 12, "due": 12})
-    assert "| lombardia | 5 | 100 | 150 | 10 | 90 | 1 | 7 | 0 |" in text
+    assert "| lombardia | 5 | 100 | 150 |  | 10 | 90 | 1 | 7 | 0 |" in text
     assert "| letture | 250 | 50000 | ok |" in text and "| cancellazioni | 12 | 20000 | ok |" in text
     assert "oltre il 75%" in summary([{"region": "x", "events": 1, "reads": 40_000, "writes": 0, "unchanged": 0, "hidden": 0}], None)

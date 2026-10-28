@@ -135,3 +135,100 @@ def test_primo_import_grande_legge_i_mancanti_a_blocchi():
     db.get_all = lambda refs, field_paths=None: (calls.append(len(refs)), original(refs, field_paths))[1]
     s = run(db, [event(i) for i in range(700)])
     assert calls == [300, 300, 100] and s["written"] == 700
+
+
+# ---- manifest locale ---------------------------------------------------------------------------------------------
+
+DAY2 = datetime(2026, 11, 2, 6, 0, tzinfo=timezone.utc)
+
+
+def mrun(db, events, tmp_path, now=NOW, **kw):
+    return run(db, events, now, manifest_dir=tmp_path, **kw)
+
+
+def test_manifest_secondo_giro_senza_leggere_gli_eventi(tmp_path):
+    db, events = FakeFirestore(), [event(i) for i in range(50)]
+    s1 = mrun(db, events, tmp_path)
+    assert s1["compare"] == "firestore" and s1["written"] == 50
+    db.reads = db.writes = 0
+    s2 = mrun(db, events, tmp_path, now=DAY2)
+    assert (s2["compare"], s2["written"], s2["unchanged"], db.writes) == ("manifest", 0, 50, 0)
+    assert s2["reads"] <= 3 and db.reads <= s2["reads"]  # importState + query manuali (min 1), non 50
+
+
+def test_manifest_scrive_solo_le_modifiche_e_resta_coerente(tmp_path):
+    db, events = FakeFirestore(), [event(i) for i in range(5)]
+    mrun(db, events, tmp_path)
+    events[1] = event(1, title="Cambiato")
+    s = mrun(db, events, tmp_path, now=DAY2)
+    assert (s["compare"], s["written"]) == ("manifest", 1) and db.data["events/e1"]["createdAt"] == NOW_MS
+    s = mrun(db, events, tmp_path, now=datetime(2026, 11, 3, 6, 0, tzinfo=timezone.utc))
+    assert (s["compare"], s["written"], s["unchanged"]) == ("manifest", 0, 5)
+
+
+@pytest.mark.parametrize("case", ["assente", "vecchio", "reconcile", "token", "illeggibile"])
+def test_manifest_fallback_alla_riconciliazione(tmp_path, case):
+    db, events = FakeFirestore(), [event(i) for i in range(4)]
+    mrun(db, events, tmp_path)
+    now, kw = DAY2, {}
+    if case == "assente":
+        (tmp_path / "lombardia.json").unlink()
+    elif case == "vecchio":
+        now = datetime(2026, 11, 9, 6, 1, tzinfo=timezone.utc)  # più di 7 giorni dopo la riconciliazione
+    elif case == "reconcile":
+        kw["reconcile"] = True
+    elif case == "token":
+        db.data["importState/lombardia"]["token"] = "altro"
+    else:
+        (tmp_path / "lombardia.json").write_text("{non json", encoding="utf-8")
+    s = mrun(db, events, tmp_path, now=now, **kw)
+    assert (s["compare"], s["written"], s["unchanged"]) == ("firestore", 0, 4)  # niente scritture duplicate
+    assert mrun(db, events, tmp_path, now=now)["compare"] == "manifest"  # la riconciliazione rinnova il manifest
+
+
+def test_manifest_non_sovrascrive_le_modifiche_manuali(tmp_path):
+    db, events = FakeFirestore(), [event(i) for i in range(3)]
+    mrun(db, events, tmp_path)
+    db.data["events/e1"]["source"] = "manual"  # l'admin ha ritoccato l'evento dopo l'ultimo import
+    s = mrun(db, [event(0), event(1, title="Dalla fonte"), event(2)], tmp_path, now=DAY2)
+    assert (s["compare"], s["kept_manual"], s["written"]) == ("manifest", 1, 0)
+    assert db.data["events/e1"]["title"] == "Evento 1"
+
+
+def test_manifest_run_interrotto_non_salva_e_il_giro_dopo_riconcilia(tmp_path):
+    db, events = FakeFirestore(), [event(i) for i in range(3)]
+    mrun(db, events, tmp_path)
+    changed = [event(i, title=f"Nuovo {i}") for i in range(3)]
+    real_commit, calls = db.batch, []
+
+    def flaky():
+        b = real_commit()
+        orig = b.commit
+        b.commit = lambda: (calls.append(1), (_ for _ in ()).throw(RuntimeError("rete")) if len(calls) == 2 else orig())[1]
+        return b
+
+    db.batch = flaky
+    with pytest.raises(RuntimeError):
+        mrun(db, changed, tmp_path, now=DAY2)  # il 2º commit (gli eventi) fallisce
+    db.batch = real_commit
+    assert db.data["importState/lombardia"]["token"] == "pending"  # non coincide col manifest su disco
+    s = mrun(db, changed, tmp_path, now=DAY2)
+    assert s["compare"] == "firestore" and s["written"] == 3 and len(db.data) == 4  # 3 eventi + importState
+
+
+def test_manifest_documento_sparito_ripiega_sulla_riconciliazione(tmp_path):
+    db, events = FakeFirestore(), [event(i) for i in range(3)]
+    mrun(db, events, tmp_path)
+    del db.data["events/e0"]  # cancellato a mano da Firebase
+    # l'evento e0 sparisce dalla fonte: l'update di missingRuns su un documento inesistente dà NotFound
+    s1 = mrun(db, events[1:], tmp_path, now=DAY2)
+    assert s1["compare"] == "firestore" and "events/e0" not in db.data
+
+
+def test_manifest_pota_gli_eventi_che_la_pulizia_elimina(tmp_path):
+    old = event(0, startTime=NOW_MS - 9 * DAY, endTime=NOW_MS - 8 * DAY)  # già da eliminare per cleanup.py
+    db = FakeFirestore()
+    mrun(db, [old, event(1)], tmp_path)
+    del db.data["events/e0"]  # la pulizia l'ha eliminato
+    s = mrun(db, [old, event(1)], tmp_path, now=DAY2)
+    assert (s["compare"], s["written"]) == ("manifest", 1) and "events/e0" in db.data  # non risulta più "noto"

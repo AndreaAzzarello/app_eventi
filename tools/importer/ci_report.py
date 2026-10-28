@@ -29,10 +29,10 @@ def matrix(rows: list[dict], only: str = "") -> dict:
 
 def summary(stats: list[dict], cleanup: dict | None) -> str:
     cleanup = cleanup or {}
-    head = ["| regione | comuni | eventi | letture | scritture | invariati | nascosti | geocoding | rimandati |",
-            "|---|---|---|---|---|---|---|---|---|"]
+    head = ["| regione | comuni | eventi | letture | confronto | scritture | invariati | nascosti | geocoding | rimandati |",
+            "|---|---|---|---|---|---|---|---|---|---|"]
     for s in sorted(stats, key=lambda s: s["region"]):
-        head.append(f"| {s['region']} | {s.get('sources', '')} | {s['events']} | {s['reads']} | {s['writes']} | "
+        head.append(f"| {s['region']} | {s.get('sources', '')} | {s['events']} | {s['reads']} | {s.get('compare', '')} | {s['writes']} | "
                     f"{s['unchanged']} | {s['hidden']} | {s.get('geocode', 0)} | {s.get('deferred', 0)} |")
     total = {k: sum(s.get(k, 0) for s in stats) for k in ("events", "reads", "writes", "unchanged", "hidden")}
     reads, deletes = total["reads"] + cleanup.get("reads", 0), cleanup.get("deleted", 0)

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from google.api_core.exceptions import NotFound
+
 
 class Doc:
     def __init__(self, fs, path, data):
@@ -79,6 +81,8 @@ class Batch:
             if kind == "set":
                 self.fs.data[path] = dict(data)
             elif kind == "update":
+                if path not in self.fs.data:
+                    raise NotFound(path)  # come Firestore: update di un documento che non esiste
                 self.fs.data[path].update(data)
             else:
                 self.fs.data.pop(path, None)

@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import sys
+import uuid
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +21,7 @@ from urllib.parse import urlsplit
 import httpx
 from concurrent.futures import ThreadPoolExecutor
 
+import manifest
 from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox, slugify
 from geocode import Geocoder
@@ -140,7 +142,8 @@ MAX_WRITES = 15_000  # quota Spark 20.000 scritture al giorno, con margine
 MAX_GEOCODE = 3_000  # richieste nuove a Nominatim per giro
 MAX_READS = 40_000  # quota Spark 50.000 letture al giorno, con margine
 #: campi letti in una sola query di proiezione: bastano a decidere cosa scrivere
-PROJECTION = ["source", "contentHash", "removedAt", "missingRuns", "sourceUrl", "startTime", "endTime", "createdAt"]
+PROJECTION = ["source", "contentHash", "removedAt", "missingRuns", "sourceUrl", "startTime", "endTime", "createdAt",
+              "importRegion"]
 
 
 class QuotaExceeded(Exception):
@@ -202,12 +205,56 @@ def commit_in_batches(db, ops: list) -> None:
         b.commit()
 
 
+class Retry(Exception):
+    """Il manifest non rispecchia più Firestore (documento sparito): si rifà il giro con la riconciliazione completa."""
+
+    def __init__(self, reads: int):
+        self.reads = reads
+
+
+def from_manifest(db, coll, regions: set[str], now_ms: int, directory: Path):
+    """(existing, letture, manifest per regione) dal manifest locale più i soli eventi manuali; None se serve la
+    riconciliazione (manifest assente, vecchio o non coerente con importState)."""
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    manifests = {r: manifest.load(directory, r, now_ms) for r in regions}
+    if any(m is None for m in manifests.values()):
+        return None
+    reads = len(regions)
+    for d in db.get_all([db.collection(manifest.STATE).document(r) for r in sorted(regions)]):
+        if not d.exists or (d.to_dict() or {}).get("token") != manifests[d.id]["token"]:
+            return None
+    existing: dict[str, dict] = {}
+    for m in manifests.values():
+        existing |= manifest.prune(m["docs"], now_ms)
+    # le modifiche dell'admin (source manual) non passano dal manifest: si rileggono sempre, sono poche
+    manual = (coll.where(filter=FieldFilter("importRegion", "in", sorted(regions)))
+              .where(filter=FieldFilter("source", "==", "manual")))
+    found = {d.id: d.to_dict() or {} for d in manual.select(PROJECTION).stream()}
+    return existing | found, reads + max(1, len(found)), manifests
+
+
 def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, horizon_days: int = 60,
           regions: set[str] | None = None, db=None, max_writes: int = MAX_WRITES, max_reads: int = MAX_READS,
-          excluded: set[str] = frozenset()) -> dict:
-    """Upsert incrementale. Una sola lettura di proiezione degli eventi scraper delle regioni in elaborazione
-    (id + contentHash + …), poi si scrive solo ciò che è cambiato. Si ferma prima di scrivere se le quote
-    stimate superano max_writes/max_reads. Restituisce le statistiche (letti, scritti, invariati, nascosti)."""
+          excluded: set[str] = frozenset(), manifest_dir: Path | None = None, reconcile: bool = False) -> dict:
+    """Upsert incrementale. Il confronto parte dal manifest locale (manifest_dir) o, se manca/è vecchio/non coerente
+    o con reconcile=True, da una lettura di proiezione degli eventi scraper delle regioni; poi si scrive solo ciò che è
+    cambiato. Si ferma prima di scrivere se le quote stimate superano max_writes/max_reads.
+    Restituisce le statistiche (letti, scritti, invariati, nascosti, fonte del confronto)."""
+    kw = dict(events=events, now=now, ok_hosts=ok_hosts, horizon_days=horizon_days, regions=regions, db=db,
+              max_writes=max_writes, max_reads=max_reads, excluded=excluded, manifest_dir=manifest_dir)
+    try:
+        return _write(**kw, reconcile=reconcile)
+    except Retry as r:
+        log.warning("Il manifest non rispecchia Firestore: riconciliazione completa")
+        stats = _write(**kw, reconcile=True)
+        stats["reads"] += r.reads
+        return stats
+
+
+def _write(events, now, ok_hosts, horizon_days, regions, db, max_writes, max_reads, excluded, manifest_dir,
+           reconcile) -> dict:
+    from google.api_core.exceptions import NotFound
     from google.cloud.firestore_v1.base_query import FieldFilter
 
     if db is None:
@@ -217,13 +264,19 @@ def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, h
     coll = db.collection("events")
     now_ms = int(now.timestamp() * 1000)
     regions = regions or {ev["importRegion"] for ev in events}
-    query = coll.where(filter=FieldFilter("importRegion", "in", sorted(regions)))
-    indexed = query.count().get()[0][0].value  # 1 lettura ogni 1000 voci
-    reads = max(1, -(-indexed // 1000))
-    if reads + indexed > max_reads:
-        raise QuotaExceeded(f"letture stimate {reads + indexed} > {max_reads}: non scrivo")
-    existing = {d.id: d.to_dict() or {} for d in query.select(PROJECTION).stream()}
-    reads += len(existing)
+    loaded = from_manifest(db, coll, regions, now_ms, manifest_dir) if manifest_dir and not reconcile else None
+    if loaded:
+        existing, reads, old = loaded
+        compare = "manifest"
+    else:
+        old, compare = {}, "firestore"
+        query = coll.where(filter=FieldFilter("importRegion", "in", sorted(regions)))
+        indexed = query.count().get()[0][0].value  # 1 lettura ogni 1000 voci
+        reads = max(1, -(-indexed // 1000))
+        if reads + indexed > max_reads:
+            raise QuotaExceeded(f"letture stimate {reads + indexed} > {max_reads}: non scrivo")
+        existing = {d.id: d.to_dict() or {} for d in query.select(PROJECTION).stream()}
+        reads += len(existing)
     # Id non trovati (nuovi, o vecchi documenti senza importRegion): un get_all per createdAt e source manual.
     missing = [ev["id"] for ev in events if ev["id"] not in existing]  # gli esclusi sono tutti nella proiezione o non esistono
     if reads + len(missing) > max_reads:
@@ -232,26 +285,54 @@ def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, h
                  for d in db.get_all([coll.document(x) for x in missing[i:i + GET_ALL_CHUNK]], field_paths=PROJECTION)
                  if d.exists}
     reads += len(missing)
-    plan = plan_writes(events, existing | elsewhere, ok_hosts or set(), now_ms, horizon_days * 86_400_000, excluded)
-    n_writes = len(plan["write"]) + len(plan["stale"])
+    known = existing | elsewhere
+    plan = plan_writes(events, known, ok_hosts or set(), now_ms, horizon_days * 86_400_000, excluded)
+    # protocollo importState: segnaposto prima, token nuovo dopo; senza modifiche e col manifest valido non si scrive nulla
+    track = bool(manifest_dir) and (compare == "firestore" or bool(plan["write"] or plan["stale"]))
+    n_writes = len(plan["write"]) + len(plan["stale"]) + (2 * len(regions) if track else 0)
     if n_writes > max_writes:
         raise QuotaExceeded(f"scritture stimate {n_writes} > {max_writes}: non scrivo")
 
-    ops = []
+    def state(region: str, token: str):
+        return lambda b: b.set(db.collection(manifest.STATE).document(region), {"token": token, "savedAt": now_ms})
+
+    ops, docs = [], {}
     for ev in plan["write"]:
         doc = {k: v for k, v in ev.items() if k != "id"}
-        doc["createdAt"] = (existing | elsewhere).get(ev["id"], {}).get("createdAt") or now_ms
+        doc["createdAt"] = known.get(ev["id"], {}).get("createdAt") or now_ms
         doc["updatedAt"] = now_ms
+        docs[ev["id"]] = {k: doc[k] for k in PROJECTION if k in doc}
         ops.append(lambda b, ref=coll.document(ev["id"]), doc=doc: b.set(ref, doc))
     for doc_id, fields in plan["stale"].items():
         ops.append(lambda b, ref=coll.document(doc_id), fields=fields: b.update(ref, fields))
-    commit_in_batches(db, ops)
+    token = uuid.uuid4().hex
+    try:
+        if track:
+            commit_in_batches(db, [state(r, "pending") for r in sorted(regions)])
+        commit_in_batches(db, ops)
+        if track:
+            commit_in_batches(db, [state(r, token) for r in sorted(regions)])
+    except NotFound:
+        if compare == "manifest":
+            raise Retry(reads) from None
+        raise
+    if track:
+        scraper = {i: d for i, d in known.items() if d.get("source") == "scraper"}
+        for doc_id, fields in plan["stale"].items():
+            if doc_id in scraper:
+                scraper[doc_id] = scraper[doc_id] | fields
+        scraper |= docs
+        for r in regions:
+            manifest.save(manifest_dir, r, {
+                "token": token, "savedAt": now_ms,
+                "reconciledAt": old[r]["reconciledAt"] if compare == "manifest" else now_ms,
+                "docs": {i: d for i, d in scraper.items() if d.get("importRegion") == r}})
     hidden = sum(1 for f in plan["stale"].values() if "removedAt" in f)
     stats = {"reads": reads, "written": len(plan["write"]), "unchanged": plan["unchanged"],
              "kept_manual": plan["kept_manual"], "stale": len(plan["stale"]), "hidden": hidden,
-             "writes": n_writes, "deleted": 0}
-    log.info("Letture %d · scritti %d · invariati %d · lasciati al manuale %d · spariti dalla fonte %d "
-             "(%d nascosti con removedAt)", reads, stats["written"], stats["unchanged"], stats["kept_manual"],
+             "writes": n_writes, "deleted": 0, "compare": compare}
+    log.info("Confronto da %s · letture %d · scritti %d · invariati %d · lasciati al manuale %d · spariti dalla fonte %d "
+             "(%d nascosti con removedAt)", compare, reads, stats["written"], stats["unchanged"], stats["kept_manual"],
              stats["stale"], hidden)
     return stats
 
@@ -336,6 +417,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--regione", action="append", help="regione del registro (ripetibile), per esempio lombardia")
     p.add_argument("--max-writes", type=int, default=MAX_WRITES, help="si ferma prima di scrivere oltre N documenti")
     p.add_argument("--max-reads", type=int, default=MAX_READS, help="si ferma prima di leggere oltre N documenti")
+    p.add_argument("--reconcile", action="store_true",
+                   help="ignora il manifest locale e rilegge da Firestore (riconciliazione completa)")
     p.add_argument("--stats-out", type=Path, help="scrive qui le statistiche dell'import (JSON)")
     p.add_argument("--max-geocode", type=int, default=MAX_GEOCODE,
                    help="richieste nuove a Nominatim per giro (le altre, dagli eventi più lontani, nei giorni dopo)")
@@ -382,7 +465,8 @@ def main(argv: list[str] | None = None) -> int:
     ok_hosts = {urlsplit(SOURCES[n].base).netloc for n, st in stats.items() if st["error"] is None}
     try:
         stats = write(events, now, ok_hosts, args.horizon_days, {slugify(SOURCES[n].region) for n in names},
-                      max_writes=args.max_writes, max_reads=args.max_reads, excluded={x["id"] for x in excluded})
+                      max_writes=args.max_writes, max_reads=args.max_reads, excluded={x["id"] for x in excluded},
+                      manifest_dir=HERE / "manifests", reconcile=args.reconcile)
     except QuotaExceeded as e:
         log.error("%s", e)
         return 2

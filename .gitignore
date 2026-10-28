@@ -36,3 +36,4 @@ Thumbs.db
 web/.shots/
 FINAL_REPORT.md
 tools/importer/.httpcache/
+tools/importer/manifests/

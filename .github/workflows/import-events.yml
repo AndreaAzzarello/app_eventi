@@ -15,6 +15,10 @@ on:
         description: "Una sola regione (slug, per esempio lombardia); vuoto = tutte quelle con fonti attive"
         type: string
         default: ""
+      reconcile:
+        description: "Rilegge gli eventi da Firestore ignorando il manifest locale (riconciliazione completa)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -78,6 +82,7 @@ jobs:
           path: |
             tools/importer/geocache.json
             tools/importer/.httpcache
+            tools/importer/manifests
           key: importer-${{ matrix.region }}-${{ github.run_id }}
           restore-keys: importer-${{ matrix.region }}-
       - name: Importer
@@ -89,6 +94,7 @@ jobs:
           --max-geocode ${{ needs.plan.outputs.geocode }}
           --stats-out stats-${{ matrix.region }}.json
           ${{ inputs.dry_run && '--dry-run' || '' }}
+          ${{ inputs.reconcile && '--reconcile' || '' }}
       - uses: actions/upload-artifact@v4
         if: ${{ !inputs.dry_run }}
         with:
