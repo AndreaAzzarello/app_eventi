@@ -114,7 +114,7 @@ tools/importer/
 
 ### Requisiti
 
-- **Node.js 22 o superiore** (`engines` in `web/package.json`).
+- **Node.js 24.22.1 o superiore (`.nvmrc`: 24)** (`engines` in `web/package.json`).
 - **JDK 21** per gli emulatori Firebase. La CI usa Temurin 21.
 - **Python 3.12** per l'importer (la CI usa 3.12).
 
@@ -217,8 +217,8 @@ I browser di Playwright devono essere installati sulla macchina. Il repository n
 
 `.github/workflows/ci.yml`, su ogni pull request e su push a `main`:
 
-- **job `web`** (Ubuntu, Node 22, `npm ci` in `web/`): `npm run check`, `npm run lint`, `npm test`, `npm run build`.
-- **job `rules`** (Ubuntu, Node 22, Temurin JDK 21, `npm ci` in `firebase/`): `npm test` (test delle regole con emulatore).
+- **job `web`** (Ubuntu, Node 24, `npm ci` in `web/`): `npm run check`, `npm run lint`, `npm test`, `npm run build`.
+- **job `rules`** (Ubuntu, Node 24, Temurin JDK 21, `npm ci` in `firebase/`): `npm test` (test delle regole con emulatore).
 
 La CI non esegue i test E2E Playwright. Il test dell'importer gira nel workflow `import-events.yml`, prima dell'import.
 
@@ -235,7 +235,7 @@ Prima della webapp, pubblica indici e regole Firestore (sezione 8): la query per
    - **Root directory**: `web`
    - **Build command**: `npm run build`
    - **Build output directory**: `.svelte-kit/cloudflare`
-3. Versione di Node: il progetto richiede Node 22 o superiore (`engines`). Il repository non fissa la versione del build su Cloudflare: impostala tu nelle variabili di build, se necessario.
+3. Versione di Node: imposta la variabile di build `NODE_VERSION` = `24` (Settings → Variables and Secrets → Build, sia Production sia Preview); in alternativa Cloudflare legge `.nvmrc` alla radice del repository.
 4. **Settings → Variables**: aggiungi le variabili `PUBLIC_*`, `CONTACT_EMAIL` e `CONTROLLER_NAME` con i valori di produzione (vedi sezione 5). `PUBLIC_USE_EMULATORS` deve essere `"false"`; `FIRESTORE_EMULATOR_HOST` non va impostata in produzione.
 5. Imposta la **compatibility date** del progetto a `2026-10-01`, come in `wrangler.toml`.
 6. Salva e avvia il primo deploy. Il progetto si chiama `eventi-vicini` (come in `wrangler.toml`), quindi l'URL atteso è `https://eventi-vicini.pages.dev`, uguale a `PUBLIC_SITE_URL`. Verificalo dopo il deploy.

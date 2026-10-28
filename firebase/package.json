@@ -2,6 +2,9 @@
   "name": "eventi-vicini-firebase",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "scripts": {
     "test": "firebase emulators:exec --only firestore --project demo-eventi \"vitest run\"",
     "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes --project appeventi-1e860"
