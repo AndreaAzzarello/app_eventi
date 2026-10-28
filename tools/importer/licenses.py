@@ -67,6 +67,24 @@ def sentences(html: str) -> list[str]:
     return out
 
 
+#: sempre una restrizione sui contenuti
+ALWAYS_RESTRICTIVE = re.compile(r"esclusiva proprietà|ausschlie(?:ß|ss)liches eigentum|propri[ée]t[ée] exclusive", re.I)
+#: restrizione, a meno che non riguardi solo loghi, stemmi, marchi o elementi grafici
+RIGHTS_RESERVED = re.compile(r"tutti i diritti riservati|alle rechte vorbehalten|tous droits r[ée]serv[ée]s", re.I)
+BRAND_WORDS = re.compile(r"\blogo\b|\blogos\b|\bloghi\b|stemm[ai]\b|\bmarchi[o]?\b|segni distintivi|elementi grafici|\bgrafic[ah]e?\b|"
+                         r"\bbanner\b|\btestate\b|wappen|\bmarken?\b|grafik|armoiries|\bmarques?\b|[ée]l[ée]ments graphiques", re.I)
+
+
+def restrictive_clause(html: str) -> bool:
+    """True se la pagina limita il riuso dei contenuti. "Tutti i diritti riservati" è accettato solo se la stessa frase o
+    la precedente lo riferisce esplicitamente a loghi, stemmi, marchi o elementi grafici ("I loghi … sono di proprietà
+    del Comune. Tutti i diritti riservati."); la licenza aperta sui contenuti è verificata a parte (classify, recommend)."""
+    if ALWAYS_RESTRICTIVE.search(html):
+        return True
+    ss = sentences(html)
+    return any(RIGHTS_RESERVED.search(s) and not BRAND_WORDS.search(" ".join(ss[max(0, i - 1):i + 1])) for i, s in enumerate(ss))
+
+
 def best_sentence(html: str) -> str:
     """La frase più pertinente sulla licenza: prima CC/Creative Commons, poi 'licenza', poi il resto."""
     ss = sentences(html)
@@ -140,8 +158,7 @@ def analyze(f: Fetcher, r: dict) -> dict:
             pages.append((str(resp.url), resp.text))
     found = []
     # clausola restrittiva sulla stessa pagina della licenza aperta: l'automatismo non può decidere
-    res["conflitto"] = any(re.search(r"esclusiva proprietà|tutti i diritti riservati|alle rechte vorbehalten|ausschlie(?:ß|ss)liches eigentum|"
-                                  r"tous droits r[ée]serv[ée]s|propri[ée]t[ée] exclusive", html, re.I) for _, html in pages[1:])
+    res["conflitto"] = any(restrictive_clause(html) for _, html in pages[1:])
     for url, html in pages:
         if s := best_sentence(html):
             found.append((0 if re.search(r"creative\s*commons|creativecommons|\bcc[\s-]*by", s, re.I) else 1, url != base + "/", url, s))
@@ -200,6 +217,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--cms", help="tutti i comuni con questo CMS (es. design_comuni_html), non solo i candidati")
     p.add_argument("--regione", action="append", help="solo questa regione (ripetibile), per esempio lombardia")
     p.add_argument("--out", type=Path, default=REPORT, help="file del report")
+    p.add_argument("--conflitto", action="store_true",
+                   help="solo le righe con marcatore `conflitto` (ricalcola dopo un cambio della regola sulle clausole)")
     p.add_argument("--no-csv", action="store_true", help="non aggiornare i CSV")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
@@ -208,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     only = {c.lower() for c in args.comune} if args.comune else None
     regions = {slugify(x) for x in args.regione or []}
     todo = [r for r in rows if r["sito"] and (not regions or slugify(r["regione"]) in regions) and (r["comune"].lower() in only if only else
-                                              r["cms"] == args.cms if args.cms else
+                                              (r["stato"] != "attivo" and "] conflitto" in r["note"]) if args.conflitto else                                              r["cms"] == args.cms if args.cms else
                                               r["stato"] == "candidato" or r["comune"].lower() in EXTRA)]
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=20, follow_redirects=True) as client:
         fetcher = Fetcher(client, cache_dir=CACHE_DIR)

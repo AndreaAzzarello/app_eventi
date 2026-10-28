@@ -45,7 +45,9 @@ NOTICE_RE = re.compile(
     r"|\bpeste\s+suina\b|\binfluenza\s+aviaria\b|\bzanzara\s+tigre\b"
     r"|\bband[oi]\b|\bgraduatoria\b"
     r"|\bsicurezza\s+stradale\b|\bchiusura\s+(?:al\s+traffico|strada|ufficio|uffici)\b|\bviabilit[aà]\b"
-    r"|\bsciopero\b|\binterruzione\s+(?:acqua|energia|servizio)\b"
+    r"|^sciopero\b|\bsciopero\s+(?:generale|nazionale|regionale|del\s+personale|dei\s+(?:mezzi|trasporti|dipendenti)|"
+    r"dell[ae]\s+(?:scuola|sanita|raccolta|trasporti)|trasporti|scuola|sanita)\b|\bproclamazione\s+(?:dello\s+)?sciopero\b"
+    r"|\binterruzione\s+(?:acqua|energia|servizio)\b"
     r"|kundmachung|bekanntmachung|amtliche\s+mitteilung|\bmull(?:abfuhr|entsorgung|kalender)?\b|muellabfuhr|restmull"  # DE
     r"|abfallentsorgung|recyclinghof|stra(?:ss|ß)ensperre|sperrung|ausschreibung|\bwarnung\b|wasserunterbrechung"
     r"|\bavis\b|\bdechets\b|\bordures\b|\bramassage\b|\balerte\b|\bcoupure\s+(?:d eau|d electricite|de courant)\b"  # FR

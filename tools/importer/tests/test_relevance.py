@@ -177,3 +177,22 @@ def test_esclusi_tedesco_francese(title, reason):
 @pytest.mark.parametrize("title", TENUTI_DE_FR)
 def test_eventi_veri_tedesco_francese_restano(title):
     assert exclusion_reason(title) is None
+
+
+@pytest.mark.parametrize("title,reason", [
+    ("Sciopero generale del 14 novembre", "avviso"),
+    ("Sciopero del personale della scuola", "avviso"),
+    ("Proclamazione sciopero trasporti", "avviso"),
+    ("Avviso: sciopero dei mezzi pubblici", "avviso"),
+])
+def test_scioperi_veri_restano_avvisi(title, reason):
+    assert exclusion_reason(title) == reason
+
+
+@pytest.mark.parametrize("title", [
+    "Lo sciopero delle bambine",  # spettacolo teatrale (San Giorgio Canavese)
+    "Spettacolo: Lo sciopero delle bambine",
+    "Letture animate: Lo sciopero degli animali",
+])
+def test_sciopero_nel_titolo_di_uno_spettacolo_non_e_un_avviso(title):
+    assert exclusion_reason(title) is None
