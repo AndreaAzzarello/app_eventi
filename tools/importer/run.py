@@ -65,7 +65,8 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
     owner: dict[tuple, str] = {}  # chiave di deduplica → fonte che ha tenuto l'evento
     for name, ev in pending:
         source: Adapter = SOURCES[name]
-        if reason := ev.pop("_excluded", None) or exclusion_reason(ev["title"]):  # prima del geocoding: costa una richiesta
+        year = datetime.fromtimestamp(ev["startTime"] / 1000, ROME).year
+        if reason := ev.pop("_excluded", None) or exclusion_reason(ev["title"], year):  # prima del geocoding: costa una richiesta
             stats[name]["excluded"] += 1
             if excluded is not None:
                 excluded.append({"id": ev["id"], "title": ev["title"], "reason": reason, "source": name,

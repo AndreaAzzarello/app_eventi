@@ -153,3 +153,14 @@ def test_mostra_lunga_importata_e_long_running():
     ev = event("riccione", 2, "2026-10-27")  # Mostra "Vissi d'arte": dal 18 ottobre al 15 novembre
     assert ev["title"].startswith("Mostra") and (ev["start"], ev["end"]) == ("2026-10-18 09:00", "2026-11-15 19:00")
     assert is_long_running(ev)
+
+
+def test_giorni_inesistenti_nel_testo_libero_non_fanno_cadere_la_fonte():
+    from datetime import date
+
+    from adapters.design_comuni_html import parse_dates
+
+    today = date(2026, 10, 28)
+    assert parse_dates("0 gennaio", today) is None and parse_dates("31 aprile 2027", today) is None and parse_dates("30/02/2027", today) is None
+    assert parse_dates("dal 31 giugno al 2 luglio 2027", today) is None
+    assert parse_dates("31 aprile e poi 3 novembre 2026", today) == (date(2026, 11, 3), date(2026, 11, 3))

@@ -8,7 +8,7 @@ import json
 import threading
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 from protego import Protego
@@ -76,7 +76,7 @@ class Fetcher:
     def sitemaps(self, origin: str) -> list[str]:
         """Indirizzi "Sitemap:" dichiarati nel robots.txt (già scaricato per i controlli)."""
         rp = self._robots_for(origin)
-        return list(rp.sitemaps) if rp else []
+        return [urljoin(origin + "/", sm) for sm in rp.sitemaps] if rp else []  # alcuni siti dichiarano "Sitemap: /SiteMap.aspx"
 
     def get(self, url: str) -> httpx.Response:
         ok = self.allowed(url)

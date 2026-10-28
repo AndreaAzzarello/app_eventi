@@ -394,3 +394,11 @@ def test_sardegna_sigle_provincia_diverse_tra_istat_e_indicepa():
     from build_registry import _key
 
     assert _key("Lanusei", "SU") == _key("Lanusei", "OG") and _key("Lanusei", "SU") != _key("Lanusei", "BO")
+
+
+def test_sitemap_relativa_nel_robots_si_risolve_sull_host():
+    def handler(req):
+        return httpx.Response(200, text="User-agent: *\nAllow: /\nSitemap: /SiteMap.aspx\nSitemap: https://x.it/a.xml")
+
+    f = Fetcher(httpx.Client(transport=httpx.MockTransport(handler)), min_interval=0)
+    assert f.sitemaps("https://x.it") == ["https://x.it/SiteMap.aspx", "https://x.it/a.xml"]

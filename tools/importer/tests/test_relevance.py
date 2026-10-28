@@ -196,3 +196,9 @@ def test_scioperi_veri_restano_avvisi(title, reason):
 ])
 def test_sciopero_nel_titolo_di_uno_spettacolo_non_e_un_avviso(title):
     assert exclusion_reason(title) is None
+
+
+def test_edizione_passata_dall_anno_nel_titolo():
+    assert exclusion_reason("Natale 2023", 2026) == "edizione passata"
+    assert exclusion_reason("Sagra 2024-2026", 2026) is None and exclusion_reason("Natale 2026", 2026) is None
+    assert exclusion_reason("Natale 2023") is None  # senza anno di inizio non si decide

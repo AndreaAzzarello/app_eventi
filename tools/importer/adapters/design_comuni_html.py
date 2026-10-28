@@ -55,7 +55,15 @@ def _year(y: str | None, today: date, month: int, day: int) -> int:
     if y:
         return 2000 + int(y) if len(y) == 2 else int(y)
     # senza anno: il prossimo giorno così (un evento "20 gennaio" a novembre è del prossimo anno)
-    return today.year + (1 if date(today.year, month, min(day, 28)) < today - timedelta(days=60) else 0)
+    return today.year + (1 if date(today.year, month, max(1, min(day, 28))) < today - timedelta(days=60) else 0)
+
+
+def _date(y: int, m: int, d: int) -> date | None:
+    """None per un giorno che non esiste ("31 aprile", "0 maggio", "30/02"): nel testo libero capita."""
+    try:
+        return date(y, m, d)
+    except ValueError:
+        return None
 
 
 def parse_dates(text: str, today: date) -> tuple[date, date] | None:
@@ -65,17 +73,18 @@ def parse_dates(text: str, today: date) -> tuple[date, date] | None:
         d1, m1, y1, d2, m2, y2 = m.groups()
         mon2 = MONTHS[m2.lower()]
         mon1 = MONTHS[m1.lower()] if m1 else mon2
-        end = date(_year(y2, today, mon2, int(d2)), mon2, int(d2))
-        start = date(int(y1) if y1 else end.year - (1 if mon1 > mon2 else 0), mon1, int(d1))
-        return (start, end) if start <= end else None
+        end = _date(_year(y2, today, mon2, int(d2)), mon2, int(d2))
+        start = end and _date(int(y1) if y1 else end.year - (1 if mon1 > mon2 else 0), mon1, int(d1))
+        return (start, end) if start and start <= end else None
     found = []
     for m in DATE_RE.finditer(t):
         d, mon, y = int(m.group(1)), MONTHS[m.group(2).lower()], m.group(3)
-        found.append((m.start(), date(_year(y, today, mon, d), mon, d)))
+        if day := _date(_year(y, today, mon, d), mon, d):
+            found.append((m.start(), day))
     for m in NUM_DATE_RE.finditer(t):
         d, mon, y = int(m.group(1)), int(m.group(2)), m.group(3)
-        if 1 <= mon <= 12 and 1 <= d <= 31:
-            found.append((m.start(), date(2000 + int(y) if len(y) == 2 else int(y), mon, d)))
+        if day := _date(2000 + int(y) if len(y) == 2 else int(y), mon, d):
+            found.append((m.start(), day))
     found.sort()
     if not found:
         return None
@@ -322,7 +331,9 @@ def _next_point(sec, today: date) -> tuple[datetime, datetime] | None:
         mon = MONTH_ABBR.get(_clean(m.text()).lower()[:3]) if m else None
         if not (d and mon and _clean(d.text()).isdigit()):
             continue
-        day = date(_year(None, today, mon, int(_clean(d.text()))), mon, int(_clean(d.text())))
+        day = _date(_year(None, today, mon, int(_clean(d.text()))), mon, int(_clean(d.text())))
+        if day is None:
+            continue
         label = _text_of(pt.css_first(".point-list-content"))
         marks.append((day, label.lower(), parse_hours(label)))
         days.setdefault(day, []).extend(marks[-1][2])

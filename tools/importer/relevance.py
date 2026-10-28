@@ -71,11 +71,19 @@ def is_season(title: str) -> bool:
     return bool(SEASON_RE.search(_norm(title)))
 
 
-def exclusion_reason(title: str) -> str | None:
-    """Motivo per cui la pagina non è un evento pubblico, None se va importata."""
+YEAR_RE = re.compile(r"\b(20\d\d)\b")
+
+
+def exclusion_reason(title: str, start_year: int | None = None) -> str | None:
+    """Motivo per cui la pagina non è un evento pubblico, None se va importata.
+
+    start_year: anno di inizio dell'evento; un titolo con un anno precedente ("Natale 2023") è un'edizione vecchia
+    la cui data, scritta senza anno, è stata portata al prossimo."""
     t = _norm(title)
     if not t:
         return None
+    if start_year and (years := [int(y) for y in YEAR_RE.findall(t)]) and max(years) < start_year:
+        return "edizione passata"
     if is_season(title):
         return None
     if t in GENERIC_TITLES:
