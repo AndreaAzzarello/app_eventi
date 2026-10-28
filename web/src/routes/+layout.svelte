@@ -59,7 +59,7 @@
 		</a>
 		<nav aria-label="Principale">
 			{#each nav as item (item.href)}
-				<a href={item.href} class="nav-link" aria-current={active(item.href) ? 'page' : undefined}>
+				<a href={item.href} class="nav-link" class:nav-extra={item.href === '/proponi'} aria-current={active(item.href) ? 'page' : undefined}>
 					<item.icon size={20} aria-hidden="true" />
 					<span class="nav-text">{item.label}</span>
 				</a>
@@ -70,7 +70,7 @@
 					<span class="nav-text">Account</span>
 				</a>
 				{#if session.user.isAdmin}
-					<a href="/admin" class="nav-link" aria-current={active('/admin') ? 'page' : undefined}>
+					<a href="/admin" class="nav-link nav-admin" aria-current={active('/admin') ? 'page' : undefined}>
 						<SlidersHorizontal size={20} aria-hidden="true" /><span class="nav-text">Admin</span>
 					</a>
 				{/if}
@@ -234,6 +234,13 @@
 		}
 		:global(:root:not([data-theme='light'])) .theme .moon {
 			display: inline;
+		}
+	}
+	/* Su schermi stretti il nome intero ha la precedenza: "Proponi" è nel footer, "Admin" nella pagina account. */
+	@media (max-width: 479px) {
+		.nav-extra,
+		.nav-admin {
+			display: none;
 		}
 	}
 	@media (max-width: 419px) {

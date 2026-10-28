@@ -153,7 +153,10 @@
 					<span class="hint" role="status">{profileMsg}</span>
 				</div>
 			</form>
-			<button class="btn btn-ghost" onclick={() => session.signOut()}>Esci</button>
+			<div class="row">
+				{#if session.user.isAdmin}<a class="btn btn-ghost" href="/admin">Area admin</a>{/if}
+				<button class="btn btn-ghost" onclick={() => session.signOut()}>Esci</button>
+			</div>
 		</section>
 
 		<section class="block" aria-labelledby="pref">
