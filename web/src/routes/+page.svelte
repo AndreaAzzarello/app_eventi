@@ -211,9 +211,11 @@
 		{#if !needsPlace}
 			<div class="where">
 				<p class="summary" aria-live="polite">
-					{#if loading || pending}Cerco eventi…{:else}{count} vicino a
-						<button type="button" class="place-link" onclick={() => search?.openPlaces()} aria-haspopup="listbox">
-							<MapPin size={16} aria-hidden="true" />{place.label}</button> <span class="nowrap">· entro {filter.radiusKm} km</span>{/if}
+					{#if loading || pending}Cerco eventi…{:else}<!-- a capo solo tra i gruppi: «vicino a» resta con il luogo -->
+						{#if error}<span class="nowrap">Elenco non disponibile</span>{:else}<span class="nowrap">{count}</span>{/if}
+						<span class="nowrap">{error ? 'per' : 'vicino a'}
+							<button type="button" class="place-link" onclick={() => search?.openPlaces()} aria-haspopup="listbox">
+								<MapPin size={16} aria-hidden="true" />{place.label}</button></span> <span class="nowrap">· entro {filter.radiusKm} km</span>{/if}
 				</p>
 				<button type="button" class="btn btn-sm" onclick={locate} disabled={locating}>
 					<LocateFixed size={16} aria-hidden="true" /> Usa la mia posizione
