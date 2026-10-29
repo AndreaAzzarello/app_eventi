@@ -3,6 +3,18 @@ import { getDocument, signInByEmail, uidOf } from './helpers';
 
 // Luogo scelto, lista e mappa devono muoversi insieme. Il centro si legge dai data-* della mappa.
 const BOLOGNA = { lat: 44.4939, lng: 11.3428 };
+const BOLZANO = { lat: 46.4983, lng: 11.3548 };
+const MODENA = { lat: 44.6471, lng: 10.9252 };
+const LECCE = { lat: 40.35, lng: 18.17 };
+
+const searchBox = (page: Page) => page.getByRole('combobox', { name: 'Cerca eventi o luoghi' });
+const placeButton = (page: Page, name: string) => page.getByRole('button', { name: new RegExp(`^${name}`) });
+const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+
+async function showMap(page: Page) {
+	const tab = page.getByRole('tab', { name: 'Mappa' });
+	if (await tab.isVisible()) await tab.click();
+}
 
 async function mapCenter(page: Page) {
 	const map = page.getByRole('region', { name: 'Mappa degli eventi' });
@@ -14,26 +26,228 @@ async function mapCenter(page: Page) {
 	};
 }
 
+/** Attende che la mappa si sia centrata sul punto (la fitBounds può animare). */
+async function expectCenter(page: Page, p: { lat: number; lng: number }) {
+	await expect.poll(async () => Math.abs((await mapCenter(page)).lat - p.lat) + Math.abs((await mapCenter(page)).lng - p.lng), { timeout: 8000 }).toBeLessThan(0.02);
+}
+
+async function choose(page: Page, text: string, option: RegExp) {
+	await searchBox(page).fill(text);
+	await page.getByRole('option', { name: option }).click();
+}
+
 test('da loggato, cambiare città sposta lista e mappa (regressione: il profilo ripristinava la zona vecchia)', async ({ page }) => {
 	await signInByEmail(page, 'mappa@example.org', '/');
 	// Utente che torna: il profilo ha già una zona (Modena, salvata al primo accesso).
 	const uid = await uidOf(page);
 	await expect.poll(async () => (await getDocument(`users/${uid}`))?.fields.homePlace).toBeTruthy();
 	await page.reload();
-	await page.getByRole('tab', { name: 'Mappa' }).click();
-	const before = await mapCenter(page);
-	expect(before.lat).toBeCloseTo(44.6471, 1);
+	await showMap(page);
+	await expectCenter(page, MODENA);
 
-	await page.getByRole('button', { name: /Modena/ }).click();
-	const dialog = page.getByRole('dialog', { name: 'Dove cerchi eventi?' });
-	await dialog.getByLabel('Oppure scegli la regione').selectOption({ label: 'Emilia-Romagna' });
-	await dialog.getByRole('button', { name: /Bologna/ }).click();
-
-	await expect(dialog).toBeHidden();
-	await expect(page.getByRole('button', { name: /^Bologna/ })).toBeVisible();
-	await expect.poll(async () => (await mapCenter(page)).lat, { timeout: 5000 }).toBeCloseTo(BOLOGNA.lat, 1);
-	expect((await mapCenter(page)).lng).toBeCloseTo(BOLOGNA.lng, 1);
-	// Resta lì (l'effetto del profilo non deve riportarla a Modena).
+	await choose(page, 'bologna', /^Bologna/);
+	await expect(placeButton(page, 'Bologna')).toBeVisible();
+	await expectCenter(page, BOLOGNA);
+	// Resta lì: l'effetto del profilo non deve riportarla a Modena.
 	await page.waitForTimeout(1500);
-	expect((await mapCenter(page)).lat).toBeCloseTo(BOLOGNA.lat, 1);
+	await expectCenter(page, BOLOGNA);
+});
+
+test('scelta dalla ricerca: URL, lista, mappa e salvataggio seguono il luogo', async ({ page }) => {
+	await page.goto('/');
+	await showMap(page);
+	await expectCenter(page, MODENA);
+
+	await choose(page, 'Bozen', /Bolzano/); // il nome bilingue trova il comune
+	await expect(page).toHaveURL(/[?&]luogo=bolzano/);
+	await expect(placeButton(page, 'Bolzano')).toBeVisible();
+	await expect(searchBox(page)).toHaveValue(''); // la ricerca si svuota: non resta un filtro testo
+	await expectCenter(page, BOLZANO);
+	await page.getByRole('tab', { name: 'Lista' }).click();
+	await expect(page.getByRole('link', { name: /Mercatino di Natale/ })).toBeVisible();
+	const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ev:place')!));
+	expect(saved).toMatchObject({ label: 'Bolzano', slug: 'bolzano' });
+});
+
+test('"Usa la mia posizione" centra mappa e lista sulla posizione', async ({ page, context }) => {
+	await context.grantPermissions(['geolocation']);
+	await context.setGeolocation({ latitude: 41.9, longitude: 12.5 });
+	await page.route('**/api/geocode**', (route) =>
+		route.fulfill({ json: [{ label: 'Roma', lat: 41.9, lng: 12.5, place: { city: 'Roma', citySlug: 'roma', province: 'RM', region: 'Lazio' } }] })
+	);
+	await page.goto('/');
+	await showMap(page);
+	await page.getByRole('button', { name: 'Usa la mia posizione' }).click();
+	await expect(placeButton(page, 'Vicino a Roma')).toBeVisible();
+	await expect(page).toHaveURL(/nome=Vicino\+a\+Roma&lat=41\.90&lng=12\.50/);
+	await expectCenter(page, { lat: 41.9, lng: 12.5 });
+});
+
+test('"Usa la mia posizione" senza permesso spiega cosa fare', async ({ page }) => {
+	await page.goto('/');
+	await page.evaluate(() => {
+		navigator.geolocation.getCurrentPosition = (_ok, ko) => ko!({ code: 1, PERMISSION_DENIED: 1 } as GeolocationPositionError);
+	});
+	await page.getByRole('button', { name: 'Usa la mia posizione' }).click();
+	await expect(page.getByText('Permesso negato')).toBeVisible();
+	await expect(placeButton(page, 'Modena')).toBeVisible();
+});
+
+test('cambiando il raggio la mappa cambia zoom restando centrata', async ({ page }) => {
+	await page.goto('/');
+	await showMap(page);
+	const at25 = await mapCenter(page);
+	await page.getByLabel('Distanza massima').selectOption('100');
+	await expect.poll(async () => (await mapCenter(page)).zoom).toBeLessThan(at25.zoom);
+	await expectCenter(page, MODENA);
+	await page.getByLabel('Distanza massima').selectOption('10');
+	await expect.poll(async () => (await mapCenter(page)).zoom).toBeGreaterThan(at25.zoom);
+	await expect(page).toHaveURL(/r=10/);
+});
+
+test('link condiviso con ?luogo= e con coordinate libere', async ({ page }) => {
+	await page.goto('/?luogo=bolzano&vista=mappa');
+	await expect(placeButton(page, 'Bolzano')).toBeVisible();
+	await expect(page.getByRole('tab', { name: 'Mappa' })).toHaveAttribute('aria-selected', 'true');
+	await expectCenter(page, BOLZANO);
+	// Un link condiviso non cancella la zona salvata di chi lo apre.
+	expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ev:place')!).label)).toBe('Modena');
+
+	await page.goto('/?nome=Lecce&lat=40.35&lng=18.17&vista=mappa');
+	await expect(placeButton(page, 'Lecce')).toBeVisible();
+	await expectCenter(page, LECCE);
+	// Valori non validi: si ricade sul luogo salvato, senza errori.
+	await page.goto('/?luogo=inesistente&lat=999');
+	await expect(placeButton(page, 'Modena')).toBeVisible();
+});
+
+test('indietro e avanti riportano luogo, lista e mappa', async ({ page }) => {
+	await page.goto('/');
+	await showMap(page);
+	await choose(page, 'bolzano', /^Bolzano/);
+	await expectCenter(page, BOLZANO);
+	await choose(page, 'bologna', /^Bologna/);
+	await expectCenter(page, BOLOGNA);
+
+	await page.goBack();
+	await expect(placeButton(page, 'Bolzano')).toBeVisible();
+	await expectCenter(page, BOLZANO);
+	await page.goBack();
+	await expect(placeButton(page, 'Modena')).toBeVisible();
+	await expectCenter(page, MODENA);
+	await page.goForward();
+	await expect(placeButton(page, 'Bolzano')).toBeVisible();
+	await expectCenter(page, BOLZANO);
+});
+
+test('"Vedi sulla mappa" da città e regione apre la home centrata', async ({ page }) => {
+	await page.goto('/citta/bolzano');
+	await page.getByRole('link', { name: 'Vedi sulla mappa' }).click();
+	await expect(page).toHaveURL(/\/\?luogo=bolzano&vista=mappa/);
+	await expect(placeButton(page, 'Bolzano')).toBeVisible();
+	await expectCenter(page, BOLZANO);
+
+	await page.goto('/regione/emilia-romagna');
+	await page.getByRole('link', { name: 'Vedi sulla mappa' }).click();
+	await expect(page).toHaveURL(/luogo=emilia-romagna/);
+	await expect(placeButton(page, 'Emilia-Romagna')).toBeVisible();
+	await expect(page.getByLabel('Distanza massima')).toHaveValue('100');
+	await expect(page.getByRole('region', { name: 'Mappa degli eventi' })).toBeVisible();
+});
+
+test('scegliere una regione allarga il raggio a 100 km', async ({ page }) => {
+	await page.goto('/');
+	await choose(page, 'trentino', /Trentino-Alto Adige/);
+	await expect(page).toHaveURL(/luogo=trentino-alto-adige/);
+	await expect(page).toHaveURL(/r=100/);
+	await expect(page.getByLabel('Distanza massima')).toHaveValue('100');
+});
+
+test('combobox: frecce, Invio, Esc e annunci', async ({ page }) => {
+	await page.goto('/');
+	const box = searchBox(page);
+	await box.fill('bo');
+	await expect(box).toHaveAttribute('aria-expanded', 'true');
+	await expect(page.getByRole('listbox')).toBeVisible();
+	await expect(page.getByRole('status').filter({ hasText: /luoghi/ })).toContainText('2 luoghi');
+
+	await box.press('Escape');
+	await expect(box).toHaveAttribute('aria-expanded', 'false');
+	await expect(box).toHaveValue('bo'); // Esc chiude soltanto
+
+	await box.press('ArrowDown');
+	await expect(box).toHaveAttribute('aria-expanded', 'true');
+	await box.press('ArrowDown'); // secondo luogo
+	const activeId = await box.getAttribute('aria-activedescendant');
+	expect(activeId).toBeTruthy();
+	await expect(page.locator(`#${activeId}`)).toHaveAttribute('aria-selected', 'true');
+	await box.press('ArrowUp');
+	await expect(page.locator(`#${activeId}`)).toHaveAttribute('aria-selected', 'false');
+	await box.press('Enter');
+	await expect(page).toHaveURL(/luogo=bologna/);
+	await expect(placeButton(page, 'Bologna')).toBeVisible();
+});
+
+test('un evento tra i suggerimenti porta al dettaglio', async ({ page }) => {
+	await page.goto('/');
+	await searchBox(page).fill('gnocco');
+	await expect(page.getByRole('group', { name: 'Eventi' })).toBeVisible();
+	await page.getByRole('option', { name: /Sagra del gnocco fritto/ }).click();
+	await expect(page).toHaveURL(/\/eventi\/sagra-del-gnocco-fritto/);
+});
+
+test('0 eventi con il nome di un luogo: propone "Vai a" e ci porta', async ({ page }) => {
+	await page.goto('/');
+	await showMap(page);
+	await searchBox(page).fill('Bolzano');
+	await searchBox(page).press('Enter');
+	await page.getByRole('tab', { name: 'Lista' }).click();
+	await expect(page.getByRole('heading', { name: /Nessun evento con «Bolzano» qui vicino/ })).toBeVisible();
+	await page.getByRole('button', { name: 'Vai a Bolzano' }).click();
+	await expect(page).toHaveURL(/luogo=bolzano/);
+	await expect(page).not.toHaveURL(/q=/);
+	await expect(placeButton(page, 'Bolzano')).toBeVisible();
+	await expect(page.getByRole('link', { name: /Mercatino di Natale/ })).toBeVisible();
+});
+
+test('località non coperta: Nominatim, avviso "Pochi eventi" e scelta', async ({ page }) => {
+	await page.route('**/api/geocode**', (route) =>
+		route.fulfill({
+			json: [{ label: 'Lecce, Puglia, Italia', lat: 40.3515, lng: 18.175, place: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia' } }]
+		})
+	);
+	await page.goto('/');
+	await searchBox(page).fill('Lecce');
+	const option = page.getByRole('option', { name: /Lecce/ });
+	await expect(option).toContainText('Pochi eventi in questa zona', { timeout: 8000 });
+	await expect(page.getByText('OpenStreetMap / Nominatim')).toBeVisible();
+	await option.click();
+	await expect(page).toHaveURL(/nome=Lecce&lat=40\.35&lng=18\.18/);
+	await expect(placeButton(page, 'Lecce')).toBeVisible();
+	await expect(page.getByRole('link', { name: /Festa del barocco leccese/ })).toBeVisible();
+});
+
+test.describe('schermo stretto', () => {
+	test.use({ viewport: { width: 360, height: 740 } });
+
+	test('360 px: nessuno scroll orizzontale con la ricerca aperta e la riga posizione', async ({ page }) => {
+		await page.goto('/');
+		await searchBox(page).fill('bo');
+		await expect(page.getByRole('listbox')).toBeVisible();
+		expect(await noOverflow(page)).toBe(true);
+		const box = await page.getByRole('listbox').boundingBox();
+		expect(box!.x).toBeGreaterThanOrEqual(0);
+		expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+		await searchBox(page).press('Escape');
+		await expect(page.getByRole('button', { name: 'Usa la mia posizione' })).toBeVisible();
+		expect(await noOverflow(page)).toBe(true);
+	});
+
+	test('il nome del luogo nella riga sopra la lista apre i suggerimenti', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.locator('.summary')).toContainText('vicino a');
+		await placeButton(page, 'Modena').click();
+		await expect(searchBox(page)).toBeFocused();
+		await expect(page.getByRole('option', { name: /Modena/ })).toBeVisible(); // i più frequenti, senza scrivere
+	});
 });

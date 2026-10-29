@@ -7,14 +7,12 @@ for (const c of [
 	{ region: 'Trentino-Alto Adige', slug: 'bolzano', name: 'Bolzano', alt: 'Bozen', query: 'bozen', event: 'Mercatino di Natale' },
 	{ region: "Valle d'Aosta", slug: 'aosta', name: 'Aosta', alt: 'Aoste', query: 'aoste', event: 'Concerto al Teatro Romano' }
 ]) {
-	test(`${c.name} / ${c.alt}: scelta regione → comune, pagina città e alias`, async ({ page }) => {
+	test(`${c.name} / ${c.alt}: ricerca per alias, pagina città`, async ({ page }) => {
 		await page.goto('/');
-		const dialog = page.getByRole('dialog', { name: 'Dove cerchi eventi?' });
-		await dialog.getByLabel('Oppure scegli la regione').selectOption({ label: c.region });
 		// l'alias trova il comune, che si mostra con entrambi i nomi
-		await dialog.getByLabel('Cerca il comune').fill(c.query);
-		await dialog.getByRole('button', { name: new RegExp(`${c.name} / ${c.alt}`) }).click();
-		await expect(dialog).toBeHidden();
+		await page.getByRole('region', { name: 'Dove cerchi eventi?' }).getByRole('combobox').fill(c.query);
+		await page.getByRole('option', { name: new RegExp(`${c.name} ${c.alt}`) }).click();
+		await expect(page).toHaveURL(new RegExp(`luogo=${c.slug}`));
 		const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ev:place')!));
 		expect(saved).toMatchObject({ label: c.name, slug: c.slug, region: c.region });
 
