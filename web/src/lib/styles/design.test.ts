@@ -97,7 +97,7 @@ describe('design system', () => {
 				if (/(linear|radial|conic)-gradient/.test(t)) return t.trim();
 				if (/text-shadow:|drop-shadow|backdrop-filter/.test(t)) return t.trim();
 				const bs = t.match(/box-shadow:\s*([^;]+)/)?.[1].trim();
-				if (bs && !['none', 'var(--shadow-overlay)', 'var(--shadow-card)'].includes(bs)) return t.trim();
+				if (bs && !['none', 'var(--shadow-overlay)', 'var(--shadow-card)', 'var(--shadow-lift)'].includes(bs)) return t.trim();
 				return null;
 			})
 		));
@@ -204,9 +204,10 @@ describe.each([
 	// Una tinta per ogni categoria di event.ts: inchiostro per icone/marker/motivi, tinta tenue per i fondi
 	const CATS = ['music', 'food', 'sport', 'culture', 'kids', 'market', 'other'];
 
-	it.each(CATS)('categoria %s: testo e muted sulla tinta tenue ≥ 4.5, inchiostro su surface e bg ≥ 3', (cat) => {
+	it.each(CATS)('categoria %s: testo e muted sulla tinta tenue ≥ 4.5, inchiostro come testo su surface e bg ≥ 4.5 e come icona sulla tinta ≥ 3', (cat) => {
 		for (const fg of ['text', 'muted']) expect(ratio(c(fg), c(`cat-${cat}-soft`)), `${fg} su cat-${cat}-soft`).toBeGreaterThanOrEqual(4.5);
-		for (const bg of ['surface', 'bg', `cat-${cat}-soft`]) expect(ratio(c(`cat-${cat}`), c(bg)), `cat-${cat} su ${bg}`).toBeGreaterThanOrEqual(3);
+		for (const bg of ['surface', 'bg']) expect(ratio(c(`cat-${cat}`), c(bg)), `cat-${cat} su ${bg}`).toBeGreaterThanOrEqual(4.5);
+		expect(ratio(c(`cat-${cat}`), c(`cat-${cat}-soft`)), `cat-${cat} su cat-${cat}-soft`).toBeGreaterThanOrEqual(3);
 		const r = ratio(c(`cat-${cat}-soft`), c('surface'));
 		expect(r, `cat-${cat}-soft è una tinta`).toBeGreaterThan(1.01);
 		expect(r).toBeLessThan(1.5);

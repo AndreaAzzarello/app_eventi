@@ -269,6 +269,36 @@ textarea {
 	box-shadow: var(--shadow-card);
 }
 
+/* Colore di categoria: --ink (icone, marker, motivi, etichette) e --tint (fondi tenui). Si usa con data-cat="<categoria>". */
+[data-cat='music'] {
+	--ink: var(--cat-music);
+	--tint: var(--cat-music-soft);
+}
+[data-cat='food'] {
+	--ink: var(--cat-food);
+	--tint: var(--cat-food-soft);
+}
+[data-cat='culture'] {
+	--ink: var(--cat-culture);
+	--tint: var(--cat-culture-soft);
+}
+[data-cat='sport'] {
+	--ink: var(--cat-sport);
+	--tint: var(--cat-sport-soft);
+}
+[data-cat='kids'] {
+	--ink: var(--cat-kids);
+	--tint: var(--cat-kids-soft);
+}
+[data-cat='market'] {
+	--ink: var(--cat-market);
+	--tint: var(--cat-market-soft);
+}
+[data-cat='other'] {
+	--ink: var(--cat-other);
+	--tint: var(--cat-other-soft);
+}
+
 .notice {
 	padding: var(--space-3);
 	border-radius: var(--radius-sm);

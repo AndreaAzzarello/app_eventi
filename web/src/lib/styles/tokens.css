@@ -108,7 +108,8 @@
 	/* Accento come tinta tenue (10% sulla superficie) per evidenziare: date, categorie, stati. Mai gradienti. */
 	--accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
 	--accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
-	/* Sollevamento di card e anteprime al tocco/hover: neutro, mai colorato */
+	/* Sollevamento di card e anteprime al tocco/hover: di quanto salgono e ombra neutra, mai colorata */
+	--lift: -2px;
 	--shadow-lift: 0 var(--space-1) var(--space-3) light-dark(rgb(24 21 19 / 0.12), rgb(0 0 0 / 0.5));
 	/* Palette di categoria: --cat-X è l'inchiostro, --cat-X-soft la tinta tenue (14% sulla superficie) */
 	--cat-music: light-dark(var(--plum), var(--plum-light));
