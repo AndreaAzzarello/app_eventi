@@ -298,9 +298,16 @@
 								</button>
 							</div>
 						{:else}
-							<h2>Nessun evento con questi filtri</h2>
-							<p class="muted">Prova ad allargare la distanza o a togliere qualche filtro.</p>
+							<h2>
+								{filter.when === 'today' ? 'Oggi qui è tranquillo' : filter.when === 'weekend' ? 'Questo weekend qui è tranquillo' : 'Qui è tutto tranquillo'}
+							</h2>
+							<p class="muted">
+								Prova ad allargare la distanza{filter.when === 'weekend' ? '' : ', guarda il weekend'} o togli qualche filtro.
+							</p>
 							<div class="actions">
+								{#if filter.when !== 'weekend'}
+									<button class="btn" onclick={() => setFilter({ ...filter, when: 'weekend' })}>Guarda il weekend</button>
+								{/if}
 								{#if filter.radiusKm < 100}
 									<button class="btn btn-primary" onclick={() => setFilter({ ...filter, radiusKm: filter.radiusKm < 50 ? 50 : 100 })}>
 										Cerca più lontano

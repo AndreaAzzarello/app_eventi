@@ -48,14 +48,14 @@
 	<p class="visually-hidden" role="status">Caricamento degli eventi…</p>
 {:else if error}
 	<div class="state">
-		<h2>Qualcosa è andato storto</h2>
+		<h2>Ops, qualcosa non ha funzionato</h2>
 		<ErrorMessage>{error}</ErrorMessage>
 		{#if onretry}<button class="btn btn-primary" onclick={onretry}>Riprova</button>{/if}
 	</div>
 {:else if events.length === 0}
 	<div class="state">
 		<CalendarSearch size={24} aria-hidden="true" />
-		{#if empty}{@render empty()}{:else}<h2>Nessun evento</h2>{/if}
+		{#if empty}{@render empty()}{:else}<h2>Per ora non c’è niente da mostrare</h2>{/if}
 	</div>
 {:else}
 	{#each sections(events, now) as section (section.key)}

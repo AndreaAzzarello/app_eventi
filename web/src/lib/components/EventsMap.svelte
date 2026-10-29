@@ -189,7 +189,7 @@
 		data-zoom={view?.zoom}
 	></div>
 	{#if !L && !failed}<div class="skeleton cover" aria-hidden="true"></div>{/if}
-	{#if failed}<p class="cover fail">Mappa non disponibile in questo momento.</p>{/if}
+	{#if failed}<p class="cover fail">La mappa non si carica adesso. La lista funziona lo stesso.</p>{/if}
 </div>
 
 <style>

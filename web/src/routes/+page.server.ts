@@ -42,6 +42,6 @@ export const load: PageServerLoad = async ({ url, setHeaders }) => {
 		return { ...base, events: await eventsNear(place, radiusKm), fetched, error: '', popular: null };
 	} catch (e) {
 		console.error(e);
-		return { ...base, events: [], fetched, error: 'Non riesco a caricare gli eventi in questo momento.', popular: null };
+		return { ...base, events: [], fetched, error: 'Non riesco a caricare gli eventi in questo momento. Riprova tra poco.', popular: null };
 	}
 };
