@@ -201,6 +201,21 @@ describe.each([
 		expect(r).toBeLessThan(1.5);
 	});
 
+	// Una tinta per ogni categoria di event.ts: inchiostro per icone/marker/motivi, tinta tenue per i fondi
+	const CATS = ['music', 'food', 'sport', 'culture', 'kids', 'market', 'other'];
+
+	it.each(CATS)('categoria %s: testo e muted sulla tinta tenue ≥ 4.5, inchiostro su surface e bg ≥ 3', (cat) => {
+		for (const fg of ['text', 'muted']) expect(ratio(c(fg), c(`cat-${cat}-soft`)), `${fg} su cat-${cat}-soft`).toBeGreaterThanOrEqual(4.5);
+		for (const bg of ['surface', 'bg', `cat-${cat}-soft`]) expect(ratio(c(`cat-${cat}`), c(bg)), `cat-${cat} su ${bg}`).toBeGreaterThanOrEqual(3);
+		const r = ratio(c(`cat-${cat}-soft`), c('surface'));
+		expect(r, `cat-${cat}-soft è una tinta`).toBeGreaterThan(1.01);
+		expect(r).toBeLessThan(1.5);
+	});
+
+	it('accento, testo e muted leggibili anche sulla carta calda e sulla notte calda (bg)', () => {
+		for (const fg of ['text', 'muted', 'accent', 'accent-hover']) expect(ratio(c(fg), c('bg')), `${fg} su bg`).toBeGreaterThanOrEqual(4.5);
+	});
+
 	it('bordo dei controlli ≥ 3 su bg e surface', () => {
 		for (const bg of ['bg', 'surface']) expect(ratio(c('border-strong'), c(bg))).toBeGreaterThanOrEqual(3);
 	});

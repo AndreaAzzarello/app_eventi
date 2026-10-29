@@ -69,9 +69,27 @@
 	--crimson: #a3194a;
 	--crimson-light: #f58aa8;
 
+	/* Carta calda (tema chiaro) e notte calda (tema scuro): gli sfondi della pagina */
+	--paper: #f5ecdf;
+	--night: #1f1a16;
+
+	/* Categorie: toni naturali italiani, solo come inchiostro (icone, marker, motivi) e come tinta tenue di fondo */
+	--plum: #7a3b69;
+	--plum-light: #d9a4cb;
+	--ochre: #8a5d0c;
+	--ochre-light: #e3b862;
+	--teal: #1f6f6b;
+	--teal-light: #82c9c1;
+	--olive: #586718;
+	--olive-light: #b9c76d;
+	--coral: #ad4a58;
+	--coral-light: #f2a4ac;
+	--sand: #7d6238;
+	--sand-light: #d6b98c;
+
 	/* Ruoli: chiaro e scuro in un solo posto. Il tema segue il sistema, data-theme lo forza. */
 	color-scheme: light dark;
-	--bg: light-dark(var(--gray-100), var(--gray-900));
+	--bg: light-dark(var(--paper), var(--night));
 	--surface: light-dark(var(--gray-50), var(--gray-800));
 	--surface-2: light-dark(var(--gray-200), var(--gray-700));
 	--border: light-dark(var(--gray-300), var(--gray-600));
@@ -90,6 +108,23 @@
 	/* Accento come tinta tenue (10% sulla superficie) per evidenziare: date, categorie, stati. Mai gradienti. */
 	--accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
 	--accent-border: color-mix(in srgb, var(--accent) 45%, var(--border));
+	/* Sollevamento di card e anteprime al tocco/hover: neutro, mai colorato */
+	--shadow-lift: 0 var(--space-1) var(--space-3) light-dark(rgb(24 21 19 / 0.12), rgb(0 0 0 / 0.5));
+	/* Palette di categoria: --cat-X è l'inchiostro, --cat-X-soft la tinta tenue (14% sulla superficie) */
+	--cat-music: light-dark(var(--plum), var(--plum-light));
+	--cat-food: light-dark(var(--ochre), var(--ochre-light));
+	--cat-culture: light-dark(var(--teal), var(--teal-light));
+	--cat-sport: light-dark(var(--olive), var(--olive-light));
+	--cat-kids: light-dark(var(--coral), var(--coral-light));
+	--cat-market: light-dark(var(--sand), var(--sand-light));
+	--cat-other: light-dark(var(--gray-500), var(--gray-300));
+	--cat-music-soft: color-mix(in srgb, var(--cat-music) 14%, var(--surface));
+	--cat-food-soft: color-mix(in srgb, var(--cat-food) 14%, var(--surface));
+	--cat-culture-soft: color-mix(in srgb, var(--cat-culture) 14%, var(--surface));
+	--cat-sport-soft: color-mix(in srgb, var(--cat-sport) 14%, var(--surface));
+	--cat-kids-soft: color-mix(in srgb, var(--cat-kids) 14%, var(--surface));
+	--cat-market-soft: color-mix(in srgb, var(--cat-market) 14%, var(--surface));
+	--cat-other-soft: color-mix(in srgb, var(--cat-other) 14%, var(--surface));
 }
 @media (min-width: 720px) {
 	:root {
