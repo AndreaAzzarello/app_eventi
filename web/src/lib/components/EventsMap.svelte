@@ -27,6 +27,8 @@
 	let markers: Record<string, import('leaflet').Marker> = {};
 	let mounted: ReturnType<typeof mount>[] = [];
 	let failed = $state(false);
+	/** Vista corrente, esposta come data-* per i test E2E. */
+	let view = $state<{ lat: number; lng: number; zoom: number } | null>(null);
 
 	onMount(() => {
 		let cancelled = false;
@@ -34,6 +36,10 @@
 			.then((lib) => {
 				if (cancelled) return;
 				map = baseMap(lib, el);
+				map.on('moveend', () => {
+					const c = map!.getCenter();
+					view = { lat: c.lat, lng: c.lng, zoom: map!.getZoom() };
+				});
 				layer = lib.layerGroup().addTo(map);
 				L = lib;
 			})
@@ -108,7 +114,15 @@
 </script>
 
 <div class="wrap">
-	<div bind:this={el} class="map" role="region" aria-label="Mappa degli eventi"></div>
+	<div
+		bind:this={el}
+		class="map"
+		role="region"
+		aria-label="Mappa degli eventi"
+		data-lat={view?.lat.toFixed(4)}
+		data-lng={view?.lng.toFixed(4)}
+		data-zoom={view?.zoom}
+	></div>
 	{#if !L && !failed}<div class="skeleton cover" aria-hidden="true"></div>{/if}
 	{#if failed}<p class="cover fail">Mappa non disponibile in questo momento.</p>{/if}
 </div>

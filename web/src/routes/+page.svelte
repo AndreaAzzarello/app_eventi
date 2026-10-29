@@ -1,7 +1,7 @@
 <script lang="ts">
 	import List from '@lucide/svelte/icons/list';
 	import Map from '@lucide/svelte/icons/map';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import EventList from '$lib/components/EventList.svelte';
@@ -50,13 +50,19 @@
 	});
 
 	// Al login la zona del profilo vince su quella locale.
+	// Si applica una sola volta per valore del profilo e senza dipendere da `place`: altrimenti ogni
+	// scelta dell'utente rilanciava l'effetto e la zona (ancora vecchia nel profilo) tornava indietro.
+	let appliedProfile: ChosenPlace | null = null;
 	$effect(() => {
 		const p = homePlace.value;
-		if (p && (p.lat !== place.lat || p.lng !== place.lng)) {
+		if (!p || p === appliedProfile) return;
+		appliedProfile = p;
+		untrack(() => {
+			if (p.lat === place.lat && p.lng === place.lng) return;
 			place = p;
 			needsPlace = false;
 			picker?.close(); // il dialogo si era aperto prima che arrivasse il profilo
-		}
+		});
 	});
 
 	/** Con il permesso già concesso si parte dalla posizione; altrimenti si chiede dove cercare, senza partire da Modena. */
@@ -84,7 +90,9 @@
 		if (!covered) load();
 	});
 
+	let seq = 0;
 	async function load() {
+		const mine = ++seq;
 		loading = true;
 		error = '';
 		const lat = snapCoord(place.lat);
@@ -93,12 +101,14 @@
 		try {
 			const res = await fetch(`/api/events?lat=${lat}&lng=${lng}&r=${r}`);
 			if (!res.ok) throw new Error(String(res.status));
-			events = await res.json();
+			const list = await res.json();
+			if (mine !== seq) return; // nel frattempo l'utente ha cambiato zona: risposta vecchia, la scarto
+			events = list;
 			fetched = { lat, lng, km: r + SNAP_MARGIN_KM };
 		} catch {
-			error = 'Non riesco a caricare gli eventi. Controlla la connessione e riprova.';
+			if (mine === seq) error = 'Non riesco a caricare gli eventi. Controlla la connessione e riprova.';
 		} finally {
-			loading = false;
+			if (mine === seq) loading = false;
 		}
 	}
 
