@@ -9,7 +9,7 @@ Da inviare dalla tua casella (nessuna richiesta all'API ComunWEB è stata fatta 
 
 Gentili referenti del Consorzio dei Comuni Trentini,
 
-mi chiamo Andrea Azzarello e sviluppo "Eventi Vicini" (https://eventi-vicini.pages.dev), una webapp gratuita che aiuta a trovare gli eventi pubblici vicini a sé: concerti, sagre, mostre, mercatini, attività per bambini. Il progetto è senza scopo di lucro, senza pubblicità e senza raccolta di dati personali a fini commerciali; il codice è pubblico (https://github.com/AndreaAzzarello/app_eventi).
+mi chiamo Andrea Azzarello e sviluppo "Eventi Vicini" (https://eventi-vicini.pages.dev), una webapp gratuita che aiuta a trovare gli eventi pubblici vicini a sé: concerti, sagre, mostre, mercatini, attività per bambini. Il progetto è senza scopo di lucro, senza pubblicità e senza raccolta di dati personali a fini commerciali; il codice è pubblico (https://github.com/AndreaAzzarello/EventiVicini).
 
 Gli eventi sono letti dai siti istituzionali dei Comuni. Molti Comuni trentini usano la piattaforma ComunWEB, che espone un'API di ricerca dei contenuti (`/api/opendata/v2/content/search/`). Il file robots.txt di questi siti però esclude il percorso `/api/`, quindi non la uso e non intendo usarla senza un vostro consenso esplicito.
 
@@ -23,7 +23,7 @@ Vi chiedo gentilmente:
 Mi impegno a:
 
 - fare al massimo 1 richiesta al secondo per sito, con un solo ciclo di lettura al giorno e con cache delle risposte non modificate;
-- identificarmi con lo User-Agent `EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/app_eventi)`;
+- identificarmi con lo User-Agent `EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/EventiVicini)`;
 - leggere solo gli eventi futuri, senza dati personali;
 - citare sempre la fonte, con il nome del Comune e il collegamento alla pagina originale dell'evento;
 - sospendere subito la lettura e rimuovere i dati a una vostra semplice richiesta.

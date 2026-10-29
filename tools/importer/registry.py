@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 from geo import slugify
 
-USER_AGENT = "EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/app_eventi)"
+USER_AGENT = "EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/EventiVicini)"
 SOURCES_DIR = Path(__file__).parent / "sources"
 COLUMNS = ["regione", "provincia", "comune", "codice_istat", "sito", "url_eventi", "cms", "fornitore", "stato",
            "licenza", "robots_ok", "note", "comune_alt"]  # comune_alt: nome nell'altra lingua ufficiale (Bozen, Aoste)

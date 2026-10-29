@@ -8,7 +8,7 @@ import type { RequestHandler } from './$types';
 // User-Agent identificativo, risposte in cache 1 giorno all'edge, massimo 1 richiesta al secondo per isolate.
 // L'IP dell'utente non arriva a Nominatim; nulla viene salvato.
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
-const USER_AGENT = 'EventiVicini/1.0 (+https://github.com/AndreaAzzarello/app_eventi)';
+const USER_AGENT = 'EventiVicini/1.0 (+https://github.com/AndreaAzzarello/EventiVicini)';
 
 let last = 0;
 let chain: Promise<unknown> = Promise.resolve();

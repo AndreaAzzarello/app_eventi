@@ -11,14 +11,14 @@ Caso noto: in Lombardia circa 405 siti comunali rispondono con `server: HGATE` e
 
 Gentili referenti di [fornitore],
 
-mi chiamo Andrea Azzarello e sviluppo "Eventi Vicini" (https://eventi-vicini.pages.dev), una webapp gratuita che aiuta a trovare gli eventi pubblici vicini a sé. È senza scopo di lucro e senza pubblicità; il codice è pubblico (https://github.com/AndreaAzzarello/app_eventi).
+mi chiamo Andrea Azzarello e sviluppo "Eventi Vicini" (https://eventi-vicini.pages.dev), una webapp gratuita che aiuta a trovare gli eventi pubblici vicini a sé. È senza scopo di lucro e senza pubblicità; il codice è pubblico (https://github.com/AndreaAzzarello/EventiVicini).
 
 I siti dei Comuni che gestite hanno un robots.txt che vieta l'accesso a tutti i bot (`Disallow: /`). Rispetto quel divieto e per questo non leggo quei siti. Vi chiedo se sia possibile ammettere, almeno per le pagine pubbliche degli eventi, il mio User-Agent, oppure indicarmi un feed o un'API che preferite.
 
 Mi impegno a:
 
 - fare al massimo 1 richiesta al secondo per sito, un solo ciclo di lettura al giorno, con cache delle pagine non modificate;
-- identificarmi con lo User-Agent `EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/app_eventi)`;
+- identificarmi con lo User-Agent `EventiVicini-importer/1.0 (+https://github.com/AndreaAzzarello/EventiVicini)`;
 - leggere solo gli eventi futuri, senza dati personali;
 - citare sempre il Comune e il collegamento alla pagina originale;
 - sospendere subito la lettura e rimuovere i dati a una vostra richiesta.
