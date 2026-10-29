@@ -59,7 +59,11 @@ def matrix(rows: list[dict], only: str = "", weekday: int | None = None, force_r
     shares = {r: weights[r] * (RECONCILE_WEIGHT if flags[r] else 1) for r in regions}
     total = sum(shares.values()) or 1
     include = [{"region": r, "reads": BUDGET["reads"] * shares[r] // total, "reconcile": flags[r]} for r in regions]
-    return {"regions": regions, "include": include, **{k: v // n for k, v in BUDGET.items() if k != "reads"}}
+    # Scritture: quota in parti uguali, ma mai sotto un terzo del budget, altrimenti con 20 job (750 ciascuno) il primo
+    # caricamento di una regione grande (Trentino-Alto Adige: ~1.900 eventi) supera il tetto e non scrive nulla.
+    per_job = {k: v // n for k, v in BUDGET.items() if k != "reads"}
+    per_job["writes"] = max(per_job["writes"], BUDGET["writes"] // 3)
+    return {"regions": regions, "include": include, **per_job}
 
 
 def simulate(regions: dict[str, dict]) -> dict:

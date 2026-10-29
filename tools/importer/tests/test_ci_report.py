@@ -11,6 +11,13 @@ def row(regione, stato="attivo"):
     return {"regione": regione, "stato": stato}
 
 
+def test_matrice_venti_regioni_non_blocca_il_primo_caricamento():
+    m = matrix([row(f"Regione {i:02d}") for i in range(20)])
+    # 1.929 eventi di Trentino-Alto Adige (dry-run del 28/10) + 2 scritture di stato a regione
+    assert len(m["regions"]) == 20 and m["writes"] >= 1_929 + 2
+    assert m["writes"] <= BUDGET["writes"]
+
+
 def test_matrice_solo_regioni_con_fonti_attive_e_quote_divise():
     m = matrix([row("Emilia-Romagna"), row("Emilia-Romagna"), row("Lombardia"), row("Veneto", "candidato")])
     assert (m["regions"], m["writes"], m["geocode"]) == (["emilia-romagna", "lombardia"], 7_500, 1_500)
