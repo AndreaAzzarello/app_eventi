@@ -3,8 +3,8 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<meta name="theme-color" content="#f3f0ed" media="(prefers-color-scheme: light)" />
-		<meta name="theme-color" content="#181513" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#f5ecdf" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#1f1a16" media="(prefers-color-scheme: dark)" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
@@ -13,6 +13,11 @@
 			try {
 				const t = localStorage.getItem('ev:theme');
 				if (t === '"light"' || t === '"dark"') document.documentElement.dataset.theme = JSON.parse(t);
+			} catch {}
+			// Luogo già salvato: la home senza ?luogo= mostra subito lo scheletro delle card invece della scelta del luogo.
+			try {
+				const p = JSON.parse(localStorage.getItem('ev:place'));
+				if (p && isFinite(p.lat) && isFinite(p.lng)) document.documentElement.dataset.savedPlace = '';
 			} catch {}
 		</script>
 		%sveltekit.head%

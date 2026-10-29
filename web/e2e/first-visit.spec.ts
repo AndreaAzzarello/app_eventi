@@ -35,6 +35,33 @@ test('senza posizione si sceglie il luogo dalla ricerca, non si parte da Modena'
 	await expect(page.getByRole('region', { name: 'Dove cerchi eventi?' })).toBeHidden();
 });
 
+test('home senza luogo: il server non sceglie Modena, offre la scelta e i link alle città e regioni con più eventi', async ({ page }) => {
+	const html = await (await page.request.get('/')).text();
+	expect(html).toContain('Dove cerchi eventi?');
+	expect(html).not.toContain('Jazz in Piazza Grande'); // nessun evento di un luogo scelto a caso
+	expect(html).toContain('href="/citta/modena"');
+	expect(html).toContain('href="/regione/emilia-romagna"');
+});
+
+test.describe('senza JavaScript', () => {
+	test.use({ javaScriptEnabled: false });
+	test('la scelta del luogo e i link a città e regioni ci sono, e portano alle pagine', async ({ page }) => {
+		await page.goto('/');
+		await expect(page.getByRole('heading', { name: 'Dove cerchi eventi?' })).toBeVisible();
+		await expect(page.getByRole('navigation', { name: 'Oppure sfoglia per luogo' }).getByRole('link', { name: /Modena/ })).toBeVisible();
+		await page.getByRole('link', { name: /Emilia-Romagna/ }).click();
+		await expect(page).toHaveURL(/\/regione\/emilia-romagna$/);
+	});
+});
+
+test('con un luogo salvato "/" porta al suo indirizzo senza mostrare la scelta', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('ev:place', JSON.stringify({ lat: 44.4939, lng: 11.3428, label: 'Bologna', slug: 'bologna', region: 'Emilia-Romagna' })));
+	await page.goto('/');
+	await expect(page).toHaveURL(/luogo=bologna/);
+	await expect(page.getByRole('region', { name: 'Dove cerchi eventi?' })).toBeHidden();
+	await expect(page.getByRole('button', { name: /^Bologna/ })).toBeVisible();
+});
+
 test('prima visita: al focus i luoghi più frequenti, e il centro della mappa segue la scelta', async ({ page }) => {
 	await page.goto('/');
 	await page.getByRole('region', { name: 'Dove cerchi eventi?' }).getByRole('combobox').focus();

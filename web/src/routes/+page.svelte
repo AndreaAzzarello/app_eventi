@@ -15,7 +15,7 @@
 	import { coverageStore } from '$lib/coverage.svelte';
 	import type { Event } from '$lib/event';
 	import { applyFilter, filterFromParams, type Filter } from '$lib/filters';
-	import { DEFAULT_PLACE, distanceKm, SNAP_MARGIN_KM, snapCoord, type ChosenPlace } from '$lib/geo';
+	import { distanceKm, SNAP_MARGIN_KM, snapCoord, type ChosenPlace } from '$lib/geo';
 	import { fmtNum } from '$lib/format';
 	import { locateMe } from '$lib/locate';
 	import { homeUrl, nearestComune, strongPlace } from '$lib/places';
@@ -41,7 +41,9 @@
 	let highlighted = $state<string | null>(null);
 	let search: SearchBox | undefined = $state();
 	/** Primo accesso senza posizione salvata né permesso di geolocalizzazione: si sceglie il luogo dalla ricerca. */
-	let needsPlace = $state(false);
+	let needsPlace = $state(untrack(() => data.noPlace)); // senza luogo nell'URL si parte dalla scelta, anche nell'HTML del server
+	/** Senza luogo nell'URL il server non ha caricato eventi: finché il browser non sa dove cercare non si scarica nulla. */
+	const pending = $derived(data.noPlace && !here);
 	let locating = $state(false);
 	let locateMsg = $state('');
 
@@ -56,21 +58,30 @@
 		if (data.unknownPlace !== null) {
 			locateMsg = data.unknownPlace ? `Non trovo il luogo «${data.unknownPlace}». Cerca il tuo comune o la tua regione.` : 'Non trovo il luogo del link. Cerca il tuo comune o la tua regione.';
 			needsPlace = true;
-		} else if (!data.fromUrl) {
-			const saved = readJson<ChosenPlace | null>(KEYS.place, null);
-			if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
-				if (saved.exact) here = saved;
-				// La zona predefinita è già quella caricata dal server, e una posizione senza comune non ha parametri: niente navigazione inutile.
-				const noUrl = saved.exact && !saved.slug;
-				if (!noUrl && (saved.lat !== DEFAULT_PLACE.lat || saved.lng !== DEFAULT_PLACE.lng))
-					goto(homeUrl(filter, saved, view), { replaceState: true, ...nav });
-			} else firstVisit();
+			document.documentElement.removeAttribute('data-saved-place'); // la scelta del luogo deve vedersi
 		}
 		const mq = matchMedia('(min-width: 960px)');
 		wide = mq.matches;
 		mq.onchange = (e) => (wide = e.matches);
 		const tick = setInterval(() => (now = Date.now()), 60_000);
 		return () => clearInterval(tick);
+	});
+
+	// Home senza luogo (anche tornando a "/" dal logo): il luogo salvato nel browser diventa l'indirizzo, altrimenti si chiede dove cercare.
+	$effect(() => {
+		if (!data.noPlace) return;
+		untrack(() => {
+			const saved = readJson<ChosenPlace | null>(KEYS.place, null);
+			if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
+				if (saved.exact) here = saved;
+				needsPlace = false;
+				// Una posizione senza comune coperto non ha parametri da mettere nell'URL: gli eventi si scaricano da qui.
+				if (!(saved.exact && !saved.slug)) goto(homeUrl(filter, saved, view), { replaceState: true, ...nav });
+			} else {
+				document.documentElement.removeAttribute('data-saved-place'); // la CSS nascondeva la scelta in attesa del luogo salvato
+				firstVisit();
+			}
+		});
 	});
 
 	// Indietro/avanti cambiano l'URL: i filtri lo seguono. L'URL può chiedere la mappa (?vista=mappa) ma non
@@ -115,7 +126,7 @@
 
 	// Ricarica solo se la zona richiesta esce da quella già scaricata.
 	$effect(() => {
-		if (!covered) load();
+		if (!covered && !pending) load();
 	});
 
 	let seq = 0;
@@ -197,6 +208,18 @@
 <div class="container home">
 	<section class="intro" aria-labelledby="h1">
 		<h1 id="h1" class="display">Cosa succede <span class="display-em">vicino a te</span></h1>
+		{#if !needsPlace}
+			<div class="where">
+				<p class="summary" aria-live="polite">
+					{#if loading || pending}Cerco eventi…{:else}{count} vicino a
+						<button type="button" class="place-link" onclick={() => search?.openPlaces()} aria-haspopup="listbox">
+							<MapPin size={16} aria-hidden="true" />{place.label}</button> · entro {filter.radiusKm} km{/if}
+				</p>
+				<button type="button" class="btn btn-sm" onclick={locate} disabled={locating}>
+					<LocateFixed size={16} aria-hidden="true" /> Usa la mia posizione
+				</button>
+			</div>
+		{/if}
 	</section>
 
 	{#if needsPlace}
@@ -211,22 +234,33 @@
 			</button>
 			<p class="hint" role="status">{locateMsg}</p>
 		</section>
+		{#if data.popular && (data.popular.regions.length || data.popular.cities.length)}
+			<nav class="popular" aria-labelledby="pop-title">
+				<h2 id="pop-title">Oppure sfoglia per luogo</h2>
+				{#if data.popular.cities.length}
+					<ul class="pills" aria-label="Città con più eventi">
+						{#each data.popular.cities as c (c.slug)}
+							<li><a class="chip" href="/citta/{c.slug}">{c.name} <span class="n">{fmtNum(c.events)}</span></a></li>
+						{/each}
+					</ul>
+				{/if}
+				{#if data.popular.regions.length}
+					<ul class="pills" aria-label="Regioni">
+						{#each data.popular.regions as r (r.slug)}
+							<li><a class="chip" href="/regione/{r.slug}">{r.name} <span class="n">{fmtNum(r.events)}</span></a></li>
+						{/each}
+					</ul>
+				{/if}
+			</nav>
+		{/if}
+		<!-- Chi ha già un luogo salvato (lo segnala app.html) vede lo scheletro delle card, non la scelta, mentre arriva il suo luogo -->
+		<div class="pending-list" aria-hidden="true"><EventList events={[]} {now} loading /></div>
 	{:else}
 		<FilterBar {filter} onchange={setFilter}>
 			<SearchBox bind:this={search} {filter} onfilter={setFilter} onplace={choosePlace} {eventMatches} />
 		</FilterBar>
 
 		<div class="toolbar">
-			<div class="where">
-				<p class="summary" aria-live="polite">
-					{#if loading}Cerco eventi…{:else}{count} vicino a
-						<button type="button" class="place-link" onclick={() => search?.openPlaces()} aria-haspopup="listbox">
-							<MapPin size={16} aria-hidden="true" />{place.label}</button> · entro {filter.radiusKm} km{/if}
-				</p>
-				<button type="button" class="btn btn-sm" onclick={locate} disabled={locating}>
-					<LocateFixed size={16} aria-hidden="true" /> Usa la mia posizione
-				</button>
-			</div>
 			<div class="tabs" role="tablist" aria-label="Vista">
 				<button role="tab" id="tab-list" aria-controls="panel-list" aria-selected={view === 'list'} onclick={() => setView('list')}>
 					<List size={20} aria-hidden="true" /> Lista
@@ -245,7 +279,7 @@
 					events={visible}
 					{now}
 					origin={place}
-					{loading}
+					loading={loading || pending}
 					{error}
 					{highlighted}
 					onhover={(id) => (highlighted = id)}
@@ -315,11 +349,63 @@
 	.first-search {
 		width: 100%;
 	}
+	/* Testata: un tagliando in tinta d'accento con un motivo a tratti (maschera SVG senza colori), come un manifesto */
 	.intro {
-		padding: var(--space-4) 0 var(--space-3);
+		position: relative;
+		margin: var(--space-3) 0;
+		padding: var(--space-3);
+		border: 1px solid var(--accent-border);
+		border-radius: var(--radius);
+		background: var(--accent-soft);
+		overflow: hidden;
+	}
+	.intro::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: var(--accent);
+		opacity: 0.1;
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21 8 16M15 9 21 3' stroke='black' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21 8 16M15 9 21 3' stroke='black' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+		-webkit-mask-size: var(--space-4);
+		mask-size: var(--space-4);
+		pointer-events: none;
+	}
+	.intro > :global(*) {
+		position: relative;
 	}
 	.intro h1 {
-		margin: 0;
+		margin: 0 0 var(--space-2);
+	}
+	.popular {
+		margin: var(--space-4) 0;
+	}
+	.pills {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin: 0 0 var(--space-3);
+		padding: 0;
+		list-style: none;
+	}
+	.pills a {
+		text-decoration: none;
+		color: var(--text);
+	}
+	.n {
+		color: var(--muted);
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
+	}
+	.pending-list {
+		display: none;
+	}
+	:global(html[data-saved-place]) .first-visit,
+	:global(html[data-saved-place]) .popular {
+		display: none;
+	}
+	:global(html[data-saved-place]) .pending-list {
+		display: block;
 	}
 	.hint {
 		margin: 0;
@@ -331,10 +417,6 @@
 	}
 	.toolbar {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-2) var(--space-3);
 		margin: var(--space-3) 0;
 	}
 	.where {
@@ -407,7 +489,7 @@
 		gap: var(--space-2);
 	}
 	@media (min-width: 960px) {
-		.tabs {
+		.toolbar {
 			display: none;
 		}
 		.split {

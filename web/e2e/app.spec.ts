@@ -127,7 +127,7 @@ test('elimina account e dati', async ({ page }) => {
 	await page.getByRole('button', { name: 'Elimina account e dati' }).click();
 	await page.getByRole('button', { name: 'Sì, elimina tutto' }).click();
 	await expect(page.getByText('Account e dati eliminati.')).toBeVisible();
-	await expect(page).toHaveURL(/\/$/);
+	await expect(page).toHaveURL(/localhost:4300\/(\?.*)?$/); // la home, con il luogo salvato nell'indirizzo
 	expect(await getDocument(`users/${uid}`)).toBeNull();
 	expect(await getDocument(`users/${uid}/favorites/seedJazz`)).toBeNull();
 	expect(await accountExists('mario@example.org')).toBe(false);
