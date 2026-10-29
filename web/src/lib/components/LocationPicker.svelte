@@ -231,6 +231,8 @@
 	}
 	dialog {
 		width: 100%;
+		/* ancorato in alto: non si ricentra quando arrivano le regioni (CLS) */
+		margin: var(--space-5) auto auto;
 	}
 	.head {
 		display: flex;

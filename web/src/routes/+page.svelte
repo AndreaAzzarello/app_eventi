@@ -122,7 +122,7 @@
 
 <Seo title={SITE_NAME} path="/" />
 
-<div class="container">
+<div class="container home">
 	<section class="intro" aria-labelledby="h1">
 		<h1 id="h1">Cosa succede <span class="accent">vicino a te</span></h1>
 		<LocationPicker bind:this={picker} place={needsPlace ? { label: 'Scegli la zona' } : place} onchange={setPlace} />
@@ -192,6 +192,10 @@
 </div>
 
 <style>
+	/* Uno schermo intero in ogni stato: il passaggio lista → prima visita non sposta il footer (CLS). */
+	.home {
+		min-height: 100svh;
+	}
 	.first-visit {
 		margin: var(--space-4) 0;
 		padding: var(--space-4);
