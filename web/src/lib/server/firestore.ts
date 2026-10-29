@@ -3,7 +3,7 @@
 import { env } from '$env/dynamic/private';
 import { env as pub } from '$env/dynamic/public';
 import { compareEvents, fromData, type Event } from '$lib/event';
-import { distanceKm, radiusBounds, type LatLng } from '$lib/geo';
+import { SNAP_MARGIN_KM, distanceKm, radiusBounds, snapCoord, type LatLng } from '$lib/geo';
 
 type Value = {
 	stringValue?: string;
@@ -58,17 +58,74 @@ async function call<T>(path: string, body?: unknown): Promise<T | null> {
 	return res.json() as Promise<T>;
 }
 
-// Cache per isolate: copre le richieste ravvicinate anche dove la Cache API di Cloudflare non c'è.
-// shortcut: memoria per singolo isolate, non condivisa tra data center; KV costerebbe scritture limitate.
-const memo = new Map<string, { at: number; value: unknown }>();
-const TTL_MS = 5 * 60_000; // i dati cambiano una volta al giorno (import) o a mano dall'admin
-async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-	const hit = memo.get(key);
-	if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T;
-	const value = await load();
+// Due livelli di cache: memoria dell'isolate e Cache API di Cloudflare (per data center, sopravvive a isolate e deploy).
+// I dati cambiano una volta al giorno (import) o a mano dall'admin: la maggior parte dei visitatori non tocca Firestore.
+// Scaduta la freschezza si rilegge; se Firestore risponde 429 (quota esaurita) o fallisce, si serve l'ultima copia.
+// shortcut: la Cache API è per data center, non globale (KV costerebbe un token e un binding); assente in Node e nel dev server.
+type Entry = { at: number; value: unknown };
+const memo = new Map<string, Entry>();
+const inflight = new Map<string, Promise<unknown>>();
+const HOUR = 3_600_000;
+const FRESH = { list: 6 * HOUR, one: HOUR, sitemap: 12 * HOUR };
+const KEEP_S = 2 * 86_400; // quanto resta una copia nella Cache API, anche scaduta, per servirla in emergenza
+const BLOCK_MS = 10 * 60_000; // dopo un 429 non si interroga Firestore per 10 minuti
+let blockedUntil = 0;
+
+const edge = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
+const edgeReq = (key: string) => new Request(`https://cache.internal/fs-v1/${encodeURIComponent(key)}`);
+async function edgeGet(key: string): Promise<Entry | undefined> {
+	try {
+		const res = await edge()?.match(edgeReq(key));
+		return res ? ((await res.json()) as Entry) : undefined;
+	} catch {
+		return undefined;
+	}
+}
+async function edgePut(key: string, entry: Entry) {
+	try {
+		await edge()?.put(edgeReq(key), new Response(JSON.stringify(entry), { headers: { 'cache-control': `public, max-age=${KEEP_S}` } }));
+	} catch (err) {
+		console.warn('Cache API non scrivibile:', err);
+	}
+}
+function remember(key: string, entry: Entry) {
 	if (memo.size > 300) memo.delete(memo.keys().next().value!);
-	memo.set(key, { at: Date.now(), value });
-	return value;
+	memo.set(key, entry);
+}
+
+async function cached<T>(key: string, load: () => Promise<T>, fresh: number = FRESH.one): Promise<T> {
+	let hit = memo.get(key);
+	if (hit && Date.now() - hit.at < fresh) return hit.value as T;
+	const shared = await edgeGet(key);
+	if (shared && (!hit || shared.at > hit.at)) hit = shared;
+	if (hit && Date.now() - hit.at < fresh) {
+		remember(key, hit);
+		return hit.value as T;
+	}
+	if (Date.now() < blockedUntil) {
+		if (hit) return hit.value as T;
+		throw new Error('Firestore 429: quota esaurita, riprovo tra poco');
+	}
+	let run = inflight.get(key) as Promise<T> | undefined;
+	if (!run) {
+		run = load()
+			.then(async (value) => {
+				const entry = { at: Date.now(), value };
+				remember(key, entry);
+				await edgePut(key, entry);
+				return value;
+			})
+			.finally(() => inflight.delete(key));
+		inflight.set(key, run);
+	}
+	try {
+		return await run;
+	} catch (err) {
+		if (String(err).includes('Firestore 429')) blockedUntil = Date.now() + BLOCK_MS;
+		if (!hit) throw err;
+		console.warn(`Firestore non risponde, servo la copia di ${Math.round((Date.now() - hit.at) / 60_000)} minuti fa:`, err);
+		return hit.value as T;
+	}
 }
 
 type Filter = { fieldFilter: { field: { fieldPath: string }; op: string; value: Value } };
@@ -110,6 +167,7 @@ async function longRunningQuery(where: Filter[], orderBy: string[]): Promise<Eve
 	try {
 		return await runQuery([...where, f('longRunning', 'EQUAL', TRUE)], orderBy, LONG_LIMIT);
 	} catch (err) {
+		if (String(err).includes('Firestore 429')) throw err; // quota esaurita: non è un indice mancante, niente lista vuota in cache
 		console.warn('query longRunning non riuscita (indice mancante?):', err);
 		return [];
 	}
@@ -141,22 +199,34 @@ export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 			.flat()
 			.filter((e) => !seen.has(e.id) && seen.add(e.id) && distanceKm(center, e) <= km)
 			.sort(compareEvents(now));
-	});
+	}, FRESH.list);
+}
+
+/**
+ * Eventi attorno a un luogo, dal punto della griglia di ~5 km più vicino (come /api/events): la home e il browser
+ * condividono la stessa chiave di cache. Chi chiama rifiltra sulla distanza vera e `fetched` dice cosa è coperto.
+ */
+export function eventsAround(place: LatLng, radiusKm: number) {
+	const center = { lat: snapCoord(place.lat), lng: snapCoord(place.lng) };
+	const km = radiusKm + SNAP_MARGIN_KM;
+	return eventsNear(center, km).then((events) => ({ events, fetched: { ...center, km } }));
 }
 
 export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
-	return cached(`city:${citySlug}`, async () => {
+	return cached(`city:${citySlug}:${limit}`, async () => {
 		const where = [f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))];
 		// Indice (citySlug, longRunning, endTime) per la seconda query.
 		const [list, long] = await Promise.all([runQuery(where, ['endTime'], limit), longRunningQuery(where, ['endTime'])]);
 		const seen = new Set<string>();
 		return [...list, ...long].filter((e) => !seen.has(e.id) && seen.add(e.id)).sort(compareEvents(Date.now()));
-	});
+	}, FRESH.list);
 }
 
 export function upcomingEvents(limit: number): Promise<Event[]> {
-	return cached(`upcoming:${limit}`, () =>
-		runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], ['endTime'], limit)
+	return cached(
+		`upcoming:${limit}`,
+		() => runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], ['endTime'], limit),
+		FRESH.sitemap
 	);
 }
 

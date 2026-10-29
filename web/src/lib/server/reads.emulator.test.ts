@@ -1,4 +1,6 @@
-// Letture Firestore per visita, misurate sull'emulatore con i dati di seed (scripts/seed-emulator.mjs).
+// Letture Firestore per OGNI rotta, misurate sull'emulatore con i dati di seed (scripts/seed-emulator.mjs).
+// Conta i documenti restituiti dal server (minimo 1 per richiesta), non i contatori interni del codice.
+// Ogni rotta parte da cache vuota (moduli ricaricati). Fallisce se una pagina supera il suo budget.
 // Si salta senza emulatore. Lancio: npm run test:reads
 import { execFileSync } from 'node:child_process';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -6,62 +8,140 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 const HOST = process.env.FIRESTORE_EMULATOR_HOST;
 
 vi.mock('$env/dynamic/private', () => ({ env: { FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST } }));
-vi.mock('$env/dynamic/public', () => ({ env: { PUBLIC_FIREBASE_PROJECT_ID: 'demo-eventi', PUBLIC_FIREBASE_API_KEY: 'k' } }));
+vi.mock('$env/dynamic/public', () => ({
+	env: { PUBLIC_FIREBASE_PROJECT_ID: 'demo-eventi', PUBLIC_FIREBASE_API_KEY: 'k', PUBLIC_SITE_URL: 'https://example.test' }
+}));
 
-type Query = { from: { collectionId: string }[]; where?: unknown; limit?: number };
+type Stats = { reads: number; requests: number; worst: number };
+let stats: Stats = { reads: 0, requests: 0, worst: 0 };
 
-describe.skipIf(!HOST)('letture per visita (emulatore)', () => {
-	const queries: Query[] = [];
+/** Letture di una richiesta: documenti restituiti. `worst` = quanti ne potrebbe restituire con dati reali (limiti delle query). */
+async function count(url: string, init: { body?: string } | undefined, res: Response) {
+	stats.requests++;
+	const body = init?.body ? JSON.parse(init.body) : null;
+	const json = await res.clone().json().catch(() => null);
+	if (url.endsWith(':runQuery')) {
+		const docs = (json as { document?: unknown }[]).filter((r) => r.document).length;
+		stats.reads += Math.max(docs, 1);
+		stats.worst += body.structuredQuery.limit;
+	} else if (url.endsWith(':batchGet')) {
+		stats.reads += body.documents.length;
+		stats.worst += body.documents.length;
+	} else if (json && 'documents' in json) {
+		stats.reads += Math.max(json.documents.length, 1);
+		stats.worst += json.documents.length; // un documento per regione: ≤ 20
+	} else {
+		stats.reads += 1;
+		stats.worst += 1;
+	}
+}
 
+const ev = (path: string) => ({
+	url: new URL(`http://localhost${path}`),
+	params: {} as Record<string, string>,
+	setHeaders: () => {}
+});
+
+type Run = () => Promise<unknown>;
+// maxReads: sui dati di seed; maxWorst: con dati reali (somma dei limit delle query); maxRequests: richieste a Firestore.
+const ROUTES: { label: string; run: Run; maxReads: number; maxRequests: number; maxWorst: number; threw?: boolean }[] = [
+	{
+		label: '/ (senza luogo)',
+		run: async () => (await import('../../routes/+page.server')).load(ev('/') as never),
+		maxReads: 6, maxRequests: 1, maxWorst: 10
+	},
+	{
+		label: '/?luogo=modena',
+		run: async () => (await import('../../routes/+page.server')).load(ev('/?luogo=modena') as never),
+		maxReads: 14, maxRequests: 6, maxWorst: 520
+	},
+	{
+		label: '/?luogo=bologna&r=100',
+		run: async () => (await import('../../routes/+page.server')).load(ev('/?luogo=bologna&r=100') as never),
+		maxReads: 24, maxRequests: 14, maxWorst: 1520
+	},
+	{
+		label: '/?luogo=atlantide (sconosciuto)',
+		run: async () => (await import('../../routes/+page.server')).load(ev('/?luogo=atlantide') as never),
+		maxReads: 8, maxRequests: 3, maxWorst: 130
+	},
+	{
+		label: '/api/places',
+		run: async () => (await import('../../routes/api/places/+server')).GET(ev('/api/places') as never),
+		maxReads: 6, maxRequests: 1, maxWorst: 10
+	},
+	{
+		label: '/api/events?lat&lng&r=25',
+		run: async () => (await import('../../routes/api/events/+server')).GET(ev('/api/events?lat=44.65&lng=10.95&r=25') as never),
+		maxReads: 10, maxRequests: 5, maxWorst: 520
+	},
+	{
+		label: '/api/events?ids=a,b',
+		run: async () => (await import('../../routes/api/events/+server')).GET(ev('/api/events?ids=seedJazz,seedCesena') as never),
+		maxReads: 2, maxRequests: 1, maxWorst: 2
+	},
+	{
+		label: '/citta/modena',
+		run: async () => (await import('../../routes/citta/[slug]/+page.server')).load({ ...ev('/citta/modena'), params: { slug: 'modena' } } as never),
+		maxReads: 6, maxRequests: 3, maxWorst: 210
+	},
+	{
+		label: '/citta/zzz (404)',
+		run: async () => (await import('../../routes/citta/[slug]/+page.server')).load({ ...ev('/citta/zzz'), params: { slug: 'zzz' } } as never),
+		maxReads: 8, maxRequests: 3, maxWorst: 210, threw: true
+	},
+	{
+		label: '/regione/emilia-romagna',
+		run: async () => (await import('../../routes/regione/[slug]/+page.server')).load({ ...ev('/regione/emilia-romagna'), params: { slug: 'emilia-romagna' } } as never),
+		maxReads: 3, maxRequests: 2, maxWorst: 3
+	},
+	{
+		label: '/eventi/[slug]',
+		run: async () => (await import('../../routes/eventi/[slug]/+page.server')).load({ ...ev('/eventi/jazz-in-piazza-grande-seedJazz'), params: { slug: 'jazz-in-piazza-grande-seedJazz' } } as never),
+		maxReads: 1, maxRequests: 1, maxWorst: 1
+	},
+	{
+		label: '/sitemap.xml',
+		run: async () => (await import('../../routes/sitemap.xml/+server')).GET(ev('/sitemap.xml') as never),
+		maxReads: 16, maxRequests: 2, maxWorst: 510
+	}
+];
+
+describe.skipIf(!HOST)('letture per rotta (emulatore)', () => {
 	beforeAll(() => {
 		execFileSync('node', ['scripts/seed-emulator.mjs'], { env: process.env, stdio: 'ignore' });
 		const real = globalThis.fetch;
-		vi.stubGlobal('fetch', (url: string, init?: { body?: string }) => {
-			if (init?.body) queries.push(JSON.parse(init.body).structuredQuery);
-			return real(url, init as RequestInit);
+		vi.stubGlobal('fetch', async (url: string, init?: { body?: string }) => {
+			const res = await real(url, init as RequestInit);
+			if (String(url).includes('/documents')) await count(String(url), init, res);
+			return res;
 		});
 	});
 
-	/** Letture di una chiamata: documenti restituiti (minimo 1 per query vuota) come li conta Firestore. */
-	async function measure(label: string, fn: () => Promise<unknown>) {
-		const { readCount } = await import('./firestore');
-		const before = readCount;
-		const q0 = queries.length;
-		await fn();
-		const after = (await import('./firestore')).readCount;
-		console.log(`LETTURE ${label}: ${after - before} (${queries.length - q0} query)`);
-		return { reads: after - before, queries: queries.slice(q0) };
+	for (const r of ROUTES) {
+		it(`${r.label}: dentro il budget a freddo`, async () => {
+			vi.resetModules(); // cache in memoria vuota: la prima visita dopo un deploy o una scadenza
+			stats = { reads: 0, requests: 0, worst: 0 };
+			await r.run().catch((e) => {
+				if (!r.threw) throw e;
+			});
+			console.log(`LETTURE ${r.label}: ${stats.reads} (seed), ${stats.requests} richieste, fino a ${stats.worst} con dati reali`);
+			expect(stats.reads, 'letture sui dati di seed').toBeLessThanOrEqual(r.maxReads);
+			expect(stats.requests, 'richieste a Firestore').toBeLessThanOrEqual(r.maxRequests);
+			expect(stats.worst, 'letture nel caso peggiore').toBeLessThanOrEqual(r.maxWorst);
+		});
 	}
 
-	it('home: tutte le query sono limitate al raggio (intervallo di geohash) e agli eventi non finiti', async () => {
-		const { eventsNear } = await import('./firestore');
-		const r = await measure('home (Modena, 25 km)', () => eventsNear({ lat: 44.65, lng: 10.93 }, 29));
-		expect(r.queries.length).toBeGreaterThan(0);
-		for (const q of r.queries) {
-			const filters = JSON.stringify(q.where);
-			expect(q.from[0].collectionId).toBe('events');
-			expect(filters).toContain('"geohash"');
-			expect(filters).toContain('GREATER_THAN_OR_EQUAL');
-			expect(filters).toContain('LESS_THAN_OR_EQUAL');
-			expect(filters).toContain('"endTime"');
-			expect(q.limit).toBeGreaterThan(0);
-		}
-		// Nessuna scansione della collezione: poche query (intervalli di geohash × 2) e poche letture.
-		expect(r.queries.length).toBeLessThanOrEqual(24);
-		expect(r.reads).toBeLessThan(40);
-	});
-
-	it('pagina città, pagina regione, elenco comuni, evento', async () => {
-		const f = await import('./firestore');
-		const city = await measure('/citta/modena', () => f.eventsInCity('modena'));
-		const region = await measure('/regione/emilia-romagna', () => f.regionCoverage('emilia-romagna'));
-		const places = await measure('/api/places (scelta del luogo)', () => f.coverage());
-		const event = await measure('/eventi/[slug]', () => f.getEvent('seedJazz'));
-		expect(city.reads).toBeLessThan(10);
-		expect(region.reads).toBe(1);
-		expect(places.reads).toBe(2);
-		expect(event.reads).toBe(1);
-		// Seconda richiesta uguale: servita dalla cache in memoria, zero letture.
-		expect((await measure('/regione (cache)', () => f.regionCoverage('emilia-romagna'))).reads).toBe(0);
+	it('seconda visita uguale: zero letture; SSR della home e /api/events condividono la cache', async () => {
+		vi.resetModules();
+		const home = (await import('../../routes/+page.server')).load;
+		const api = (await import('../../routes/api/events/+server')).GET;
+		const res = await home(ev('/?luogo=modena') as never);
+		// Lo stesso punto, come lo chiede il browser quando serve altro: nessuna lettura in più.
+		const { lat, lng, km } = (res as { fetched: { lat: number; lng: number; km: number } }).fetched;
+		stats = { reads: 0, requests: 0, worst: 0 };
+		await home(ev('/?luogo=modena') as never);
+		await api(ev(`/api/events?lat=${lat}&lng=${lng}&r=${km - 4}`) as never);
+		expect(stats.requests).toBe(0);
 	});
 });

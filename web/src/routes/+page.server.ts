@@ -2,7 +2,7 @@ import { HTML_CACHE } from '$lib/server/cache';
 import { filterFromParams } from '$lib/filters';
 import { DEFAULT_PLACE, type ChosenPlace } from '$lib/geo';
 import { placeFromEvents, placeFromParams, popularPlaces } from '$lib/places';
-import { coverage, eventsInCity, eventsNear } from '$lib/server/firestore';
+import { coverage, eventsAround, eventsInCity } from '$lib/server/firestore';
 import type { PageServerLoad } from './$types';
 
 // SSR sul luogo dell'URL (?luogo=slug oppure ?nome=&lat=&lng=). I filtri si applicano nel browser; la posizione salvata
@@ -22,7 +22,8 @@ export const load: PageServerLoad = async ({ url, setHeaders }) => {
 	const view = url.searchParams.get('vista') === 'mappa' ? ('map' as const) : ('list' as const);
 	const base = { place, fromUrl: !!fromUrl, unknownPlace: wanted && !fromUrl ? slug : null, noPlace: !wanted, view };
 
-	if (!wanted) {
+	if (!wanted || !fromUrl) {
+		// Senza luogo (o con un luogo che non conosciamo) niente eventi: si sceglie il luogo, non si ripiega su Modena.
 		const sum = (r: (typeof regions)[number]) => r.comuni.reduce((n, c) => n + c.events, 0);
 		const popular = {
 			regions: regions
@@ -34,14 +35,14 @@ export const load: PageServerLoad = async ({ url, setHeaders }) => {
 				.map((h) => ({ slug: h.place.slug!, name: h.place.label, events: h.events }))
 		};
 		// km: 0 → mai "coperto": il browser scarica gli eventi solo dopo aver saputo il luogo
-		return { ...base, events: [], fetched: { lat: place.lat, lng: place.lng, km: 0 }, error: '', popular };
+		return { ...base, events: [], fetched: { lat: place.lat, lng: place.lng, km: 0 }, error: '', popular: wanted ? null : popular };
 	}
 
-	const fetched = { lat: place.lat, lng: place.lng, km: radiusKm };
 	try {
-		return { ...base, events: await eventsNear(place, radiusKm), fetched, error: '', popular: null };
+		return { ...base, ...(await eventsAround(place, radiusKm)), error: '', popular: null };
 	} catch (e) {
 		console.error(e);
-		return { ...base, events: [], fetched, error: 'Non riesco a caricare gli eventi in questo momento. Riprova tra poco.', popular: null };
+		// L'area risulta "coperta": il browser non riprova da solo mentre Firestore è in difficoltà.
+		return { ...base, events: [], fetched: { lat: place.lat, lng: place.lng, km: radiusKm }, error: 'Non riesco a caricare gli eventi in questo momento. Riprova tra poco.', popular: null };
 	}
 };

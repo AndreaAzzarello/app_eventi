@@ -3,8 +3,9 @@ import { cityPath, eventPath } from '$lib/event';
 import { coverage, upcomingEvents } from '$lib/server/firestore';
 import type { RequestHandler } from './$types';
 
-// shortcut: un solo file con al massimo 2000 eventi futuri; oltre serve un indice di sitemap paginato.
-const MAX_EVENTS = 2000;
+// Ogni evento in elenco costa una lettura Firestore a ogni rigenerazione: 500 bastano a far scoprire le pagine città/regione,
+// che a loro volta linkano gli eventi. shortcut: oltre serve un indice di sitemap paginato e un budget di letture dedicato.
+const MAX_EVENTS = 500;
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
