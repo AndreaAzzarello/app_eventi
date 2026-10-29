@@ -203,7 +203,7 @@
 								<MapPin size={16} aria-hidden="true" />
 								<span class="grow"><span class="name">{hit.place.label}</span> <span class="muted">{hit.detail}</span></span>
 								<span class="n">
-									{#if hit.place.slug !== undefined}{fmtNum(hit.events)} eventi{:else if hit.events === 0}Pochi eventi in questa zona{/if}
+									{#if hit.place.slug !== undefined}{hit.events === 1 ? '1 evento' : `${fmtNum(hit.events)} eventi`}{:else if hit.events === 0}Pochi eventi in questa zona{/if}
 								</span>
 							</li>
 						{/each}
