@@ -43,6 +43,20 @@ describe('/citta/[slug]', () => {
 		expect([r.city, r.cityAlt]).toEqual(['Bolzano', 'Bozen']);
 	});
 
+	it('mapQuery: ?luogo= per i comuni coperti, nome e coordinate per una città con eventi ma non coperta', async () => {
+		const { load } = await import('./+page.server');
+		const run = async (slug: string, lat: number, lng: number) => {
+			override = [
+				fromData('1', { city: 'Bolzano', citySlug: slug, startTime: 1, lat, lng }),
+				fromData('2', { city: 'Bolzano', citySlug: slug, startTime: 1, lat: lat + 0.02, lng: lng + 0.02 })
+			];
+			return ((await load({ params: { slug }, setHeaders() {} } as never)) as { mapQuery: string }).mapQuery;
+		};
+		expect(await run('bolzano', 46.49, 11.35)).toBe('luogo=bolzano'); // nella copertura
+		expect(await run('terre-del-reno', 44.79, 11.39)).toBe('nome=Bolzano&lat=44.80&lng=11.40'); // fuori: coordinate medie
+		expect(await run('terre-del-reno', 0, 0)).toBe(''); // coordinate mancanti: nessun link
+	});
+
 	it('gli slug di regioni e comuni con accenti e apostrofi sono stabili', async () => {
 		const { slugify } = await import('$lib/event');
 		expect(slugify("Valle d'Aosta")).toBe('valle-d-aosta');

@@ -201,6 +201,15 @@ test('"Vedi sulla mappa" da città e regione apre la home centrata', async ({ pa
 	await expect(page.getByRole('region', { name: 'Mappa degli eventi' })).toBeVisible();
 });
 
+test('"Vedi sulla mappa" da una città con eventi ma fuori copertura usa nome e coordinate, non lo slug', async ({ page }) => {
+	await page.goto('/citta/lecce');
+	const link = page.getByRole('link', { name: 'Vedi sulla mappa' });
+	await expect(link).toHaveAttribute('href', /nome=Lecce&lat=40\.\d\d&lng=18\.\d\d&vista=mappa/);
+	await link.click();
+	await expect(placeButton(page, 'Lecce')).toBeVisible(); // non ricade su Modena
+	await expectCenter(page, LECCE);
+});
+
 test('scegliere una regione allarga il raggio a 100 km', async ({ page }) => {
 	await page.goto('/');
 	await choose(page, 'trentino', /Trentino-Alto Adige/);
