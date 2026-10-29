@@ -85,6 +85,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ---- Bundle: liste di eventi precalcolate ------------------------------
+    // bundles/{g_<cella>|c_<città>|sitemap|coverage}: scritti solo dall'importer (Admin SDK). La webapp li legge
+    // al posto delle query sugli eventi (una lettura per cella invece di una per evento).
+    match /bundles/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ---- Statistiche mensili per regione ---------------------------------
     // stats/{regione}_{AAAA-MM}: scritte solo dall'importer (Admin SDK). Pubbliche per le pagine /regione e l'admin.
     match /stats/{id} {

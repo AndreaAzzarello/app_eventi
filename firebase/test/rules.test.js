@@ -117,6 +117,17 @@ describe('coverage', () => {
   });
 });
 
+describe('bundles', () => {
+  it('lettura pubblica, scrittura mai (nemmeno dall\'admin: scrive l\'importer)', async () => {
+    await seed((fs) => setDoc(doc(fs, 'bundles', 'g_u0qa'), { json: '[]', hash: 'h', parts: 1 }));
+    await assertSucceeds(getDoc(doc(db(), 'bundles', 'g_u0qa')));
+    await assertFails(setDoc(doc(db('alice'), 'bundles', 'x'), { json: '[]' }));
+    await assertFails(setDoc(doc(db('adm', ADMIN), 'bundles', 'x'), { json: '[]' }));
+    await assertFails(updateDoc(doc(db('adm', ADMIN), 'bundles', 'g_u0qa'), { json: '[1]' }));
+    await assertFails(deleteDoc(doc(db('adm', ADMIN), 'bundles', 'g_u0qa')));
+  });
+});
+
 describe('stats', () => {
   it('lettura pubblica, scrittura mai (nemmeno admin: scrive solo importer)', async () => {
     await seed((fs) => setDoc(doc(fs, 'stats', 'lombardia_2026-11'), { region: 'lombardia', month: '2026-11', events: 412 }));
