@@ -31,9 +31,10 @@ export function filterFromParams(p: URLSearchParams): Filter {
 		q: (p.get('q') ?? '').slice(0, 100),
 		when: when === 'oggi' ? 'today' : when === 'weekend' ? 'weekend' : 'any',
 		free: p.get('gratis') === '1',
-		kids: p.get('bambini') === '1',
+		// i vecchi link con cat=kids passano al filtro rapido, che include la categoria
+		kids: p.get('bambini') === '1' || cat === 'kids',
 		running: p.get('inCorso') === '1',
-		category: cat && cat in CATEGORIES ? (cat as Category) : null,
+		category: cat && cat !== 'kids' && cat in CATEGORIES ? (cat as Category) : null,
 		radiusKm: (RADII_KM as readonly number[]).includes(r) ? r : DEFAULT_RADIUS_KM
 	};
 }

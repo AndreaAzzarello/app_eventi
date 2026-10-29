@@ -60,4 +60,6 @@ describe('URL', () => {
 	});
 	it('valori sconosciuti tornano ai default', () =>
 		expect(filterFromParams(new URLSearchParams('cat=party&r=7&quando=ieri'))).toEqual(EMPTY_FILTER));
+	it('i vecchi link con cat=kids diventano il filtro rapido Bambini', () =>
+		expect(filterFromParams(new URLSearchParams('cat=kids'))).toEqual({ ...EMPTY_FILTER, kids: true }));
 });
