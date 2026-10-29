@@ -474,6 +474,16 @@
 		background: var(--surface);
 		color: var(--accent);
 	}
+	/* Passando da lista a mappa il riquadro appare con una dissolvenza (con movimento ridotto è istantanea, vedi app.css) */
+	.list-pane,
+	.map-pane {
+		animation: pane-in var(--dur) var(--ease);
+	}
+	@keyframes pane-in {
+		from {
+			opacity: 0;
+		}
+	}
 	.split[data-view='list'] .map-pane,
 	.split[data-view='map'] .list-pane {
 		display: none;

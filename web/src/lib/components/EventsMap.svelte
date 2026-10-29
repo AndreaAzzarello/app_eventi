@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { mount, onMount, unmount } from 'svelte';
 	import { CATEGORY_ICONS } from '$lib/categoryIcons';
-	import { eventPath, type Event } from '$lib/event';
+	import { clusterPoints } from '$lib/cluster';
+	import type { Event } from '$lib/event';
+	import { fmtNum } from '$lib/format';
 	import type { LatLng } from '$lib/geo';
 	import { baseMap, cssVar, loadLeaflet, type Leaflet } from '$lib/leaflet';
-	import { formatWhen } from '$lib/dates';
+	import MapPreview from './MapPreview.svelte';
 
 	let {
 		events,
@@ -20,12 +22,19 @@
 		onhover?: (id: string | null) => void;
 	} = $props();
 
+	/** Lato della cella di raggruppamento, in pixel: poco più di un pin. */
+	const CELL = 44;
+	/** Da questo zoom i cluster non si aprono più zoomando: restano punti con lo stesso indirizzo, si elencano. */
+	const STACK_ZOOM = 17;
+	const STACK_MAX = 5;
+
 	let el: HTMLDivElement;
 	let L: Leaflet | null = $state.raw(null);
 	let map: import('leaflet').Map | null = null;
 	let layer: import('leaflet').LayerGroup | null = null;
 	let markers: Record<string, import('leaflet').Marker> = {};
 	let mounted: ReturnType<typeof mount>[] = [];
+	let fitting = false;
 	let failed = $state(false);
 	/** Vista corrente, esposta come data-* per i test E2E. */
 	let view = $state<{ lat: number; lng: number; zoom: number } | null>(null);
@@ -40,6 +49,10 @@
 					const c = map!.getCenter();
 					view = { lat: c.lat, lng: c.lng, zoom: map!.getZoom() };
 				});
+				// Cambiando zoom i pin vicini si fondono o si separano.
+				map.on('zoomend', () => {
+					if (!fitting) draw();
+				});
 				layer = lib.layerGroup().addTo(map);
 				L = lib;
 			})
@@ -51,45 +64,70 @@
 		};
 	});
 
-	function popup(e: Event) {
+	function preview(e: Event) {
 		const div = document.createElement('div');
-		const a = document.createElement('a');
-		a.href = eventPath(e);
-		a.textContent = e.title;
-		a.className = 'map-popup-title';
-		const p = document.createElement('p');
-		p.textContent = `${formatWhen(e.startTime, e.endTime)} · ${e.venueName || e.city}`;
-		div.append(a, p);
+		mounted.push(mount(MapPreview, { target: div, props: { event: e } }));
 		return div;
 	}
 
-	// Marker neutro con l'icona della categoria: la categoria si legge dall'icona, non dal colore.
-	function markerIcon(lib: Leaflet, e: Event) {
-		const el = document.createElement('span');
-		el.className = 'ev-marker';
-		mounted.push(mount(CATEGORY_ICONS[e.category], { target: el, props: { size: 16, 'aria-hidden': 'true' } }));
-		return lib.divIcon({ className: 'ev-marker-wrap', html: el, iconSize: [32, 32], iconAnchor: [16, 16] });
+	/** Più eventi allo stesso indirizzo: un elenco di anteprime, non uno zoom infinito. */
+	function stack(list: Event[]) {
+		const div = document.createElement('div');
+		div.className = 'stack';
+		for (const e of list.slice(0, STACK_MAX)) div.append(preview(e));
+		if (list.length > STACK_MAX) {
+			const more = document.createElement('p');
+			more.textContent = `E altri ${fmtNum(list.length - STACK_MAX)} eventi qui`;
+			div.append(more);
+		}
+		return div;
 	}
 
-	// Ridisegna marker e cerchio quando cambiano eventi, centro o raggio.
-	$effect(() => {
+	// Pin a goccia nel colore della categoria, con la sua icona: anche chi non distingue i colori la legge dall'icona.
+	function pinIcon(lib: Leaflet, e: Event) {
+		const pin = document.createElement('span');
+		pin.className = 'ev-pin';
+		pin.dataset.cat = e.category;
+		const icon = document.createElement('span');
+		icon.className = 'ev-pin-icon';
+		pin.append(icon);
+		mounted.push(mount(CATEGORY_ICONS[e.category], { target: icon, props: { size: 16, 'aria-hidden': 'true' } }));
+		// la punta della goccia (angolo ruotato di 45°) sta a ~23 px sotto il centro del riquadro da 32
+		return lib.divIcon({ className: 'ev-marker-wrap', html: pin, iconSize: [32, 32], iconAnchor: [16, 39], popupAnchor: [0, -39] });
+	}
+
+	function clusterIcon(lib: Leaflet, n: number) {
+		const el = document.createElement('span');
+		el.className = 'ev-cluster';
+		el.textContent = fmtNum(n);
+		return lib.divIcon({ className: 'ev-marker-wrap', html: el, iconSize: [48, 48], iconAnchor: [24, 24] });
+	}
+
+	function applyHighlight() {
+		for (const [id, m] of Object.entries(markers)) {
+			m.getElement()?.classList.toggle('active', id === highlighted);
+			m.setZIndexOffset(id === highlighted ? 1000 : 0);
+		}
+	}
+
+	/** Ridisegna cerchio, centro e marker (raggruppati allo zoom corrente). */
+	function draw() {
 		if (!L || !map || !layer) return;
-		const accent = cssVar('--accent');
+		const lib = L;
+		const m = map;
 		layer.clearLayers();
-		mounted.forEach((m) => unmount(m));
+		mounted.forEach((x) => unmount(x));
 		mounted = [];
 		markers = {};
-		// Senza animazione: Leaflet scarta un nuovo fitBounds mentre uno zoom è ancora in corso, e la mappa restava sulla vista vecchia.
-		map.fitBounds(L.latLng(center.lat, center.lng).toBounds(radiusKm * 2000), { padding: [16, 16], animate: false });
-		L.circle([center.lat, center.lng], {
+		lib.circle([center.lat, center.lng], {
 			radius: radiusKm * 1000,
-			color: accent,
+			color: cssVar('--accent'),
 			weight: 2,
 			opacity: 0.6,
 			fill: false,
 			interactive: false
 		}).addTo(layer);
-		L.circleMarker([center.lat, center.lng], {
+		lib.circleMarker([center.lat, center.lng], {
 			radius: 6,
 			color: cssVar('--surface'),
 			weight: 2,
@@ -97,20 +135,46 @@
 			fillOpacity: 1,
 			interactive: false
 		}).addTo(layer);
-		for (const e of events) {
-			markers[e.id] = L.marker([e.lat, e.lng], { icon: markerIcon(L, e), title: e.title })
-				.bindPopup(() => popup(e))
-				.on('mouseover', () => onhover?.(e.id))
-				.on('mouseout', () => onhover?.(null))
+		const zoom = m.getZoom();
+		for (const c of clusterPoints(events, (p) => m.project([p.lat, p.lng], zoom), CELL)) {
+			if (c.items.length === 1) {
+				const e = c.items[0];
+				markers[e.id] = lib
+					.marker([e.lat, e.lng], { icon: pinIcon(lib, e), title: e.title })
+					.bindPopup(() => preview(e), { minWidth: 200, maxWidth: 280 })
+					.on('mouseover', () => onhover?.(e.id))
+					.on('mouseout', () => onhover?.(null))
+					.addTo(layer);
+				continue;
+			}
+			const bounds = lib.latLngBounds(c.items.map((i): [number, number] => [i.lat, i.lng]));
+			const marker = lib
+				.marker([c.lat, c.lng], { icon: clusterIcon(lib, c.items.length), title: `${c.items.length} eventi in quest'area` })
+				.on('click', () => {
+					if (bounds.getNorthEast().equals(bounds.getSouthWest()) || m.getZoom() >= STACK_ZOOM)
+						lib.popup({ minWidth: 200, maxWidth: 280, maxHeight: 320 }).setLatLng([c.lat, c.lng]).setContent(stack(c.items)).openOn(m);
+					else m.fitBounds(bounds, { padding: [48, 48], maxZoom: STACK_ZOOM });
+				})
 				.addTo(layer);
+			for (const i of c.items) markers[i.id] = marker;
 		}
+		applyHighlight();
+	}
+
+	// Ridisegna quando cambiano eventi, centro o raggio.
+	$effect(() => {
+		if (!L || !map || !layer) return;
+		void [events, center, radiusKm];
+		// Senza animazione: Leaflet scarta un nuovo fitBounds mentre uno zoom è ancora in corso, e la mappa restava sulla vista vecchia.
+		fitting = true;
+		map.fitBounds(L.latLng(center.lat, center.lng).toBounds(radiusKm * 2000), { padding: [16, 16], animate: false });
+		fitting = false;
+		draw();
 	});
 
 	$effect(() => {
-		for (const [id, m] of Object.entries(markers)) {
-			m.getElement()?.classList.toggle('active', id === highlighted);
-			m.setZIndexOffset(id === highlighted ? 1000 : 0);
-		}
+		void highlighted;
+		applyHighlight();
 	});
 </script>
 
@@ -153,28 +217,77 @@
 		place-items: center;
 		color: var(--muted);
 	}
-	.wrap :global(.map-popup-title) {
-		font: var(--fw-strong) var(--text-md) var(--font-display);
+	/* Anteprima al tocco: la superficie e il testo del tema, non il bianco di Leaflet */
+	.wrap :global(.leaflet-popup-content-wrapper) {
+		background: var(--surface);
+		color: var(--text);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lift);
+	}
+	.wrap :global(.leaflet-popup-tip) {
+		background: var(--surface);
+	}
+	.wrap :global(.leaflet-popup-content) {
+		margin: var(--space-3);
+		font: inherit;
 	}
 	.wrap :global(.leaflet-popup-content p) {
 		margin: var(--space-1) 0 0;
+	}
+	.wrap :global(.leaflet-container a.leaflet-popup-close-button) {
+		color: var(--muted);
+	}
+	.wrap :global(.stack) {
+		display: grid;
+		gap: var(--space-3);
+	}
+	.wrap :global(.stack > p) {
+		margin: 0;
+		color: var(--muted);
+		font-size: var(--text-sm);
 	}
 	.wrap :global(.ev-marker-wrap) {
 		background: none;
 		border: none;
 	}
-	.wrap :global(.ev-marker) {
+	/* Pin a goccia: un quadrato con tre angoli tondi ruotato di -45°, l'icona controruotata */
+	.wrap :global(.ev-pin) {
 		display: grid;
 		place-items: center;
 		width: var(--control-sm);
 		height: var(--control-sm);
-		border: 2px solid var(--border-strong);
-		border-radius: var(--radius-full);
-		background: var(--surface);
-		color: var(--text);
+		box-sizing: border-box;
+		border: 2px solid var(--surface);
+		border-radius: 50% 50% 50% 0;
+		background: var(--ink);
+		box-shadow: var(--shadow-card);
+		transform: rotate(-45deg);
 	}
-	.wrap :global(.ev-marker-wrap.active .ev-marker) {
+	.wrap :global(.ev-pin-icon) {
+		display: grid;
+		color: var(--surface);
+		transform: rotate(45deg);
+	}
+	.wrap :global(.ev-marker-wrap.active .ev-pin) {
 		border-color: var(--accent);
-		color: var(--accent);
+		box-shadow: var(--shadow-lift);
+	}
+	.wrap :global(.ev-cluster) {
+		display: grid;
+		place-items: center;
+		width: var(--control);
+		height: var(--control);
+		box-sizing: border-box;
+		border: 2px solid var(--surface);
+		border-radius: var(--radius-full);
+		background: var(--accent);
+		color: var(--accent-ink);
+		font: var(--fw-strong) var(--text-md) var(--font-body);
+		font-variant-numeric: tabular-nums;
+		box-shadow: var(--shadow-card);
+	}
+	.wrap :global(.ev-marker-wrap.active .ev-cluster) {
+		border-color: var(--text);
+		box-shadow: var(--shadow-lift);
 	}
 </style>
