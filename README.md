@@ -281,7 +281,7 @@ Il modello dati e le motivazioni stanno in `firebase/firestore.rules`. Riassunto
 - Ogni evento deve avere i campi previsti, con tipi e limiti di lunghezza (coincidono con `LIMITS` in `web/src/lib/event.ts`). Le URL (immagine, biglietti, fonte) devono essere vuote o `http(s)`, per escludere `javascript:` e `data:`.
 - **`submissions`** (proposte degli utenti): creazione da utente autenticato con `status: 'pending'`. Il contatore `pendingCount` dell'autore cambia nello stesso batch della proposta; massimo 5 proposte in attesa. Solo l'admin cambia lo stato, una volta sola (approvata con `eventId`, rifiutata con motivo). L'autore vede le proprie proposte e può ritirarle.
 - **`users/{uid}`**: lettura e modifica solo del proprietario, su pochi campi (nome, città, contatore). Il profilo non si cancella con proposte in attesa. Sotto `favorites/{eventId}` ci sono i preferiti dell'utente.
-- **`coverage/{regione}`** e **`stats/{regione}_{AAAA-MM}`**: lettura pubblica, scrittura negata a tutti i client (le scrive l'importer con l'Admin SDK).
+- **`coverage/{regione}`**, **`stats/{regione}_{AAAA-MM}`** e **`bundles/*`** (liste precalcolate): lettura pubblica, scrittura negata a tutti i client (le scrive l'importer con l'Admin SDK).
 - Tutto il resto è chiuso (`allow read, write: if false`).
 
 Indici composti: `events` per `geohash` + `endTime`, per `endTime` + `geohash` e per `citySlug` + `endTime`; `submissions` per `ownerId` + `createdAt` e per `status` + `createdAt`.
@@ -507,23 +507,29 @@ Quote del piano Spark al giorno: 50.000 letture, 20.000 scritture, 20.000 cancel
 
 A freddo (cache vuota). «Reali» = massimo con dati veri (somma dei `limit` delle query). Il test fallisce se una rotta supera il suo budget.
 
-| rotta | letture (seed) | richieste | reali, al massimo |
+| rotta | prima (query): seed / reali al massimo | dopo (bundle): letture | richieste |
 |---|---|---|---|
-| `/` senza luogo | 4 | 1 | 4 |
-| `/?luogo=modena` (25 km) | 11 | 5 | 504 |
-| `/?luogo=bologna&r=100` | 20 | 13 | 1.504 |
-| `/?luogo=sconosciuto` (prima 13 / 624: caricava anche Modena) | 6 | 3 | 124 |
-| `/api/events` (stessa chiave della home) | 7 | 4 | 500 |
-| `/api/places` | 4 | 1 | 4 |
-| `/citta/modena` | 4 | 3 | 201 |
-| `/regione/emilia-romagna` | 3 | 2 | 3 |
-| `/eventi/[slug]` | 1 | 1 | 1 |
-| `/sitemap.xml` (prima fino a 2.004) | 14 | 2 | 504 |
+| `/` senza luogo | 4 / 4 | 1 | 1 |
+| `/?luogo=modena` (25 km) | 11 / 504 | 11 (1 copertura + 10 celle) | 2 |
+| `/?luogo=bologna&r=100` | 20 / 1.504 | 84 (celle) | 2 |
+| `/?luogo=sconosciuto` | 6 / 124 | 2 | 2 |
+| `/api/events` (stessa chiave della home) | 7 / 500 | 11 | 2 |
+| `/api/places` | 4 / 4 | 1 | 1 |
+| `/citta/modena` | 4 / 201 | 2 (copertura + città) | 2 |
+| `/regione/emilia-romagna` | 3 / 3 | 3 | 2 |
+| `/eventi/[slug]` | 1 / 1 | 1 | 1 |
+| `/sitemap.xml` | 14 / 504 | 2 | 2 |
 | ripetizione, o stessa cella ~5 km | 0 | 0 | 0 |
+
+Con i bundle le letture non dipendono più dal numero di eventi ma dalle celle (28×19 km) che toccano il cerchio: la home a 25 km ne legge 9-10 (più la copertura), 50 km circa 25, 100 km circa 85. Quest'ultima è l'unico caso lontano da «≤ 10»: costa una volta ogni 6 ore per punto della griglia, poi zero. Una cella con molti eventi si divide in più documenti (700 KB l'uno) e conta una lettura per documento.
+
+**Bundle** (`tools/importer/bundles.py`, collezione `bundles`): a fine import l'importer scrive `g_<geohash4>` (celle), `c_<città>`, `sitemap` (i 500 eventi che finiscono prima) e `coverage` (tutte le regioni). Contengono solo i campi di card e mappa (non descrizione né link), ripartono dal bundle già scritto (un import parziale non cancella le altre regioni) e si riscrivono solo se l'hash cambia. La webapp li usa se esiste `bundles/coverage`; finché manca ripiega sulle query come prima. Limiti: gli eventi creati o approvati dall'admin entrano al prossimo import (al massimo 24 ore); la ricerca testuale non vede la descrizione degli eventi; un evento che cambia cella resta anche in quella vecchia fino alla fine.
+
+**Scritture dei bundle, tutta Italia (stima, non misurata).** Circa 650 celle con eventi e fino a 3.000 città: nel giorno peggiore (tutti i bundle cambiano) 650-800 + 3.000 + 2 ≈ 3.800 scritture; in un giorno tipico solo i bundle con eventi nuovi o scaduti, 1.000-2.000. L'importer le conta nel tetto `--max-writes` (15.000, eventi inclusi) e, se non bastano, salta prima le città, poi le celle. Documenti totali circa 4.000; peso circa 300 byte per evento (un import da 40.000 eventi attivi pesa 12 MB in tutto).
 
 **Cache a due livelli** (`lib/server/firestore.ts`): memoria dell'isolate e Cache API di Cloudflare (per data center, vale anche tra isolate e deploy). Liste 6 ore, evento/copertura 1 ora, sitemap 12 ore. Scaduta la freschezza si rilegge; se Firestore risponde 429 (quota esaurita) o è giù si serve l'ultima copia (fino a 2 giorni) e per 10 minuti non lo si richiama. Home e `/api/events` interrogano lo stesso punto della griglia di ~5 km, quindi condividono la chiave. Le pagine HTML restano a 5 minuti all'edge (vedi il punto 7 del deploy): costano zero letture perché i dati sono già in cache.
 
-Limite noto: una lista non in cache costa un documento per evento (non 1-2); per scendere ancora servirebbero liste precalcolate dall'importer (un documento per città o regione) o Cloudflare KV.
+Limite noto: la Cache API è per data center, non globale. Rischio non verificato: il tempo di CPU del Worker (10 ms nel piano gratuito) per leggere in JSON le celle più dense di Roma e Milano.
 
 ### Import a regime (dry-run di Emilia-Romagna, Lombardia, Veneto, Toscana)
 

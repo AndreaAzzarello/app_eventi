@@ -25,7 +25,7 @@ Agenda gratuita di eventi pubblici locali (partita da Modena). Dettagli completi
 - Deploy regole/indici (prima della webapp): `npm run deploy:rules` in `firebase/`, solo su mia conferma.
 
 ## Cartelle importanti
-`web/src/lib/server/firestore.ts` (letture REST, limite per cella), `web/src/lib/styles/`, `firebase/firestore.rules`, `tools/importer/sources/*.csv` (registro fonti), `.github/workflows/`.
+`web/src/lib/server/firestore.ts` (letture REST; legge i bundle `bundles/*` scritti da `tools/importer/bundles.py`, ripiega sulle query per cella), `web/src/lib/styles/`, `firebase/firestore.rules`, `tools/importer/sources/*.csv` (registro fonti), `.github/workflows/`.
 
 ## Da non fare
 - Non usare `emulators:start` nei test: solo `emulators:exec`.
