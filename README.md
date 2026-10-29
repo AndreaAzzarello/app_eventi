@@ -370,7 +370,7 @@ python seed_demo.py
 
 `.github/workflows/import-events.yml`:
 
-- Esecuzione ogni giorno alle **05:17 UTC**, cioè 06:17 in Italia con l'ora solare e 07:17 con l'ora legale (`cron: "17 5 * * *"`, senza `timezone`).
+- Esecuzione ogni giorno alle **08:17 UTC**, cioè 09:17 in Italia con l'ora solare e 10:17 con l'ora legale (`cron: "17 8 * * *"`, senza `timezone`). Va dopo il reset della quota Firestore (mezzanotte del Pacifico = 07:00 o 08:00 UTC, 08:00/09:00 in Italia): così l'import non intacca le letture del giorno prima.
 - Avvio manuale: **Actions → Import eventi → Run workflow**, con le opzioni `dry_run` e `regione` (slug, per esempio `lombardia`).
 - Job `plan`: gira `pytest` e `ci_report.py matrix`, che elenca le regioni con almeno una fonte attiva e divide le soglie di quota tra i job.
 - Job `import`: **una matrice per regione**, 4 in parallelo (`max-parallel: 4`), timeout 330 minuti (limite GitHub 360). Ogni job ha `NOMINATIM_INTERVAL=4`, cioè 0,25 richieste al secondo: quattro job insieme restano a 1 richiesta al secondo in tutto, come chiede la policy di Nominatim. `geocache.json` e `.httpcache` sono salvati con `actions/cache` **per regione** (chiave `importer-<regione>-<run>`).
@@ -472,7 +472,7 @@ python activate.py --regione lombardia
 Molti comuni sono respinti con "nessun evento futuro valido" solo perché in quel momento non avevano eventi (fuori stagione). Ogni **domenica alle 23:00 ora italiana** il workflow riesegue `activate.py --tutte --only-reason "nessun evento futuro valido"`: rivaluta solo le righe `da_verificare` respinte per quel motivo e attiva quelle che ora rispettano **tutte** le condizioni a–d (le condizioni a–c sono quelle già registrate nel CSV, non vengono ricontrollate sui siti; il dry-run sì).
 
 - Riepilogo in `GITHUB_STEP_SUMMARY`: per regione, comuni rivalutati, attivati (con i nomi) e ancora respinti.
-- Se qualcosa cambia, il workflow fa il commit di `tools/importer/sources/*.csv` ("Ricontrollo settimanale: attivate N fonti…") e lo manda a `main` con `GITHUB_TOKEN` (permesso `contents: write`). L'import del lunedì mattina (05:17 UTC) trova le nuove fonti già attive. Se `main` ha una regola di protezione che vieta il push al bot, il passaggio di commit fallisce: consenti al bot o apri una PR a mano.
+- Se qualcosa cambia, il workflow fa il commit di `tools/importer/sources/*.csv` ("Ricontrollo settimanale: attivate N fonti…") e lo manda a `main` con `GITHUB_TOKEN` (permesso `contents: write`). L'import del lunedì mattina (08:17 UTC) trova le nuove fonti già attive. Se `main` ha una regola di protezione che vieta il push al bot, il passaggio di commit fallisce: consenti al bot o apri una PR a mano.
 - Avvio manuale: Actions → Ricontrollo fonti → Run workflow (con `dry_run` non modifica nulla). Stessa cosa in locale: `python activate.py --tutte --only-reason "nessun evento futuro valido" --dry-run`.
 - Durata stimata 1-2 ore con circa 1.000 comuni (12 in parallelo, 1 richiesta al secondo per sito); timeout 240 minuti. Il commit del bot non rilancia altri workflow.
 
@@ -505,16 +505,25 @@ Quote del piano Spark al giorno: 50.000 letture, 20.000 scritture, 20.000 cancel
 
 ### Misure sull'emulatore (`npm run test:reads`, dati di seed)
 
-| visita | letture | query |
-|---|---|---|
-| home (Modena, 25 km, cache miss) | 7 | 4 (intervalli di geohash, tutte con `geohash` ≥/≤, `endTime` e `limit`) |
-| `/citta/modena` | 3 | 2 |
-| `/regione/emilia-romagna` | 1 | 0 (lettura di un documento) |
-| scelta del luogo (`/api/places`) | 2 (una per regione) | 0 |
-| `/eventi/[slug]` | 1 | 0 |
-| qualsiasi ripetizione entro 5 minuti | 0 | cache in memoria |
+A freddo (cache vuota). «Reali» = massimo con dati veri (somma dei `limit` delle query). Il test fallisce se una rotta supera il suo budget.
 
-Con dati veri le letture di una home in cache miss sono pari agli eventi futuri nel raggio più 1 per query vuota. Il test controlla che nessuna query dell'home sia senza intervallo di geohash.
+| rotta | letture (seed) | richieste | reali, al massimo |
+|---|---|---|---|
+| `/` senza luogo | 4 | 1 | 4 |
+| `/?luogo=modena` (25 km) | 11 | 5 | 504 |
+| `/?luogo=bologna&r=100` | 20 | 13 | 1.504 |
+| `/?luogo=sconosciuto` (prima 13 / 624: caricava anche Modena) | 6 | 3 | 124 |
+| `/api/events` (stessa chiave della home) | 7 | 4 | 500 |
+| `/api/places` | 4 | 1 | 4 |
+| `/citta/modena` | 4 | 3 | 201 |
+| `/regione/emilia-romagna` | 3 | 2 | 3 |
+| `/eventi/[slug]` | 1 | 1 | 1 |
+| `/sitemap.xml` (prima fino a 2.004) | 14 | 2 | 504 |
+| ripetizione, o stessa cella ~5 km | 0 | 0 | 0 |
+
+**Cache a due livelli** (`lib/server/firestore.ts`): memoria dell'isolate e Cache API di Cloudflare (per data center, vale anche tra isolate e deploy). Liste 6 ore, evento/copertura 1 ora, sitemap 12 ore. Scaduta la freschezza si rilegge; se Firestore risponde 429 (quota esaurita) o è giù si serve l'ultima copia (fino a 2 giorni) e per 10 minuti non lo si richiama. Home e `/api/events` interrogano lo stesso punto della griglia di ~5 km, quindi condividono la chiave. Le pagine HTML restano a 5 minuti all'edge (vedi il punto 7 del deploy): costano zero letture perché i dati sono già in cache.
+
+Limite noto: una lista non in cache costa un documento per evento (non 1-2); per scendere ancora servirebbero liste precalcolate dall'importer (un documento per città o regione) o Cloudflare KV.
 
 ### Import a regime (dry-run di Emilia-Romagna, Lombardia, Veneto, Toscana)
 

@@ -2,8 +2,9 @@ name: Import eventi
 
 on:
   schedule:
-    # Ogni giorno alle 05:17 UTC: 06:17 in Italia con l'ora solare, 07:17 con l'ora legale (minuto non tondo: meno ritardi sui runner).
-    - cron: "17 5 * * *"
+    # Ogni giorno alle 08:17 UTC: 09:17 in Italia con l'ora solare, 10:17 con l'ora legale. Dopo il reset della quota Firestore
+    # (mezzanotte del Pacifico = 07:00 o 08:00 UTC), così l'import non consuma le letture della sera prima (minuto non tondo: meno ritardi sui runner).
+    - cron: "17 8 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
