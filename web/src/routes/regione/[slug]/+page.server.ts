@@ -13,6 +13,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const { cur, prev } = await monthStats(params.slug, keys);
 	setHeaders({ 'cache-control': HTML_CACHE });
 	return {
+		slug: params.slug,
 		name: region.name,
 		comuni: region.comuni,
 		total: region.comuni.reduce((n, c) => n + c.events, 0),

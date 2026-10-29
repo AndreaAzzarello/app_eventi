@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Map from '@lucide/svelte/icons/map';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import EventList from '$lib/components/EventList.svelte';
@@ -31,6 +32,7 @@
 	<p class="muted lead">
 		{visible.length === 1 ? 'Un evento in programma' : `${fmtNum(visible.length)} eventi in programma`} a {where}.
 	</p>
+	<p class="map-link"><a class="btn btn-sm" href={`/?luogo=${data.slug}&vista=mappa`}><Map size={16} aria-hidden="true" /> Vedi sulla mappa</a></p>
 	<EventList events={visible} {now}>
 		{#snippet empty()}
 			<h2>Per ora niente in programma</h2>
@@ -50,6 +52,9 @@
 	}
 	.lead {
 		font-size: var(--text-md);
-		margin-bottom: var(--space-4);
+		margin-bottom: var(--space-3);
+	}
+	.map-link {
+		margin: 0 0 var(--space-4);
 	}
 </style>

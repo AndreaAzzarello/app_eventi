@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Map from '@lucide/svelte/icons/map';
 	import { page } from '$app/state';
 	import Seo from '$lib/components/Seo.svelte';
 	import { cityPath } from '$lib/event';
@@ -24,6 +25,7 @@
 	<h1>Eventi in {data.name}</h1>
 	<p class="muted lead">{count(data.total)} in programma in {data.comuni.length} comuni coperti.</p>
 	{#if data.month}<p class="month">{data.month}</p>{/if}
+	<p class="map-link"><a class="btn btn-sm" href={`/?luogo=${data.slug}&vista=mappa&r=100`}><Map size={16} aria-hidden="true" /> Vedi sulla mappa</a></p>
 
 	<ul class="comuni">
 		{#each withEvents as c (c.slug)}
@@ -42,6 +44,9 @@
 </div>
 
 <style>
+	.map-link {
+		margin: 0 0 var(--space-4);
+	}
 	.month {
 		margin: 0 0 var(--space-4);
 		font-variant-numeric: tabular-nums;

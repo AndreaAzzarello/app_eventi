@@ -22,5 +22,5 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const regionSlug = region ? slugify(region) : '';
 	const regionPage = regionSlug ? await regionCoverage(regionSlug).catch(() => null) : null;
 	const cityAlt = events.find((e) => e.cityAlt)?.cityAlt ?? '';
-	return { events, city, cityAlt, province, region, regionSlug: regionPage ? regionSlug : '' };
+	return { slug: params.slug, events, city, cityAlt, province, region, regionSlug: regionPage ? regionSlug : '' };
 };
