@@ -29,17 +29,34 @@
 	import Utensils from '@lucide/svelte/icons/utensils';
 	import X from '@lucide/svelte/icons/x';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
+	import EventCard from '$lib/components/EventCard.svelte';
 	import GoogleLogo from '$lib/components/GoogleLogo.svelte';
-	import { CATEGORIES } from '$lib/event';
+	import { CATEGORIES, type Event } from '$lib/event';
 	import { fmtNum, monthKeys, monthLine } from '$lib/format';
 
 	const space = [1, 2, 3, 4, 5, 6, 7];
 	const grays = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
-	const roles = ['bg', 'surface', 'surface-2', 'border', 'border-strong', 'text', 'muted', 'accent', 'accent-hover', 'danger'];
+	const roles = ['bg', 'surface', 'surface-2', 'border', 'border-strong', 'text', 'muted', 'accent', 'accent-hover', 'accent-soft', 'accent-border', 'danger'];
 	const sizes = ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'];
 	const icons = { MapPin, Calendar, Heart, Share2, Map, List, Ticket, Search, User, Plus, Sun, Moon, X, Check, LocateFixed, ArrowLeft, Mail, SlidersHorizontal, Trash, Pencil, ExternalLink };
 	const categoryIcons = { music: AudioLines, food: Utensils, sport: Trophy, culture: Landmark, kids: Baby, market: ShoppingBasket, other: Tag };
 	const keys = monthKeys();
+	const now = Date.now();
+	const sample = {
+		id: 'stile',
+		title: 'Jazz in Piazza Grande',
+		category: 'music',
+		priceType: 'free',
+		startTime: now + 3_600_000,
+		endTime: now + 7_200_000,
+		venueName: 'Piazza Grande',
+		city: 'Modena',
+		tags: [],
+		approxLocation: false,
+		longRunning: false,
+		lat: 44.6471,
+		lng: 10.9252
+	} as unknown as Event;
 
 	// Colori risolti dal browser (light-dark() compreso) e contrasto sullo sfondo.
 	let resolved: Record<string, { rgb: string; onBg: string; onSurface: string }> = $state({});
@@ -107,7 +124,7 @@
 
 <section aria-labelledby="s-col">
 	<h2 id="s-col">Colore</h2>
-	<p class="muted">Dieci grigi caldi e un solo accento, il terracotta, per azioni primarie, link, focus e stato attivo. Il rosso d’errore è un cremisi più freddo e compare sempre con icona e testo. Contrasti calcolati nel tema in uso.</p>
+	<p class="muted">Dieci grigi caldi e un solo accento, il terracotta, per azioni primarie, link, focus, stato attivo e — in tinta tenue (<code>--accent-soft</code>, 10% sulla superficie; <code>--accent-border</code>, 45% sul bordo) — per evidenziare date, categorie e hover. Mai gradienti né glow. Il rosso d’errore è un cremisi più freddo e compare sempre con icona e testo. Contrasti calcolati nel tema in uso.</p>
 	<h3>Ruoli</h3>
 	<ul class="plain swatches">
 		{#each roles as n (n)}
@@ -134,7 +151,9 @@
 
 <section aria-labelledby="s-type">
 	<h2 id="s-type">Tipografia</h2>
-	<p class="muted">Due pesi, 400 e 600. Titoli in Fraunces, testo con il font di sistema. Mai tutto maiuscolo.</p>
+	<p class="muted">Due pesi, 400 e 600. Titoli in Fraunces, testo con il font di sistema. Mai tutto maiuscolo. Unica eccezione: il <strong>corsivo Fraunces 600</strong> terracotta (<code>.display-em</code>), solo per il titolo display della home e per il logo.</p>
+	<p class="display-sample display">Cosa succede <span class="display-em">vicino a te</span></p>
+	<p class="logo-sample">Eventi <em class="display-em">Vicini</em> <span class="muted">· <code>--text-display</code>: 40 px, 64 px da 720 px</span></p>
 	<ul class="plain">
 		{#each sizes as s (s)}
 			<li class="type-row"><code>--text-{s}</code><span style="font-size: var(--text-{s})">Concerto in piazza, ott 2026</span></li>
@@ -180,16 +199,20 @@
 		<span class="hint">Suggerimento sotto il campo.</span>
 	</div>
 	<p class="row">
-		<button class="chip" type="button" aria-pressed="false">Tutti</button>
-		<button class="chip" type="button" aria-pressed="true">Musica</button>
-		<button class="chip" type="button" aria-pressed="false">Sport</button>
+		<button class="chip" type="button" aria-pressed="false">Oggi</button>
+		<button class="chip" type="button" aria-pressed="true"><AudioLines size={16} aria-hidden="true" />Musica</button>
+		<button class="chip" type="button" aria-pressed="false"><Trophy size={16} aria-hidden="true" />Sport</button>
 	</p>
+	<p class="muted">Chip: inattivo con bordo (in hover tinta tenue), attivo in accento pieno con testo <code>--accent-ink</code>. Le categorie portano la loro icona.</p>
+	<h3>Card evento</h3>
+	<p class="muted">Superficie sopra lo sfondo con bordo sottile e <code>--shadow-card</code> (l’unica ombra sulle card, neutra e appena visibile); in hover bordo <code>--accent-border</code> e tinta tenue. Il riquadro data è in tinta tenue con il numero in Fraunces; la categoria è una pillola in tinta tenue con icona.</p>
+	<EventCard event={sample} {now} />
 	<h3>Messaggi</h3>
 	<p class="notice">Avviso neutro, senza colore.</p>
 	<ErrorMessage>Errore con icona e testo, mai solo colore.</ErrorMessage>
 	<h3>Elemento sovrapposto</h3>
 	<div class="overlay-sample">
-		<p><strong>Dialog, menu e toast</strong> sono gli unici con ombra: <code>--shadow-overlay</code>.</p>
+		<p><strong>Dialog, menu e toast</strong> usano <code>--shadow-overlay</code>; le card <code>--shadow-card</code>. Non esistono altre ombre.</p>
 	</div>
 	<h3>Riga delle statistiche mensili</h3>
 	<p class="num">{monthLine(412, 374, keys)}</p>
@@ -273,6 +296,15 @@
 	}
 	.num {
 		font-variant-numeric: tabular-nums;
+	}
+	.display-sample {
+		margin: var(--space-3) 0;
+	}
+	.logo-sample {
+		font: var(--fw-strong) var(--text-xl) / 1 var(--font-display);
+	}
+	.logo-sample .muted {
+		font: var(--fw-regular) var(--text-sm) / var(--lh-body) var(--font-body);
 	}
 	.overlay-sample {
 		padding: var(--space-3);

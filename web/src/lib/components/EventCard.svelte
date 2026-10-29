@@ -53,7 +53,7 @@
 			{#if km != null}<span class="km"> · {km < 1 ? '< 1' : fmtNum(Math.round(km))} km</span>{/if}
 		</p>
 		<div class="tags">
-			<span class="badge"><CategoryIcon size={16} aria-hidden="true" />{CATEGORIES[event.category]}</span>
+			<span class="badge badge-cat"><CategoryIcon size={16} aria-hidden="true" />{CATEGORIES[event.category]}</span>
 			{#if running}<span class="badge">{running}</span>{/if}
 			{#if isFree(event)}<span class="badge">Gratis</span>{/if}
 			{#if isForKids(event) && event.category !== 'kids'}<span class="badge">Per bambini</span>{/if}
@@ -72,11 +72,14 @@
 		grid-template-columns: auto 1fr auto;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-7) var(--space-3) var(--space-3);
-		transition: border-color var(--dur);
+		transition:
+			border-color var(--dur),
+			background-color var(--dur);
 	}
 	.ev:hover,
 	.highlighted {
-		border-color: var(--border-strong);
+		border-color: var(--accent-border);
+		background: var(--accent-soft);
 	}
 	.ev:focus-within {
 		border-color: var(--accent);
@@ -87,13 +90,13 @@
 		width: var(--space-6);
 		height: var(--space-6);
 		border-radius: var(--radius-sm);
-		background: var(--surface-2);
-		color: var(--text);
+		background: var(--accent-soft);
+		color: var(--accent-hover);
 		text-align: center;
 		line-height: 1;
 	}
 	.d {
-		font: var(--fw-strong) var(--text-lg) / 1 var(--font-display);
+		font: var(--fw-strong) var(--text-xl) / 1 var(--font-display);
 	}
 	.m {
 		font-size: var(--text-xs);

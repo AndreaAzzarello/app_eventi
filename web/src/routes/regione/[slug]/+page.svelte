@@ -80,11 +80,13 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		color: var(--text);
 		text-decoration: none;
 	}
 	.comune:hover {
-		border-color: var(--accent);
+		border-color: var(--accent-border);
+		background: var(--accent-soft);
 	}
 	.name {
 		font-weight: var(--fw-strong);

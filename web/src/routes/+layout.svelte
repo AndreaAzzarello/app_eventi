@@ -1,7 +1,9 @@
 <script lang="ts">
 	import '@fontsource/fraunces/latin-600.css';
+	import '@fontsource/fraunces/latin-600-italic.css';
 	import '../app.css';
 	import frauncesUrl from '@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url';
+	import frauncesItalicUrl from '@fontsource/fraunces/files/fraunces-latin-600-italic.woff2?url';
 	import { onMount } from 'svelte';
 	import { dev } from '$app/environment';
 	import { page } from '$app/state';
@@ -43,6 +45,7 @@
 
 <svelte:head>
 	<link rel="preload" href={frauncesUrl} as="font" type="font/woff2" crossorigin="anonymous" />
+	<link rel="preload" href={frauncesItalicUrl} as="font" type="font/woff2" crossorigin="anonymous" />
 </svelte:head>
 
 <a class="skip" href="#main">Vai al contenuto</a>
@@ -55,7 +58,7 @@
 				<rect x="10.5" y="9" width="11" height="10" rx="2" fill="none" stroke="var(--accent-ink)" stroke-width="2" />
 				<path d="M10.5 12.5h11M13.5 7.5v3M18.5 7.5v3" stroke="var(--accent-ink)" stroke-width="2" stroke-linecap="round" />
 			</svg>
-			<span>Eventi <em>Vicini</em></span>
+			<span>Eventi <em class="display-em">Vicini</em></span>
 		</a>
 		<nav aria-label="Principale">
 			{#each nav as item (item.href)}
@@ -93,7 +96,7 @@
 <footer class="site-footer">
 	<div class="container foot">
 		<div>
-			<p class="foot-brand">Eventi <em>Vicini</em></p>
+			<p class="foot-brand">Eventi <em class="display-em">Vicini</em></p>
 			<p class="muted">L’agenda degli eventi vicino a te. Gratis, senza pubblicità e senza tracciamento.</p>
 		</div>
 		<nav aria-label="Informazioni">
@@ -162,11 +165,6 @@
 	}
 	.brand svg {
 		flex-shrink: 0;
-	}
-	.brand em,
-	.foot-brand em {
-		font-style: normal;
-		color: var(--accent);
 	}
 	nav[aria-label='Principale'] {
 		display: flex;

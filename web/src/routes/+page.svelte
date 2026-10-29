@@ -193,7 +193,7 @@
 
 <div class="container home">
 	<section class="intro" aria-labelledby="h1">
-		<h1 id="h1">Cosa succede <span class="accent">vicino a te</span></h1>
+		<h1 id="h1" class="display">Cosa succede <span class="display-em">vicino a te</span></h1>
 	</section>
 
 	{#if needsPlace}
@@ -317,10 +317,6 @@
 	}
 	.intro h1 {
 		margin: 0;
-	}
-	.accent {
-		color: var(--accent);
-		font-style: normal;
 	}
 	.hint {
 		margin: 0;

@@ -97,9 +97,15 @@ describe('design system', () => {
 				if (/(linear|radial|conic)-gradient/.test(t)) return t.trim();
 				if (/text-shadow:|drop-shadow|backdrop-filter/.test(t)) return t.trim();
 				const bs = t.match(/box-shadow:\s*([^;]+)/)?.[1].trim();
-				if (bs && bs !== 'none' && bs !== 'var(--shadow-overlay)') return t.trim();
+				if (bs && !['none', 'var(--shadow-overlay)', 'var(--shadow-card)'].includes(bs)) return t.trim();
 				return null;
 			})
+		));
+
+	// Eccezione documentata in DESIGN.md: il corsivo Fraunces è solo del titolo display e del logo (.display-em).
+	it('corsivo solo in app.css (.display-em): titolo display e logo', () =>
+		none(
+			scan((t) => (/font-style:\s*italic/.test(t) ? t.trim() : null)).filter((h) => !h.at.startsWith('src/app.css'))
 		));
 
 	it('niente emoji nel codice', () =>
@@ -134,9 +140,19 @@ function split(s: string): string[] {
 	}
 	return [...out, cur.trim()];
 }
+const toHex = (c: number[]) => '#' + c.map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
 function resolve(v: string, theme: 0 | 1): string {
 	const ld = v.match(/^light-dark\((.*)\)$/s);
 	if (ld) return resolve(split(ld[1])[theme], theme);
+	// color-mix(in srgb, <colore> <p>%, <colore>): la tinta tenue d'accento sulla superficie
+	const mix = v.match(/^color-mix\(in srgb,(.*)\)$/s);
+	if (mix) {
+		const [a, b] = split(mix[1]);
+		const m = a.match(/^(.*)\s+([\d.]+)%$/s)!;
+		const p = Number(m[2]) / 100;
+		const [ca, cb] = [rgb(resolve(m[1].trim(), theme)), rgb(resolve(b.trim(), theme))];
+		return toHex(ca.map((x, i) => x * p + cb[i] * (1 - p)));
+	}
 	const ref = v.match(/^var\((--[\w-]+)\)$/);
 	if (ref) return resolve(vars[ref[1]], theme);
 	return v;
@@ -170,8 +186,20 @@ describe.each([
 		for (const bg of grounds) expect(ratio(c(fg), c(bg)), `${fg} su ${bg}`).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('testo sul bottone primario ≥ 4.5', () =>
-		expect(ratio(c('accent-ink'), c('accent'))).toBeGreaterThanOrEqual(4.5));
+	it('testo sul bottone primario e sul chip attivo (anche in hover) ≥ 4.5', () => {
+		expect(ratio(c('accent-ink'), c('accent'))).toBeGreaterThanOrEqual(4.5);
+		expect(ratio(c('accent-ink'), c('accent-hover'))).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('tinta tenue d’accento (date, categorie, card in hover): testo, muted e accento scuro ≥ 4.5', () => {
+		for (const fg of ['text', 'muted', 'accent-hover']) expect(ratio(c(fg), c('accent-soft')), `${fg} su accent-soft`).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('la tinta tenue si distingue dalla superficie ma resta una tinta (non un fondo pieno)', () => {
+		const r = ratio(c('accent-soft'), c('surface'));
+		expect(r).toBeGreaterThan(1.02);
+		expect(r).toBeLessThan(1.5);
+	});
 
 	it('bordo dei controlli ≥ 3 su bg e surface', () => {
 		for (const bg of ['bg', 'surface']) expect(ratio(c('border-strong'), c(bg))).toBeGreaterThanOrEqual(3);

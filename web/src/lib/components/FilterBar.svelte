@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CATEGORY_ICONS } from '$lib/categoryIcons';
 	import { CATEGORIES, type Category } from '$lib/event';
 	import { EMPTY_FILTER, type Filter } from '$lib/filters';
 	import { RADII_KM } from '$lib/geo';
@@ -27,18 +28,6 @@
 		<button type="button" class="chip" aria-pressed={filter.kids} onclick={() => set({ kids: !filter.kids })}>Bambini</button>
 		<button type="button" class="chip" aria-pressed={filter.running} onclick={() => set({ running: !filter.running })}>Mostre ed eventi in corso</button>
 		<label class="select-chip">
-			<span class="visually-hidden">Categoria</span>
-			<select
-				value={filter.category ?? ''}
-				onchange={(e) => set({ category: (e.currentTarget.value || null) as Category | null })}
-			>
-				<option value="">Tutte le categorie</option>
-				{#each Object.entries(CATEGORIES) as [value, label] (value)}
-					<option {value}>{label}</option>
-				{/each}
-			</select>
-		</label>
-		<label class="select-chip">
 			<span class="visually-hidden">Distanza massima</span>
 			<select value={filter.radiusKm} onchange={(e) => set({ radiusKm: Number(e.currentTarget.value) })}>
 				{#each RADII_KM as km (km)}
@@ -49,6 +38,19 @@
 		{#if active}
 			<button type="button" class="chip reset" onclick={reset}><X size={16} aria-hidden="true" /> Azzera</button>
 		{/if}
+	</div>
+	<div class="row" role="group" aria-label="Categorie">
+		{#each Object.entries(CATEGORIES) as [value, label] (value)}
+			{@const Icon = CATEGORY_ICONS[value as Category]}
+			<button
+				type="button"
+				class="chip"
+				aria-pressed={filter.category === value}
+				onclick={() => set({ category: filter.category === value ? null : (value as Category) })}
+			>
+				<Icon size={16} aria-hidden="true" />{label}
+			</button>
+		{/each}
 	</div>
 </form>
 

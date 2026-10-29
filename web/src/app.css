@@ -50,6 +50,16 @@ p {
 	text-wrap: pretty;
 }
 
+/* Titolo display della home e logo: unici punti con Fraunces corsivo in terracotta (DESIGN.md). */
+.display {
+	font-size: var(--text-display);
+	line-height: 1.05;
+}
+.display-em {
+	font-style: italic;
+	color: var(--accent);
+}
+
 a {
 	color: var(--accent);
 	text-underline-offset: var(--space-1);
@@ -220,27 +230,43 @@ textarea {
 		color var(--dur);
 }
 .chip:hover {
-	border-color: var(--muted);
+	border-color: var(--accent-border);
+	background: var(--accent-soft);
 }
 .chip[aria-pressed='true'] {
+	background: var(--accent);
 	border-color: var(--accent);
-	color: var(--accent);
+	color: var(--accent-ink);
 	font-weight: var(--fw-strong);
 }
+.chip[aria-pressed='true']:hover {
+	background: var(--accent-hover);
+	border-color: var(--accent-hover);
+}
 
-/* Testo inline neutro: la categoria ha la sua icona, il resto è testo semplice. */
+/* Etichette: pillola neutra; la categoria è una pillola in tinta tenue d'accento con la sua icona. */
 .badge {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
+	padding: 0 var(--space-2);
+	min-height: var(--space-4);
+	border-radius: var(--radius-full);
+	background: var(--surface-2);
 	font-size: var(--text-sm);
 	color: var(--muted);
+}
+.badge-cat {
+	background: var(--accent-soft);
+	color: var(--accent-hover);
+	font-weight: var(--fw-strong);
 }
 
 .card {
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
+	box-shadow: var(--shadow-card);
 }
 
 .notice {

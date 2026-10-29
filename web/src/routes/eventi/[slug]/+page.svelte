@@ -93,7 +93,7 @@
 	{/if}
 
 	<div class="tags">
-		<span class="badge"><Cat size={16} aria-hidden="true" /> {CATEGORIES[e.category]}</span>
+		<span class="badge badge-cat"><Cat size={16} aria-hidden="true" /> {CATEGORIES[e.category]}</span>
 		{#if running}<span class="badge">{running}</span>{/if}
 		<span class="badge">{PRICE_TYPES[e.priceType]}</span>
 		{#if isForKids(e) && e.category !== 'kids'}<span class="badge">Per bambini</span>{/if}

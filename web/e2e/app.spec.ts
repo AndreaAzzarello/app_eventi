@@ -17,7 +17,7 @@ test('ricerca e filtri in home', async ({ page }) => {
 	await expect(page).toHaveURL(/q=gnocco/);
 
 	await page.getByLabel('Cerca eventi').fill('');
-	await page.getByRole('button', { name: 'Bambini' }).click();
+	await page.getByRole('group', { name: 'Filtri rapidi' }).getByRole('button', { name: 'Bambini' }).click();
 	await expect(page.getByRole('link', { name: /Letture animate/ })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Jazz in Piazza Grande' })).toHaveCount(0);
 
