@@ -21,7 +21,7 @@
 	} = $props();
 
 	let el: HTMLDivElement;
-	let L: Leaflet | null = $state(null);
+	let L: Leaflet | null = $state.raw(null);
 	let map: import('leaflet').Map | null = null;
 	let layer: import('leaflet').LayerGroup | null = null;
 	let markers: Record<string, import('leaflet').Marker> = {};
@@ -79,7 +79,8 @@
 		mounted.forEach((m) => unmount(m));
 		mounted = [];
 		markers = {};
-		map.fitBounds(L.latLng(center.lat, center.lng).toBounds(radiusKm * 2000), { padding: [16, 16] });
+		// Senza animazione: Leaflet scarta un nuovo fitBounds mentre uno zoom è ancora in corso, e la mappa restava sulla vista vecchia.
+		map.fitBounds(L.latLng(center.lat, center.lng).toBounds(radiusKm * 2000), { padding: [16, 16], animate: false });
 		L.circle([center.lat, center.lng], {
 			radius: radiusKm * 1000,
 			color: accent,

@@ -1,47 +1,62 @@
 <script lang="ts">
 	import List from '@lucide/svelte/icons/list';
+	import LocateFixed from '@lucide/svelte/icons/locate-fixed';
 	import Map from '@lucide/svelte/icons/map';
+	import MapPin from '@lucide/svelte/icons/map-pin';
 	import { onMount, untrack } from 'svelte';
-	import { replaceState } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import EventList from '$lib/components/EventList.svelte';
 	import EventsMap from '$lib/components/EventsMap.svelte';
 	import FilterBar from '$lib/components/FilterBar.svelte';
-	import LocationPicker, { type ChosenPlace } from '$lib/components/LocationPicker.svelte';
+	import SearchBox from '$lib/components/SearchBox.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { SITE_NAME } from '$lib/config';
+	import { coverageStore } from '$lib/coverage.svelte';
 	import type { Event } from '$lib/event';
-	import { applyFilter, filterFromParams, filterToParams, type Filter } from '$lib/filters';
-	import { DEFAULT_PLACE, distanceKm, SNAP_MARGIN_KM, snapCoord } from '$lib/geo';
+	import { applyFilter, filterFromParams, type Filter } from '$lib/filters';
+	import { DEFAULT_PLACE, distanceKm, SNAP_MARGIN_KM, snapCoord, type ChosenPlace } from '$lib/geo';
 	import { fmtNum } from '$lib/format';
+	import { locateMe } from '$lib/locate';
+	import { homeUrl, strongPlace } from '$lib/places';
 	import { homePlace } from '$lib/session.svelte';
 	import { KEYS, readJson, writeJson } from '$lib/storage';
 
 	let { data } = $props();
 
 	let filter = $state<Filter>(filterFromParams(page.url.searchParams));
-	let place = $state<ChosenPlace>({ ...DEFAULT_PLACE });
+	// Il luogo vive nell'URL (?luogo= / ?nome=&lat=&lng=): lo risolve la load, il resto della pagina lo segue.
+	const place = $derived<ChosenPlace>(data.place);
 	let events = $derived<Event[]>(data.events);
 	let fetched = $derived(data.fetched);
 	let loading = $state(false);
 	let error = $derived(data.error);
 	let now = $state(Date.now());
-	let view = $state<'list' | 'map'>('list');
+	let view = $state<'list' | 'map'>(page.url.searchParams.get('vista') === 'mappa' ? 'map' : 'list');
 	let wide = $state(false);
 	let highlighted = $state<string | null>(null);
-	let picker: LocationPicker | undefined = $state();
-	/** Primo accesso senza posizione salvata né permesso di geolocalizzazione: si sceglie regione → comune. */
+	let search: SearchBox | undefined = $state();
+	/** Primo accesso senza posizione salvata né permesso di geolocalizzazione: si sceglie il luogo dalla ricerca. */
 	let needsPlace = $state(false);
+	let locating = $state(false);
+	let locateMsg = $state('');
 
 	const visible = $derived(applyFilter(events, filter, now, place));
-	const covered = $derived(
-		distanceKm(place, fetched) + filter.radiusKm <= fetched.km
-	);
+	const covered = $derived(distanceKm(place, fetched) + filter.radiusKm <= fetched.km);
+	const eventMatches = (text: string) => applyFilter(events, { ...filter, q: text }, now, place);
+	const placeHit = $derived(filter.q.trim() ? strongPlace(filter.q, coverageStore.regions) : null);
+
+	const nav = { keepFocus: true, noScroll: true } as const;
 
 	onMount(() => {
-		const saved = readJson<ChosenPlace | null>(KEYS.place, null);
-		if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) place = saved;
-		else firstVisit();
+		if (!data.fromUrl) {
+			const saved = readJson<ChosenPlace | null>(KEYS.place, null);
+			if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
+				// La zona predefinita è già quella caricata dal server: niente navigazione inutile.
+				if (saved.lat !== DEFAULT_PLACE.lat || saved.lng !== DEFAULT_PLACE.lng)
+					goto(homeUrl(filter, saved, view), { replaceState: true, ...nav });
+			} else firstVisit();
+		}
 		const mq = matchMedia('(min-width: 960px)');
 		wide = mq.matches;
 		mq.onchange = (e) => (wide = e.matches);
@@ -49,7 +64,18 @@
 		return () => clearInterval(tick);
 	});
 
-	// Al login la zona del profilo vince su quella locale.
+	// Indietro/avanti cambiano l'URL: i filtri lo seguono. L'URL può chiedere la mappa (?vista=mappa) ma non
+	// rimette la lista: dopo un replaceState la voce di cronologia riprende l'URL originale, senza `vista`.
+	$effect(() => {
+		const f = filterFromParams(page.url.searchParams);
+		const wantsMap = page.url.searchParams.get('vista') === 'mappa';
+		untrack(() => {
+			if (JSON.stringify(f) !== JSON.stringify(filter)) filter = f;
+			if (wantsMap) view = 'map';
+		});
+	});
+
+	// Al login la zona del profilo vince su quella locale, ma non su un link con un luogo esplicito.
 	// Si applica una sola volta per valore del profilo e senza dipendere da `place`: altrimenti ogni
 	// scelta dell'utente rilanciava l'effetto e la zona (ancora vecchia nel profilo) tornava indietro.
 	let appliedProfile: ChosenPlace | null = null;
@@ -58,11 +84,14 @@
 		if (!p || p === appliedProfile) return;
 		appliedProfile = p;
 		untrack(() => {
-			if (p.lat === place.lat && p.lng === place.lng) return;
-			place = p;
+			if (data.fromUrl) return;
 			needsPlace = false;
-			picker?.close(); // il dialogo si era aperto prima che arrivasse il profilo
+			if (p.lat !== place.lat || p.lng !== place.lng) goto(homeUrl(filter, p, view), { replaceState: true, ...nav });
 		});
+	});
+
+	$effect(() => {
+		if (filter.q) coverageStore.load();
 	});
 
 	/** Con il permesso già concesso si parte dalla posizione; altrimenti si chiede dove cercare, senza partire da Modena. */
@@ -71,18 +100,8 @@
 			?.query({ name: 'geolocation' })
 			.then((s) => s.state === 'granted')
 			.catch(() => false);
-		if (granted) {
-			navigator.geolocation.getCurrentPosition(
-				({ coords }) => setPlace({ lat: coords.latitude, lng: coords.longitude, label: 'La tua posizione' }),
-				ask,
-				{ timeout: 10000, maximumAge: 600000 }
-			);
-		} else ask();
-	}
-
-	function ask() {
-		needsPlace = true;
-		picker?.open();
+		if (granted) await locate();
+		if (!granted || locateMsg) needsPlace = true;
 	}
 
 	// Ricarica solo se la zona richiesta esce da quella già scaricata.
@@ -112,22 +131,47 @@
 		}
 	}
 
+	/** Filtri e vista restano nell'URL accanto al luogo, senza nuove voci nella cronologia. */
+	function syncUrl(f: Filter, v = view) {
+		replaceState(homeUrl(f, data.fromUrl ? place : null, v), {});
+	}
+
 	function setFilter(f: Filter) {
 		filter = f;
-		const qs = filterToParams(f).toString();
-		replaceState(qs ? `?${qs}` : page.url.pathname, {});
+		syncUrl(f);
 	}
 
-	function setPlace(p: ChosenPlace) {
-		place = p;
+	function setView(v: 'list' | 'map') {
+		view = v;
+		syncUrl(filter, v);
+	}
+
+	/** Scelta dell'utente (ricerca, "Usa la mia posizione"): salva, naviga e il resto segue l'URL. */
+	function choosePlace(p: ChosenPlace, opts: { radiusKm?: number } = {}) {
+		// Senza slug le coordinate finiscono nell'URL: a ~1 km bastano (e non rivelano di più).
+		const chosen = p.slug ? p : { ...p, lat: Number(p.lat.toFixed(2)), lng: Number(p.lng.toFixed(2)) };
+		const f = { ...filter, q: '', ...(opts.radiusKm ? { radiusKm: opts.radiusKm } : {}) };
+		filter = f;
 		needsPlace = false;
-		writeJson(KEYS.place, p);
-		homePlace.save(p);
+		locateMsg = '';
+		writeJson(KEYS.place, chosen);
+		homePlace.save(chosen);
+		goto(homeUrl(f, chosen, view), nav);
 	}
 
-	const summary = $derived(
-		`${visible.length === 1 ? '1 evento' : `${fmtNum(visible.length)} eventi`} entro ${filter.radiusKm} km`
-	);
+	async function locate() {
+		locating = true;
+		locateMsg = '';
+		try {
+			choosePlace(await locateMe());
+		} catch (e) {
+			locateMsg = (e as Error).message;
+		} finally {
+			locating = false;
+		}
+	}
+
+	const count = $derived(visible.length === 1 ? '1 evento' : `${fmtNum(visible.length)} eventi`);
 </script>
 
 <Seo title={SITE_NAME} path="/" />
@@ -135,69 +179,99 @@
 <div class="container home">
 	<section class="intro" aria-labelledby="h1">
 		<h1 id="h1">Cosa succede <span class="accent">vicino a te</span></h1>
-		<LocationPicker bind:this={picker} place={needsPlace ? { label: 'Scegli la zona' } : place} onchange={setPlace} />
 	</section>
 
 	{#if needsPlace}
 		<section class="first-visit" aria-labelledby="first-title">
 			<h2 id="first-title">Dove cerchi eventi?</h2>
-			<p class="muted">Scegli la tua regione e il tuo comune, oppure usa la tua posizione.</p>
-			<button class="btn btn-primary" onclick={() => picker?.open()}>Scegli la zona</button>
+			<p class="muted">Scrivi il tuo comune o la tua regione, oppure usa la tua posizione.</p>
+			<div class="first-search">
+				<SearchBox placesOnly label="Cerca il tuo comune o regione" {filter} onfilter={setFilter} onplace={choosePlace} {eventMatches} />
+			</div>
+			<button class="btn btn-primary" onclick={locate} disabled={locating}>
+				<LocateFixed size={20} aria-hidden="true" /> Usa la mia posizione
+			</button>
+			<p class="hint" role="status">{locateMsg}</p>
 		</section>
 	{:else}
-	<FilterBar {filter} onchange={setFilter} />
+		<FilterBar {filter} onchange={setFilter}>
+			<SearchBox bind:this={search} {filter} onfilter={setFilter} onplace={choosePlace} {eventMatches} />
+		</FilterBar>
 
-	<div class="toolbar">
-		<p class="summary" aria-live="polite">{loading ? 'Cerco eventi…' : summary}</p>
-		<div class="tabs" role="tablist" aria-label="Vista">
-			<button role="tab" id="tab-list" aria-controls="panel-list" aria-selected={view === 'list'} onclick={() => (view = 'list')}>
-				<List size={20} aria-hidden="true" /> Lista
-			</button>
-			<button role="tab" id="tab-map" aria-controls="panel-map" aria-selected={view === 'map'} onclick={() => (view = 'map')}>
-				<Map size={20} aria-hidden="true" /> Mappa
-			</button>
+		<div class="toolbar">
+			<div class="where">
+				<p class="summary" aria-live="polite">
+					{#if loading}Cerco eventi…{:else}{count} vicino a
+						<button type="button" class="place-link" onclick={() => search?.openPlaces()} aria-haspopup="listbox">
+							<MapPin size={16} aria-hidden="true" />{place.label}</button> · entro {filter.radiusKm} km{/if}
+				</p>
+				<button type="button" class="btn btn-sm" onclick={locate} disabled={locating}>
+					<LocateFixed size={16} aria-hidden="true" /> Usa la mia posizione
+				</button>
+			</div>
+			<div class="tabs" role="tablist" aria-label="Vista">
+				<button role="tab" id="tab-list" aria-controls="panel-list" aria-selected={view === 'list'} onclick={() => setView('list')}>
+					<List size={20} aria-hidden="true" /> Lista
+				</button>
+				<button role="tab" id="tab-map" aria-controls="panel-map" aria-selected={view === 'map'} onclick={() => setView('map')}>
+					<Map size={20} aria-hidden="true" /> Mappa
+				</button>
+			</div>
 		</div>
-	</div>
+		<p class="hint" role="status">{locateMsg}</p>
 
-	<div class="split" data-view={view}>
-		<div id="panel-list" class="list-pane" role="tabpanel" aria-labelledby="tab-list">
-			<h2 class="visually-hidden">Eventi in programma</h2>
-			<EventList
-				events={visible}
-				{now}
-				origin={place}
-				{loading}
-				{error}
-				{highlighted}
-				onhover={(id) => (highlighted = id)}
-				onretry={load}
-			>
-				{#snippet empty()}
-					<h2>Nessun evento con questi filtri</h2>
-					<p class="muted">Prova ad allargare la distanza o a togliere qualche filtro.</p>
-					<div class="actions">
-						{#if filter.radiusKm < 100}
-							<button class="btn btn-primary" onclick={() => setFilter({ ...filter, radiusKm: filter.radiusKm < 50 ? 50 : 100 })}>
-								Cerca più lontano
-							</button>
-						{/if}
-						<a class="btn" href="/proponi">Proponi un evento</a>
-					</div>
-				{/snippet}
-			</EventList>
-		</div>
-		<div id="panel-map" class="map-pane" role="tabpanel" aria-labelledby="tab-map">
-			{#if wide || view === 'map'}
-				<EventsMap
+		<div class="split" data-view={view}>
+			<div id="panel-list" class="list-pane" role="tabpanel" aria-labelledby="tab-list">
+				<h2 class="visually-hidden">Eventi in programma</h2>
+				<EventList
 					events={visible}
-					center={place}
-					radiusKm={filter.radiusKm}
+					{now}
+					origin={place}
+					{loading}
+					{error}
 					{highlighted}
 					onhover={(id) => (highlighted = id)}
-				/>
-			{/if}
+					onretry={load}
+				>
+					{#snippet empty()}
+						{#if placeHit}
+							<h2>Nessun evento con «{filter.q.trim()}» qui vicino</h2>
+							<p class="muted">Cercavi il luogo? Vai a {placeHit.place.label}.</p>
+							<div class="actions">
+								<button
+									class="btn btn-primary"
+									onclick={() => choosePlace(placeHit.place, placeHit.kind === 'regione' ? { radiusKm: 100 } : {})}
+								>
+									Vai a {placeHit.place.label}
+								</button>
+							</div>
+						{:else}
+							<h2>Nessun evento con questi filtri</h2>
+							<p class="muted">Prova ad allargare la distanza o a togliere qualche filtro.</p>
+							<div class="actions">
+								{#if filter.radiusKm < 100}
+									<button class="btn btn-primary" onclick={() => setFilter({ ...filter, radiusKm: filter.radiusKm < 50 ? 50 : 100 })}>
+										Cerca più lontano
+									</button>
+								{/if}
+								<a class="btn" href="/proponi">Proponi un evento</a>
+							</div>
+						{/if}
+					{/snippet}
+				</EventList>
+			</div>
+			<div id="panel-map" class="map-pane" role="tabpanel" aria-labelledby="tab-map">
+				{#if wide || view === 'map'}
+					<EventsMap
+						events={visible}
+						center={place}
+						radiusKm={filter.radiusKm}
+						{highlighted}
+						onhover={(id) => (highlighted = id)}
+					/>
+				{/if}
+			</div>
 		</div>
-	</div>
 	{/if}
 </div>
 
@@ -220,12 +294,10 @@
 	.first-visit p {
 		margin: 0;
 	}
+	.first-search {
+		width: 100%;
+	}
 	.intro {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: end;
-		justify-content: space-between;
-		gap: var(--space-3) var(--space-4);
 		padding: var(--space-4) 0 var(--space-3);
 	}
 	.intro h1 {
@@ -235,18 +307,52 @@
 		color: var(--accent);
 		font-style: normal;
 	}
+	.hint {
+		margin: 0;
+		color: var(--muted);
+		font-size: var(--text-sm);
+	}
+	.hint:empty {
+		display: none;
+	}
 	.toolbar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-3);
+		gap: var(--space-2) var(--space-3);
 		margin: var(--space-3) 0;
+	}
+	.where {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
+		min-width: 0;
 	}
 	.summary {
 		margin: 0;
 		font-weight: var(--fw-strong);
 		color: var(--muted);
 		font-variant-numeric: tabular-nums;
+	}
+	.place-link {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		min-height: var(--control-sm);
+		padding: 0 var(--space-1);
+		border: none;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+	.place-link:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
 	}
 	.tabs {
 		display: inline-flex;
