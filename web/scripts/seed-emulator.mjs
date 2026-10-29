@@ -15,6 +15,8 @@ const places = {
 	modena: { city: 'Modena', citySlug: 'modena', province: 'MO', region: 'Emilia-Romagna', lat: 44.6458, lng: 10.9256 },
 	formigine: { city: 'Formigine', citySlug: 'formigine', province: 'MO', region: 'Emilia-Romagna', lat: 44.5733, lng: 10.8466 },
 	bologna: { city: 'Bologna', citySlug: 'bologna', province: 'BO', region: 'Emilia-Romagna', lat: 44.4939, lng: 11.3428 },
+	// Città con eventi ma senza riga attiva nel registro CSV (come Bolzano da Open Data Hub): la copertura la ricava dagli eventi
+	cesena: { city: 'Cesena', citySlug: 'cesena', province: 'FC', region: 'Emilia-Romagna', lat: 44.1391, lng: 12.2431 },
 	roma: { city: 'Roma', citySlug: 'roma', province: 'RM', region: 'Lazio', lat: 41.8986, lng: 12.4769 },
 	lecce: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia', lat: 40.3529, lng: 18.1743 },
 	// Comuni bilingui: city col nome ufficiale italiano, alias in cityAlt (come scrive l'importer)
@@ -101,6 +103,7 @@ const events = [
 	ev('seedRoma', 'roma', { title: 'Concerto all’Auditorium', category: 'music', priceType: 'premium', startTime: at(4, 20), endTime: at(4, 23) }),
 	ev('seedLecce', 'lecce', { title: 'Festa del barocco leccese', category: 'culture', startTime: at(5, 18), endTime: at(5, 23) }),
 	ev('seedBolzano', 'bolzano', { title: 'Mercatino di Natale in Piazza Walther', category: 'market', startTime: at(2, 10), endTime: at(2, 20) }),
+	ev('seedCesena', 'cesena', { title: 'Sagra della piadina', category: 'food', startTime: at(2, 12), endTime: at(2, 22) }),
 	ev('seedAosta', 'aosta', { title: 'Concerto al Teatro Romano', category: 'music', startTime: at(3, 20), endTime: at(3, 22) }),
 	ev('seedFinito', 'modena', { title: 'Evento già concluso', startTime: at(-3, 10), endTime: at(-3, 12) })
 ];
@@ -131,6 +134,7 @@ const coverage = {
 		updatedAt: now,
 		comuni: [
 			{ name: 'Bologna', slug: 'bologna', province: 'BO', lat: 44.4939, lng: 11.3428, events: 1 },
+			{ name: 'Cesena', slug: 'cesena', province: 'FC', lat: 44.1391, lng: 12.2431, events: 1 },
 			{ name: 'Formigine', slug: 'formigine', province: 'MO', lat: 44.5733, lng: 10.8466, events: 2 },
 			{ name: 'Modena', slug: 'modena', province: 'MO', lat: 44.6458, lng: 10.9256, events: 2 }
 		]

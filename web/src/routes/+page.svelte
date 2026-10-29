@@ -53,7 +53,10 @@
 	const nav = { keepFocus: true, noScroll: true } as const;
 
 	onMount(() => {
-		if (!data.fromUrl) {
+		if (data.unknownPlace !== null) {
+			locateMsg = data.unknownPlace ? `Non trovo il luogo «${data.unknownPlace}». Cerca il tuo comune o la tua regione.` : 'Non trovo il luogo del link. Cerca il tuo comune o la tua regione.';
+			needsPlace = true;
+		} else if (!data.fromUrl) {
 			const saved = readJson<ChosenPlace | null>(KEYS.place, null);
 			if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
 				if (saved.exact) here = saved;
@@ -90,7 +93,7 @@
 		if (!p || p === appliedProfile) return;
 		appliedProfile = p;
 		untrack(() => {
-			if (data.fromUrl) return;
+			if (data.fromUrl || data.unknownPlace !== null) return;
 			needsPlace = false;
 			if (p.lat !== place.lat || p.lng !== place.lng) goto(homeUrl(filter, p, view), { replaceState: true, ...nav });
 		});

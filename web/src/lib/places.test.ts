@@ -5,6 +5,7 @@ import {
 	homeUrl,
 	nearCovered,
 	nearestComune,
+	placeFromEvents,
 	placeFromParams,
 	placeToParams,
 	popularPlaces,
@@ -143,5 +144,19 @@ describe('luogo nell’URL', () => {
 		expect(homeUrl(EMPTY_FILTER, null)).toBe('/');
 		const bz = parse('luogo=bolzano')!;
 		expect(homeUrl({ ...EMPTY_FILTER, q: 'mercatino', radiusKm: 50 }, bz, 'map')).toBe('/?luogo=bolzano&q=mercatino&r=50&vista=mappa');
+	});
+});
+
+describe('placeFromEvents', () => {
+	const ev = (lat: number, lng: number, extra = {}) => ({ city: 'Lecce', region: 'Puglia', lat, lng, ...extra });
+	it('centro medio dei punti attendibili, con nome e slug della città', () => {
+		const p = placeFromEvents('lecce', [ev(40.3, 18.1), ev(40.4, 18.2), ev(41.9, 12.5, { approxLocation: true })]);
+		expect(p).toMatchObject({ label: 'Lecce', slug: 'lecce', region: 'Puglia' });
+		expect(p!.lat).toBeCloseTo(40.35);
+		expect(p!.lng).toBeCloseTo(18.15);
+	});
+	it('senza eventi o con coordinate fuori Italia nessun luogo', () => {
+		expect(placeFromEvents('lecce', [])).toBeNull();
+		expect(placeFromEvents('lecce', [ev(0, 0)])).toBeNull();
 	});
 });

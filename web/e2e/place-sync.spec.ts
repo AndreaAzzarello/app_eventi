@@ -162,9 +162,9 @@ test('link condiviso con ?luogo= e con coordinate libere', async ({ page }) => {
 	await page.goto('/?nome=Lecce&lat=40.35&lng=18.17&vista=mappa');
 	await expect(placeButton(page, 'Lecce')).toBeVisible();
 	await expectCenter(page, LECCE);
-	// Valori non validi: si ricade sul luogo salvato, senza errori.
+	// Valori non validi: non si ricade in silenzio su un altro luogo, si chiede di sceglierlo.
 	await page.goto('/?luogo=inesistente&lat=999');
-	await expect(placeButton(page, 'Modena')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Dove cerchi eventi?' })).toBeVisible();
 });
 
 test('indietro e avanti riportano luogo, lista e mappa', async ({ page }) => {
@@ -201,13 +201,36 @@ test('"Vedi sulla mappa" da città e regione apre la home centrata', async ({ pa
 	await expect(page.getByRole('region', { name: 'Mappa degli eventi' })).toBeVisible();
 });
 
-test('"Vedi sulla mappa" da una città con eventi ma fuori copertura usa nome e coordinate, non lo slug', async ({ page }) => {
+// Nel seed Lecce ha eventi ma non è nel documento coverage (copertura vecchia): il luogo si ricava dagli eventi.
+test('?luogo= di una città con eventi ma fuori copertura si risolve dagli eventi, non ricade su Modena', async ({ page }) => {
 	await page.goto('/citta/lecce');
 	const link = page.getByRole('link', { name: 'Vedi sulla mappa' });
-	await expect(link).toHaveAttribute('href', /nome=Lecce&lat=40\.\d\d&lng=18\.\d\d&vista=mappa/);
+	await expect(link).toHaveAttribute('href', '/?luogo=lecce&vista=mappa');
 	await link.click();
-	await expect(placeButton(page, 'Lecce')).toBeVisible(); // non ricade su Modena
+	await expect(placeButton(page, 'Lecce')).toBeVisible();
 	await expectCenter(page, LECCE);
+});
+
+test('?luogo= sconosciuto apre la scelta del luogo con un messaggio, non Modena', async ({ page }) => {
+	await page.goto('/?luogo=atlantide');
+	await expect(page.getByRole('heading', { name: 'Dove cerchi eventi?' })).toBeVisible();
+	await expect(page.getByRole('status').filter({ hasText: 'Non trovo il luogo «atlantide»' })).toBeVisible();
+	await expect(page.getByRole('button', { name: /Modena/ })).toHaveCount(0);
+});
+
+test('città con eventi ma senza fonte comunale (Cesena, Bozen) è tra i luoghi, senza Nominatim né "Pochi eventi"', async ({ page }) => {
+	await page.route('**/api/geocode*', (route) => route.abort()); // se la ricerca cadesse su Nominatim il test fallirebbe
+	await page.goto('/');
+	await searchBox(page).fill('cesena');
+	const option = page.getByRole('option', { name: /Cesena/ });
+	await expect(option).toContainText('1 evento');
+	await expect(option).not.toContainText('Pochi eventi');
+	await searchBox(page).fill('bozen');
+	await expect(page.getByRole('option', { name: /Bolzano/ })).toBeVisible();
+	await searchBox(page).fill('cesena');
+	await page.getByRole('option', { name: /Cesena/ }).click();
+	await expect(page).toHaveURL(/luogo=cesena/);
+	await expect(placeButton(page, 'Cesena')).toBeVisible();
 });
 
 test('scegliere una regione allarga il raggio a 100 km', async ({ page }) => {

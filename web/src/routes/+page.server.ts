@@ -1,8 +1,8 @@
 import { HTML_CACHE } from '$lib/server/cache';
 import { filterFromParams } from '$lib/filters';
 import { DEFAULT_PLACE, type ChosenPlace } from '$lib/geo';
-import { placeFromParams } from '$lib/places';
-import { coverage, eventsNear } from '$lib/server/firestore';
+import { placeFromEvents, placeFromParams } from '$lib/places';
+import { coverage, eventsInCity, eventsNear } from '$lib/server/firestore';
 import type { PageServerLoad } from './$types';
 
 // SSR sul luogo dell'URL (?luogo=slug oppure ?nome=&lat=&lng=) o, senza, sulla zona predefinita.
@@ -13,10 +13,13 @@ export const load: PageServerLoad = async ({ url, setHeaders }) => {
 	const radiusKm = filterFromParams(url.searchParams).radiusKm;
 	const wanted = url.searchParams.has('luogo') || url.searchParams.has('lat');
 	const regions = wanted ? await coverage().catch(() => []) : [];
-	const fromUrl = wanted ? placeFromParams(url.searchParams, regions) : null;
+	const slug = url.searchParams.get('luogo') ?? '';
+	let fromUrl = wanted ? placeFromParams(url.searchParams, regions) : null;
+	// Città con eventi ma (ancora) fuori dalla copertura: si ricava il luogo dagli eventi, mai il predefinito in silenzio.
+	if (wanted && !fromUrl && /^[a-z0-9-]{1,80}$/.test(slug)) fromUrl = placeFromEvents(slug, await eventsInCity(slug, 20).catch(() => []));
 	const place: ChosenPlace = fromUrl ?? { ...DEFAULT_PLACE };
 	const fetched = { lat: place.lat, lng: place.lng, km: radiusKm };
-	const base = { place, fromUrl: !!fromUrl, view: url.searchParams.get('vista') === 'mappa' ? ('map' as const) : ('list' as const) };
+	const base = { place, fromUrl: !!fromUrl, unknownPlace: wanted && !fromUrl ? slug : null, view: url.searchParams.get('vista') === 'mappa' ? ('map' as const) : ('list' as const) };
 	try {
 		return { ...base, events: await eventsNear(place, radiusKm), fetched, error: '' };
 	} catch (e) {

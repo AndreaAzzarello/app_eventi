@@ -148,6 +148,18 @@ export function nearestComune(p: LatLng, regions: CoverageRegion[], km = NEAREST
 	return best?.place ?? null;
 }
 
+/**
+ * Luogo ricavato dagli eventi di una città non (ancora) presente nella copertura: centro medio dei punti attendibili.
+ * Null senza eventi o senza coordinate in Italia.
+ */
+export function placeFromEvents(slug: string, events: { city: string; region?: string; lat: number; lng: number; approxLocation?: boolean }[]): ChosenPlace | null {
+	const exact = events.filter((e) => !e.approxLocation && inItaly(e.lat, e.lng));
+	const at = exact.length ? exact : events.filter((e) => inItaly(e.lat, e.lng));
+	if (!at.length) return null;
+	const mean = (k: 'lat' | 'lng') => at.reduce((n, e) => n + e[k], 0) / at.length;
+	return { lat: mean('lat'), lng: mean('lng'), label: at[0].city, slug, region: at[0].region };
+}
+
 // --- URL della home: ?luogo=<slug> oppure ?nome=&lat=&lng= ---
 
 const ITALY = { lat: [35, 48], lng: [6, 19.5] };
