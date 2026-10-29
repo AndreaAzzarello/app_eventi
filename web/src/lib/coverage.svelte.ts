@@ -3,19 +3,21 @@ import type { CoverageRegion } from './places';
 
 class CoverageStore {
 	regions = $state.raw<CoverageRegion[]>([]);
-	#loading = false;
+	#pending: Promise<void> | null = null;
 
-	async load() {
-		if (this.regions.length || this.#loading) return;
-		this.#loading = true;
+	/** Una sola richiesta alla volta; chi chiama può attendere che i dati siano arrivati. */
+	load(): Promise<void> {
+		if (this.regions.length) return Promise.resolve();
+		return (this.#pending ??= this.#fetch().finally(() => (this.#pending = null)));
+	}
+
+	async #fetch() {
 		try {
 			const res = await fetch('/api/places');
 			if (!res.ok) throw new Error(String(res.status));
 			this.regions = await res.json();
 		} catch {
 			// la ricerca di località libere (Nominatim) funziona comunque; si riprova alla prossima occasione
-		} finally {
-			this.#loading = false;
 		}
 	}
 }

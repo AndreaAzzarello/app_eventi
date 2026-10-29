@@ -69,18 +69,64 @@ test('scelta dalla ricerca: URL, lista, mappa e salvataggio seguono il luogo', a
 	expect(saved).toMatchObject({ label: 'Bolzano', slug: 'bolzano' });
 });
 
-test('"Usa la mia posizione" centra mappa e lista sulla posizione', async ({ page, context }) => {
+test('"Usa la mia posizione" vicino a un comune coperto: nell’URL solo lo slug, le coordinate esatte restano nel browser', async ({ page, context }) => {
 	await context.grantPermissions(['geolocation']);
-	await context.setGeolocation({ latitude: 41.9, longitude: 12.5 });
-	await page.route('**/api/geocode**', (route) =>
-		route.fulfill({ json: [{ label: 'Roma', lat: 41.9, lng: 12.5, place: { city: 'Roma', citySlug: 'roma', province: 'RM', region: 'Lazio' } }] })
-	);
+	await context.setGeolocation({ latitude: 44.6012, longitude: 10.9045 }); // ~5 km da Modena
+	const geocodeCalls: string[] = [];
+	await page.route('**/api/geocode**', (route) => (geocodeCalls.push(route.request().url()), route.abort()));
 	await page.goto('/');
 	await showMap(page);
 	await page.getByRole('button', { name: 'Usa la mia posizione' }).click();
-	await expect(placeButton(page, 'Vicino a Roma')).toBeVisible();
-	await expect(page).toHaveURL(/nome=Vicino\+a\+Roma&lat=41\.90&lng=12\.50/);
+	await expect(placeButton(page, 'Vicino a Modena')).toBeVisible();
+	await expect(page).toHaveURL(/luogo=modena/);
+	expect(page.url()).not.toMatch(/lat=|lng=|nome=|44\.6|10\.9/);
+	// La mappa si centra sulla posizione esatta, non sul centro del comune.
+	await expectCenter(page, { lat: 44.6012, lng: 10.9045 });
+	const c = await mapCenter(page);
+	expect(Math.abs(c.lat - 44.6458)).toBeGreaterThan(0.02);
+	const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ev:place')!));
+	expect(saved).toMatchObject({ lat: 44.6012, lng: 10.9045, slug: 'modena', exact: true });
+	expect(geocodeCalls).toEqual([]); // nessuna richiesta di reverse geocoding: le coordinate non escono dal browser
+
+	// Al ritorno la posizione esatta si ripristina, sempre senza coordinate nell’URL.
+	await page.goto('/');
+	await expect(page).toHaveURL(/luogo=modena/);
+	await showMap(page);
+	await expectCenter(page, { lat: 44.6012, lng: 10.9045 });
+	expect(page.url()).not.toMatch(/lat=|lng=|44\.6|10\.9/);
+});
+
+test('"Usa la mia posizione" lontano da ogni comune coperto: nessun parametro nell’URL', async ({ page, context }) => {
+	await context.grantPermissions(['geolocation']);
+	await context.setGeolocation({ latitude: 41.9, longitude: 12.5 }); // Roma: nessun comune coperto entro 30 km
+	await page.goto('/');
+	await showMap(page);
+	await page.getByRole('button', { name: 'Usa la mia posizione' }).click();
+	await expect(placeButton(page, 'La tua posizione')).toBeVisible();
+	await expect.poll(() => [...new URL(page.url()).searchParams.keys()].filter((k) => k !== 'vista')).toEqual([]);
+	expect(page.url()).not.toMatch(/lat=|lng=|nome=/);
 	await expectCenter(page, { lat: 41.9, lng: 12.5 });
+	const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ev:place')!));
+	expect(saved).toMatchObject({ lat: 41.9, lng: 12.5, exact: true });
+	await page.reload();
+	await expect(placeButton(page, 'La tua posizione')).toBeVisible();
+	await expectCenter(page, { lat: 41.9, lng: 12.5 });
+});
+
+test('"Usa la mia posizione" da loggato: nel profilo va il comune, non le coordinate esatte', async ({ page, context }) => {
+	await context.grantPermissions(['geolocation']);
+	await context.setGeolocation({ latitude: 44.6012, longitude: 10.9045 });
+	await signInByEmail(page, 'privacy@example.org', '/');
+	const uid = await uidOf(page);
+	await expect.poll(async () => (await getDocument(`users/${uid}`))?.fields.homePlace).toBeTruthy();
+	await page.getByRole('button', { name: 'Usa la mia posizione' }).click();
+	await expect(placeButton(page, 'Vicino a Modena')).toBeVisible();
+	await page.waitForTimeout(1500); // il tempo di un eventuale salvataggio sbagliato
+	const home = (await getDocument(`users/${uid}`))!.fields.homePlace as { mapValue: { fields: Record<string, Record<string, string | number>> } };
+	const f = home.mapValue.fields;
+	expect(f.label.stringValue).toBe('Modena');
+	expect(Number(f.lat.doubleValue)).toBeCloseTo(44.6458, 4);
+	expect(JSON.stringify(home)).not.toContain('44.6012');
 });
 
 test('"Usa la mia posizione" senza permesso spiega cosa fare', async ({ page }) => {

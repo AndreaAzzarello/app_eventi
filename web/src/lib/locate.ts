@@ -1,21 +1,14 @@
-import type { ChosenPlace } from './geo';
-import { reversePlace } from './geocode';
+import type { LatLng } from './geo';
 
-/** Posizione del dispositivo, con "Vicino a <comune>" se il reverse geocoding risponde. Il messaggio dell'errore è per l'utente. */
-export function locateMe(): Promise<ChosenPlace> {
+/**
+ * Posizione del dispositivo. Le coordinate non vanno a nessun servizio (niente reverse geocoding):
+ * chi chiama le tiene nel browser e ne ricava, al più, il comune coperto più vicino. Il messaggio dell'errore è per l'utente.
+ */
+export function locateMe(): Promise<LatLng> {
 	return new Promise((resolve, reject) => {
 		if (!('geolocation' in navigator)) return reject(new Error('Il browser non supporta la geolocalizzazione.'));
 		navigator.geolocation.getCurrentPosition(
-			async ({ coords }) => {
-				let label = 'La tua posizione';
-				try {
-					const hit = await reversePlace(coords.latitude, coords.longitude);
-					if (hit?.place) label = `Vicino a ${hit.place.city}`;
-				} catch {
-					// etichetta generica: la posizione basta
-				}
-				resolve({ lat: coords.latitude, lng: coords.longitude, label });
-			},
+			({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
 			(err) =>
 				reject(
 					new Error(

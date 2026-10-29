@@ -4,6 +4,7 @@ import {
 	fold,
 	homeUrl,
 	nearCovered,
+	nearestComune,
 	placeFromParams,
 	placeToParams,
 	popularPlaces,
@@ -94,6 +95,18 @@ describe('regionCenter e nearCovered', () => {
 	});
 });
 
+describe('nearestComune', () => {
+	it('sceglie il comune coperto più vicino entro 30 km', () => {
+		expect(nearestComune({ lat: 44.6, lng: 10.9 }, REGIONS)).toMatchObject({ slug: 'modena', label: 'Modena' });
+		expect(nearestComune({ lat: 44.5, lng: 11.3 }, REGIONS)?.slug).toBe('bologna');
+	});
+	it('niente oltre il raggio: nessun comune, nessun parametro', () => {
+		expect(nearestComune({ lat: 40.35, lng: 18.17 }, REGIONS)).toBeNull(); // Lecce non è coperta
+		expect(nearestComune({ lat: 44.9, lng: 10.0 }, REGIONS, 30)).toBeNull();
+		expect(nearestComune({ lat: 44.6, lng: 10.9 }, [])).toBeNull();
+	});
+});
+
 describe('luogo nell’URL', () => {
 	const parse = (qs: string) => placeFromParams(new URLSearchParams(qs), REGIONS);
 	it('risolve comuni e regioni coperti per slug', () => {
@@ -116,6 +129,15 @@ describe('luogo nell’URL', () => {
 		expect(placeToParams(bz).toString()).toBe('luogo=bolzano');
 		const free = { lat: 40.3529, lng: 18.1743, label: 'Lecce' };
 		expect(placeToParams(free).toString()).toBe('nome=Lecce&lat=40.35&lng=18.17');
+	});
+	it('la posizione del dispositivo non mette mai le coordinate nell’URL', () => {
+		const exact = { lat: 44.60123, lng: 10.90456, label: 'La tua posizione', exact: true };
+		expect(placeToParams(exact).toString()).toBe('');
+		expect(homeUrl(EMPTY_FILTER, exact)).toBe('/');
+		// con un comune coperto vicino resta solo lo slug
+		const withComune = { ...exact, label: 'Vicino a Modena', slug: 'modena' };
+		expect(homeUrl(EMPTY_FILTER, withComune)).toBe('/?luogo=modena');
+		expect(homeUrl(EMPTY_FILTER, withComune)).not.toMatch(/44\.6|10\.9|lat=|lng=/);
 	});
 	it('homeUrl unisce luogo, filtri e vista', () => {
 		expect(homeUrl(EMPTY_FILTER, null)).toBe('/');

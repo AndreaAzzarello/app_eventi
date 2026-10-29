@@ -18,7 +18,7 @@
 	import { DEFAULT_PLACE, distanceKm, SNAP_MARGIN_KM, snapCoord, type ChosenPlace } from '$lib/geo';
 	import { fmtNum } from '$lib/format';
 	import { locateMe } from '$lib/locate';
-	import { homeUrl, strongPlace } from '$lib/places';
+	import { homeUrl, nearestComune, strongPlace } from '$lib/places';
 	import { homePlace } from '$lib/session.svelte';
 	import { KEYS, readJson, writeJson } from '$lib/storage';
 
@@ -26,7 +26,11 @@
 
 	let filter = $state<Filter>(filterFromParams(page.url.searchParams));
 	// Il luogo vive nell'URL (?luogo= / ?nome=&lat=&lng=): lo risolve la load, il resto della pagina lo segue.
-	const place = $derived<ChosenPlace>(data.place);
+	// La posizione del dispositivo (esatta) vive solo qui e in localStorage: nell'URL c'è al più il comune coperto più vicino.
+	let here = $state<ChosenPlace | null>(null);
+	const place = $derived<ChosenPlace>(
+		here && (here.slug ? data.place.slug === here.slug : !data.fromUrl) ? here : data.place
+	);
 	let events = $derived<Event[]>(data.events);
 	let fetched = $derived(data.fetched);
 	let loading = $state(false);
@@ -52,8 +56,10 @@
 		if (!data.fromUrl) {
 			const saved = readJson<ChosenPlace | null>(KEYS.place, null);
 			if (saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lng)) {
-				// La zona predefinita è già quella caricata dal server: niente navigazione inutile.
-				if (saved.lat !== DEFAULT_PLACE.lat || saved.lng !== DEFAULT_PLACE.lng)
+				if (saved.exact) here = saved;
+				// La zona predefinita è già quella caricata dal server, e una posizione senza comune non ha parametri: niente navigazione inutile.
+				const noUrl = saved.exact && !saved.slug;
+				if (!noUrl && (saved.lat !== DEFAULT_PLACE.lat || saved.lng !== DEFAULT_PLACE.lng))
 					goto(homeUrl(filter, saved, view), { replaceState: true, ...nav });
 			} else firstVisit();
 		}
@@ -147,15 +153,18 @@
 	}
 
 	/** Scelta dell'utente (ricerca, "Usa la mia posizione"): salva, naviga e il resto segue l'URL. */
-	function choosePlace(p: ChosenPlace, opts: { radiusKm?: number } = {}) {
-		// Senza slug le coordinate finiscono nell'URL: a ~1 km bastano (e non rivelano di più).
-		const chosen = p.slug ? p : { ...p, lat: Number(p.lat.toFixed(2)), lng: Number(p.lng.toFixed(2)) };
+	function choosePlace(p: ChosenPlace, opts: { radiusKm?: number; profile?: ChosenPlace | null } = {}) {
+		// Una località senza slug mette le sue coordinate nell'URL: a ~1 km bastano. La posizione del dispositivo no, mai.
+		const chosen = p.slug || p.exact ? p : { ...p, lat: Number(p.lat.toFixed(2)), lng: Number(p.lng.toFixed(2)) };
 		const f = { ...filter, q: '', ...(opts.radiusKm ? { radiusKm: opts.radiusKm } : {}) };
 		filter = f;
+		here = chosen.exact ? chosen : null;
 		needsPlace = false;
 		locateMsg = '';
 		writeJson(KEYS.place, chosen);
-		homePlace.save(chosen);
+		// Nel profilo (su Firestore) la posizione esatta non entra: solo il comune coperto, se c'è.
+		const forProfile = opts.profile === undefined ? (chosen.exact ? null : chosen) : opts.profile;
+		if (forProfile) homePlace.save(forProfile);
 		goto(homeUrl(f, chosen, view), nav);
 	}
 
@@ -163,7 +172,13 @@
 		locating = true;
 		locateMsg = '';
 		try {
-			choosePlace(await locateMe());
+			const pos = await locateMe();
+			await coverageStore.load();
+			const near = nearestComune(pos, coverageStore.regions);
+			choosePlace(
+				{ ...pos, label: near ? `Vicino a ${near.label}` : 'La tua posizione', slug: near?.slug, region: near?.region, exact: true },
+				{ profile: near }
+			);
 		} catch (e) {
 			locateMsg = (e as Error).message;
 		} finally {

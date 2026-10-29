@@ -134,6 +134,20 @@ export function popularPlaces(regions: CoverageRegion[], limit = 6): PlaceHit[] 
 export const nearCovered = (p: LatLng, regions: CoverageRegion[], km = 25) =>
 	regions.some((r) => r.comuni.some((c) => c.events > 0 && distanceKm(p, c) <= km));
 
+/** Raggio entro cui la posizione del dispositivo si "aggancia" a un comune coperto (l'unico dato che esce dal browser). */
+export const NEAREST_COMUNE_KM = 30;
+
+/** Il comune coperto più vicino al punto, se sta entro `km`. */
+export function nearestComune(p: LatLng, regions: CoverageRegion[], km = NEAREST_COMUNE_KM): ChosenPlace | null {
+	let best: { d: number; place: ChosenPlace } | null = null;
+	for (const r of regions)
+		for (const c of r.comuni) {
+			const d = distanceKm(p, c);
+			if (d <= km && (!best || d < best.d)) best = { d, place: comunePlace(c, r) };
+		}
+	return best?.place ?? null;
+}
+
 // --- URL della home: ?luogo=<slug> oppure ?nome=&lat=&lng= ---
 
 const ITALY = { lat: [35, 48], lng: [6, 19.5] };
@@ -158,11 +172,11 @@ export function placeFromParams(p: URLSearchParams, regions: CoverageRegion[]): 
 	return { lat, lng, label: (p.get('nome') ?? '').trim().slice(0, 80) || 'La tua posizione' };
 }
 
-/** Query della home per un luogo: lo slug se è coperto, altrimenti nome e coordinate (a ~1 km, non di più). */
+/** Query della home per un luogo: lo slug se è coperto, altrimenti nome e coordinate (a ~1 km) di una località scelta. La posizione del dispositivo non mette mai le sue coordinate nell'URL. */
 export function placeToParams(place: ChosenPlace): URLSearchParams {
 	const p = new URLSearchParams();
 	if (place.slug) p.set('luogo', place.slug);
-	else {
+	else if (!place.exact) {
 		p.set('nome', place.label.slice(0, 80));
 		p.set('lat', place.lat.toFixed(2));
 		p.set('lng', place.lng.toFixed(2));

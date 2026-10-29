@@ -51,4 +51,6 @@ export interface ChosenPlace {
 	label: string;
 	slug?: string;
 	region?: string;
+	/** Posizione del dispositivo: le coordinate esatte restano nel browser, mai nell'URL né nel profilo. */
+	exact?: boolean;
 }
