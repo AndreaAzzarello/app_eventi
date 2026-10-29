@@ -1,0 +1,180 @@
+// Luoghi: normalizzazione, ranking sui comuni/regioni coperti e (de)serializzazione nell'URL della home.
+// Puro e senza dipendenze dal browser: lo usano la ricerca, la load server e i test.
+import { slugify } from './event';
+import { filterToParams, type Filter } from './filters';
+import { distanceKm, type ChosenPlace, type LatLng } from './geo';
+
+export interface CoverageComune {
+	name: string;
+	slug: string;
+	province: string;
+	lat: number;
+	lng: number;
+	events: number;
+	/** Nome nell'altra lingua ufficiale (Bozen, Aoste). */
+	alt?: string;
+}
+export interface CoverageRegion {
+	slug: string;
+	name: string;
+	comuni: CoverageComune[];
+}
+
+/** Raggio proposto quando si sceglie una regione intera. */
+export const REGION_RADIUS_KM = 100;
+
+/** Senza accenti, minuscolo; apostrofi e trattini diventano spazi ("Reggio nell'Emilia" = "reggio nell emilia"). */
+export const fold = (s: string) =>
+	s
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '')
+		.toLowerCase()
+		.replace(/['’`´-]/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+
+export interface PlaceHit {
+	kind: 'comune' | 'regione';
+	place: ChosenPlace;
+	/** Riga di dettaglio: provincia o regione. */
+	detail: string;
+	events: number;
+	/** 0 esatto, 1 prefisso, 2 inizio di parola, 3 contenuto. */
+	score: number;
+}
+
+function matchScore(name: string, q: string): number | null {
+	const n = fold(name);
+	if (n === q) return 0;
+	if (n.startsWith(q)) return 1;
+	if (n.includes(` ${q}`)) return 2;
+	return n.includes(q) ? 3 : null;
+}
+
+/** Centro di una regione: media dei comuni pesata sul numero di eventi (semplice se nessuno ne ha). */
+export function regionCenter(r: CoverageRegion): LatLng {
+	const total = r.comuni.reduce((n, c) => n + c.events, 0);
+	const w = (c: CoverageComune) => (total ? c.events : 1);
+	const sum = r.comuni.reduce((n, c) => n + w(c), 0) || 1;
+	return {
+		lat: r.comuni.reduce((n, c) => n + c.lat * w(c), 0) / sum,
+		lng: r.comuni.reduce((n, c) => n + c.lng * w(c), 0) / sum
+	};
+}
+
+const regionPlace = (r: CoverageRegion): ChosenPlace => ({ ...regionCenter(r), label: r.name, slug: r.slug, region: r.name });
+const comunePlace = (c: CoverageComune, r: CoverageRegion): ChosenPlace => ({
+	lat: c.lat,
+	lng: c.lng,
+	label: c.name,
+	slug: c.slug,
+	region: r.name
+});
+
+/** Comuni (anche col nome bilingue) poi regioni che corrispondono al testo, dal migliore. */
+export function rankPlaces(text: string, regions: CoverageRegion[], limit = 6): PlaceHit[] {
+	const q = fold(text);
+	if (q.length < 2) return [];
+	const hits: PlaceHit[] = [];
+	for (const r of regions) {
+		for (const c of r.comuni) {
+			const names = c.alt ? [c.name, c.alt, `${c.name} ${c.alt}`] : [c.name];
+			const scores = names.map((n) => matchScore(n, q)).filter((s): s is number => s !== null);
+			if (scores.length)
+				hits.push({
+					kind: 'comune',
+					place: comunePlace(c, r),
+					detail: [c.alt, c.province && `(${c.province})`].filter(Boolean).join(' '),
+					events: c.events,
+					score: Math.min(...scores)
+				});
+		}
+		const s = matchScore(r.name, q);
+		if (s !== null)
+			hits.push({
+				kind: 'regione',
+				place: regionPlace(r),
+				detail: 'Regione',
+				events: r.comuni.reduce((n, c) => n + c.events, 0),
+				score: s
+			});
+	}
+	const kindOrder = { comune: 0, regione: 1 };
+	return hits
+		.sort(
+			(a, b) =>
+				a.score - b.score ||
+				kindOrder[a.kind] - kindOrder[b.kind] ||
+				b.events - a.events ||
+				a.place.label.localeCompare(b.place.label, 'it')
+		)
+		.slice(0, limit);
+}
+
+/** Il luogo che il testo nomina senza ambiguità (corrispondenza esatta o per prefisso), se c'è. */
+export const strongPlace = (text: string, regions: CoverageRegion[]) =>
+	rankPlaces(text, regions, 1).find((h) => h.score <= 1) ?? null;
+
+/** Comuni con più eventi: i suggerimenti quando si apre la ricerca dei luoghi senza scrivere. */
+export function popularPlaces(regions: CoverageRegion[], limit = 6): PlaceHit[] {
+	return regions
+		.flatMap((r) => r.comuni.map((c) => ({ c, r })))
+		.sort((a, b) => b.c.events - a.c.events || a.c.name.localeCompare(b.c.name, 'it'))
+		.slice(0, limit)
+		.map(({ c, r }) => ({
+			kind: 'comune' as const,
+			place: comunePlace(c, r),
+			detail: c.province ? `(${c.province})` : '',
+			events: c.events,
+			score: 0
+		}));
+}
+
+/** Vero se un comune con eventi dista meno di `km` dal punto: altrimenti "Pochi eventi in questa zona". */
+export const nearCovered = (p: LatLng, regions: CoverageRegion[], km = 25) =>
+	regions.some((r) => r.comuni.some((c) => c.events > 0 && distanceKm(p, c) <= km));
+
+// --- URL della home: ?luogo=<slug> oppure ?nome=&lat=&lng= ---
+
+const ITALY = { lat: [35, 48], lng: [6, 19.5] };
+const inItaly = (lat: number, lng: number) =>
+	Number.isFinite(lat) && Number.isFinite(lng) && lat >= ITALY.lat[0] && lat <= ITALY.lat[1] && lng >= ITALY.lng[0] && lng <= ITALY.lng[1];
+
+/** Luogo indicato nell'URL, o null se manca o non è valido (la home usa allora il predefinito o quello salvato). */
+export function placeFromParams(p: URLSearchParams, regions: CoverageRegion[]): ChosenPlace | null {
+	const slug = p.get('luogo');
+	if (slug) {
+		if (!/^[a-z0-9-]{1,80}$/.test(slug)) return null;
+		for (const r of regions) {
+			const c = r.comuni.find((x) => x.slug === slug);
+			if (c) return comunePlace(c, r);
+		}
+		const r = regions.find((x) => x.slug === slug || slugify(x.name) === slug);
+		return r?.comuni.length ? regionPlace(r) : null;
+	}
+	const lat = Number(p.get('lat'));
+	const lng = Number(p.get('lng'));
+	if (p.get('lat') === null || p.get('lng') === null || !inItaly(lat, lng)) return null;
+	return { lat, lng, label: (p.get('nome') ?? '').trim().slice(0, 80) || 'La tua posizione' };
+}
+
+/** Query della home per un luogo: lo slug se è coperto, altrimenti nome e coordinate (a ~1 km, non di più). */
+export function placeToParams(place: ChosenPlace): URLSearchParams {
+	const p = new URLSearchParams();
+	if (place.slug) p.set('luogo', place.slug);
+	else {
+		p.set('nome', place.label.slice(0, 80));
+		p.set('lat', place.lat.toFixed(2));
+		p.set('lng', place.lng.toFixed(2));
+	}
+	return p;
+}
+
+/** Indirizzo della home con luogo, filtri ed eventuale vista mappa. */
+export function homeUrl(filter: Filter, place: ChosenPlace | null, view: 'list' | 'map' = 'list'): string {
+	const p = place ? placeToParams(place) : new URLSearchParams();
+	for (const [k, v] of filterToParams(filter)) p.set(k, v);
+	if (view === 'map') p.set('vista', 'mappa');
+	const qs = p.toString();
+	return qs ? `/?${qs}` : '/';
+}

@@ -43,3 +43,12 @@ export function placeFromNominatim(address: Record<string, string> | undefined):
 		region: address.state || ''
 	};
 }
+
+/** Luogo scelto dall'utente. `slug` c'è solo per comuni e regioni coperti. */
+export interface ChosenPlace {
+	lat: number;
+	lng: number;
+	label: string;
+	slug?: string;
+	region?: string;
+}

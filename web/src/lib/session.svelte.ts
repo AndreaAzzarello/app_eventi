@@ -3,7 +3,7 @@
 import { ADMIN_EMAIL } from './config';
 import { firebase, type Firebase } from './firebase/client';
 import { KEYS, mergeFavorites, readJson, writeJson } from './storage';
-import type { ChosenPlace } from './components/LocationPicker.svelte';
+import type { ChosenPlace } from './geo';
 import { toast } from './toast.svelte';
 
 export interface SessionUser {
