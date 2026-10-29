@@ -28,10 +28,11 @@
 	import User from '@lucide/svelte/icons/user';
 	import Utensils from '@lucide/svelte/icons/utensils';
 	import X from '@lucide/svelte/icons/x';
+	import CategoryArt from '$lib/components/CategoryArt.svelte';
 	import ErrorMessage from '$lib/components/ErrorMessage.svelte';
 	import EventCard from '$lib/components/EventCard.svelte';
 	import GoogleLogo from '$lib/components/GoogleLogo.svelte';
-	import { CATEGORIES, type Event } from '$lib/event';
+	import { CATEGORIES, type Category, type Event } from '$lib/event';
 	import { fmtNum, monthKeys, monthLine } from '$lib/format';
 
 	const space = [1, 2, 3, 4, 5, 6, 7];
@@ -60,6 +61,9 @@
 
 	// Colori risolti dal browser (light-dark() compreso) e contrasto sullo sfondo.
 	let resolved: Record<string, { rgb: string; onBg: string; onSurface: string }> = $state({});
+	// Per ogni categoria: contrasto dell'inchiostro sulla superficie e sulla sua tinta tenue, e del testo sulla tinta
+	let cats: Record<string, { ink: string; soft: string; inkOnSurface: string; inkOnSoft: string; textOnSoft: string }> = $state({});
+	const catKeys = Object.keys(CATEGORIES) as Category[];
 	let probe: HTMLSpanElement;
 
 	const lum = (rgb: string) => {
@@ -85,6 +89,14 @@
 			[...roles, ...grays.map((g) => `gray-${g}`)].map((n) => {
 				const rgb = get(n);
 				return [n, { rgb, onBg: ratio(rgb, bg), onSurface: ratio(rgb, surface) }];
+			})
+		);
+		const text = get('text');
+		cats = Object.fromEntries(
+			catKeys.map((c) => {
+				const ink = get(`cat-${c}`);
+				const soft = get(`cat-${c}-soft`);
+				return [c, { ink, soft, inkOnSurface: ratio(ink, surface), inkOnSoft: ratio(ink, soft), textOnSoft: ratio(text, soft) }];
 			})
 		);
 	}
@@ -124,7 +136,7 @@
 
 <section aria-labelledby="s-col">
 	<h2 id="s-col">Colore</h2>
-	<p class="muted">Dieci grigi caldi e un solo accento, il terracotta, per azioni primarie, link, focus, stato attivo e — in tinta tenue (<code>--accent-soft</code>, 10% sulla superficie; <code>--accent-border</code>, 45% sul bordo) — per evidenziare date, categorie e hover. Mai gradienti né glow. Il rosso d’errore è un cremisi più freddo e compare sempre con icona e testo. Contrasti calcolati nel tema in uso.</p>
+	<p class="muted">Sfondo «carta calda» nel tema chiaro e «notte calda» nel scuro. Dieci grigi caldi e un solo accento, il terracotta, per azioni primarie, link, focus, stato attivo e — in tinta tenue (<code>--accent-soft</code>, 10% sulla superficie; <code>--accent-border</code>, 45% sul bordo) — per evidenziare. Le categorie hanno una loro tinta (sezione sotto), solo come inchiostro e fondo tenue. Mai gradienti né glow. Il rosso d’errore è un cremisi più freddo e compare sempre con icona e testo. Contrasti calcolati nel tema in uso.</p>
 	<h3>Ruoli</h3>
 	<ul class="plain swatches">
 		{#each roles as n (n)}
@@ -135,6 +147,23 @@
 			</li>
 		{/each}
 	</ul>
+	<h3>Categorie</h3>
+		<p class="muted">
+			Toni naturali italiani: prugna, ocra, verde acqua, oliva, corallo, sabbia, grigio caldo. Ogni categoria ha un inchiostro (<code>--cat-*</code>: icone, pin della mappa, motivi, etichette) e una tinta tenue
+			(<code>--cat-*-soft</code>, 14% sulla superficie: fondo del riquadro data e del placeholder). Il testo sulla tinta è sempre <code>--text</code> o <code>--muted</code>; la categoria si legge anche dall’icona e dal nome.
+		</p>
+		<ul class="plain cat-grid">
+			{#each catKeys as c (c)}
+				<li data-cat={c}>
+					<div class="cat-art"><CategoryArt category={c} /></div>
+					<div>
+						<strong>{CATEGORIES[c]}</strong>
+						<span class="muted num">{cats[c]?.ink ?? ''}</span>
+						<span class="num muted">{cats[c] ? `inchiostro ${cats[c].inkOnSurface} su superficie · ${cats[c].inkOnSoft} su tinta · testo ${cats[c].textOnSoft} su tinta` : ''}</span>
+					</div>
+				</li>
+			{/each}
+		</ul>
 	<h3>Unica eccezione: il logo Google</h3>
 	<p class="muted">
 		Le linee guida di “Accedi con Google” richiedono la “G” ufficiale a quattro colori, quindi <code>GoogleLogo.svelte</code> è l’unico file
@@ -172,7 +201,7 @@
 		{/each}
 	</ul>
 	<h3>Categorie</h3>
-	<p class="muted">Si distinguono per icona, non per colore.</p>
+	<p class="muted">Ogni categoria ha la sua icona, che accompagna sempre il nome (mai il solo colore).</p>
 	<ul class="plain icon-grid">
 		{#each Object.entries(categoryIcons) as [key, Icon] (key)}
 			<li><Icon size={20} aria-hidden="true" />{CATEGORIES[key as keyof typeof CATEGORIES]}</li>
@@ -205,8 +234,9 @@
 	</p>
 	<p class="muted">Chip: inattivo con bordo (in hover tinta tenue), attivo in accento pieno con testo <code>--accent-ink</code>. Le categorie portano la loro icona.</p>
 	<h3>Card evento</h3>
-	<p class="muted">Superficie sopra lo sfondo con bordo sottile e <code>--shadow-card</code> (l’unica ombra sulle card, neutra e appena visibile); in hover bordo <code>--accent-border</code> e tinta tenue. Il riquadro data è in tinta tenue con il numero in Fraunces; la categoria è una pillola in tinta tenue con icona.</p>
-	<EventCard event={sample} {now} />
+	<p class="muted">Un biglietto: a sinistra il riquadro data su tinta di categoria (giorno in Fraunces, mese e giorno della settimana piccoli) separato da uno strappo tratteggiato; poi categoria, titolo e una riga di fatti con icone (ora, luogo e distanza, prezzo, bambini); a destra l’immagine (proporzione fissa) o il motivo della categoria. Bordo sottile e <code>--shadow-card</code>; in hover bordo <code>--accent-border</code> e leggero sollevamento con <code>--shadow-lift</code> (fermo con il movimento ridotto). Mostre e rassegne lunghe usano la variante compatta.</p>
+		<EventCard event={sample} {now} />
+	<EventCard event={{ ...sample, id: 'stile2', title: 'Mostra di fotografia', category: 'culture', priceType: 'low', approxLocation: true, longRunning: true, startTime: now - 7 * 86_400_000, endTime: now + 30 * 86_400_000, tags: ['mostra'] } as unknown as Event} {now} compact />
 	<h3>Messaggi</h3>
 	<p class="notice">Avviso neutro, senza colore.</p>
 	<ErrorMessage>Errore con icona e testo, mai solo colore.</ErrorMessage>
@@ -261,6 +291,27 @@
 		height: var(--space-6);
 		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-sm);
+	}
+	.cat-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(calc(var(--space-7) * 4), 1fr));
+		gap: var(--space-3);
+	}
+	.cat-grid li {
+		display: grid;
+		grid-template-columns: calc(var(--space-7) * 1.5) 1fr;
+		gap: var(--space-3);
+		align-items: center;
+		font-size: var(--text-sm);
+	}
+	.cat-grid li > div:last-child {
+		display: grid;
+		gap: var(--space-1);
+	}
+	.cat-art {
+		aspect-ratio: 1;
+		border-radius: var(--radius-sm);
+		overflow: hidden;
 	}
 	.grays {
 		display: flex;
