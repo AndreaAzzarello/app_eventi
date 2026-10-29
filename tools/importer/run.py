@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 import httpx
 from concurrent.futures import ThreadPoolExecutor
 
+import bundles
 import manifest
 from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox, slugify
@@ -176,7 +177,7 @@ MAX_GEOCODE = 3_000  # richieste nuove a Nominatim per giro
 MAX_READS = 40_000  # quota Spark 50.000 letture al giorno, con margine
 #: campi letti in una sola query di proiezione: bastano a decidere cosa scrivere
 PROJECTION = ["source", "contentHash", "removedAt", "missingRuns", "sourceUrl", "startTime", "endTime", "createdAt",
-              "importRegion"]
+              "importRegion", "geohash", "citySlug"]
 
 
 class QuotaExceeded(Exception):
@@ -269,13 +270,15 @@ def from_manifest(db, coll, regions: set[str], now_ms: int, directory: Path):
 
 def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, horizon_days: int = 60,
           regions: set[str] | None = None, db=None, max_writes: int = MAX_WRITES, max_reads: int = MAX_READS,
-          excluded: set[str] = frozenset(), manifest_dir: Path | None = None, reconcile: bool = False) -> dict:
+          excluded: set[str] = frozenset(), manifest_dir: Path | None = None, reconcile: bool = False,
+          with_bundles: bool = False) -> dict:
     """Upsert incrementale. Il confronto parte dal manifest locale (manifest_dir) o, se manca/è vecchio/non coerente
     o con reconcile=True, da una lettura di proiezione degli eventi scraper delle regioni; poi si scrive solo ciò che è
     cambiato. Si ferma prima di scrivere se le quote stimate superano max_writes/max_reads.
     Restituisce le statistiche (letti, scritti, invariati, nascosti, fonte del confronto)."""
     kw = dict(events=events, now=now, ok_hosts=ok_hosts, horizon_days=horizon_days, regions=regions, db=db,
-              max_writes=max_writes, max_reads=max_reads, excluded=excluded, manifest_dir=manifest_dir)
+              max_writes=max_writes, max_reads=max_reads, excluded=excluded, manifest_dir=manifest_dir,
+              with_bundles=with_bundles)
     try:
         return _write(**kw, reconcile=reconcile)
     except Retry as r:
@@ -286,7 +289,7 @@ def write(events: list[dict], now: datetime, ok_hosts: set[str] | None = None, h
 
 
 def _write(events, now, ok_hosts, horizon_days, regions, db, max_writes, max_reads, excluded, manifest_dir,
-           reconcile) -> dict:
+           reconcile, with_bundles) -> dict:
     from google.api_core.exceptions import NotFound
     from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -361,6 +364,10 @@ def _write(events, now, ok_hosts, horizon_days, regions, db, max_writes, max_rea
                 "reconciledAt": old[r]["reconciledAt"] if compare == "manifest" else now_ms,
                 "docs": {i: d for i, d in scraper.items() if d.get("importRegion") == r}})
     hidden = sum(1 for f in plan["stale"].values() if "removedAt" in f)
+    if with_bundles:
+        extra = write_bundles(db, coll, events, plan, known, now_ms, max_writes - n_writes, max_reads - reads)
+        reads += extra["reads"]
+        n_writes += extra["writes"]
     stats = {"reads": reads, "written": len(plan["write"]), "unchanged": plan["unchanged"],
              "kept_manual": plan["kept_manual"], "stale": len(plan["stale"]), "hidden": hidden,
              "writes": n_writes, "deleted": 0, "compare": compare}
@@ -368,6 +375,22 @@ def _write(events, now, ok_hosts, horizon_days, regions, db, max_writes, max_rea
              "(%d nascosti con removedAt)", compare, reads, stats["written"], stats["unchanged"], stats["kept_manual"],
              stats["stale"], hidden)
     return stats
+
+
+def write_bundles(db, coll, events: list[dict], plan: dict, known: dict[str, dict], now_ms: int, max_writes: int,
+                  max_reads: int) -> dict:
+    """Bundle delle liste (bundles.py): gli eventi di questo giro più quelli manuali e degli utenti, che l'import non vede."""
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    query = coll.where(filter=FieldFilter("source", "in", ["manual", "user"]))
+    manual = {}
+    if query.count().get()[0][0].value < max_reads:  # i manuali sono pochi; se non lo fossero, niente lettura
+        manual = {d.id: (d.to_dict() or {}) | {"id": d.id} for d in query.stream()}
+    reads = len(manual) + 1
+    upserts = [ev for ev in events if ev["id"] not in manual] + [m for m in manual.values() if not m.get("removedAt")]
+    removed = [{"id": i} | known.get(i, {}) for i, f in plan["stale"].items() if "removedAt" in f]
+    out = bundles.write_events(db, upserts, removed, now_ms, max_writes)
+    return {"reads": reads + out["reads"], "writes": out["writes"]}
 
 
 def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[tuple[str, str], tuple[float, float]],
@@ -422,13 +445,15 @@ def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], 
 def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_ms: int) -> int:
     """Una scrittura al giorno per regione (coverage/{slug})."""
     by_region: dict[str, list] = {}
+    docs: dict[str, dict] = {}
     for n in names:  # anche le regioni con sole fonti regionali: le loro città vengono dagli eventi
         by_region.setdefault(SOURCES[n].region, [])
         if not getattr(SOURCES[n], "regional", False):
             by_region[SOURCES[n].region].append(SOURCES[n])
     for region, sources in by_region.items():
-        db.collection("coverage").document(slugify(region)).set(coverage_doc(region, sources, events, centers, now_ms))
-    return len(by_region)
+        docs[slugify(region)] = coverage_doc(region, sources, events, centers, now_ms)
+        db.collection("coverage").document(slugify(region)).set(docs[slugify(region)])
+    return len(by_region) + bundles.write_coverage(db, docs, now_ms)["writes"]
 
 
 def month_bounds(now: datetime) -> tuple[str, int, int]:
@@ -559,7 +584,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         stats = write(events, now, ok_hosts, args.horizon_days, {slugify(SOURCES[n].region) for n in names},
                       max_writes=args.max_writes, max_reads=args.max_reads, excluded={x["id"] for x in excluded},
-                      manifest_dir=HERE / "manifests", reconcile=args.reconcile)
+                      manifest_dir=HERE / "manifests", reconcile=args.reconcile, with_bundles=True)
     except QuotaExceeded as e:
         log.error("%s", e)
         return 2
