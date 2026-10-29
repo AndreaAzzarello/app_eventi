@@ -15,7 +15,7 @@ Agenda gratuita di eventi pubblici locali (partita da Modena). Dettagli completi
 - Cloudflare: flusso **Pages**, non Workers. Root `web`, build `npm run build`, output `.svelte-kit/cloudflare`, `NODE_VERSION=24`.
 - robots.txt e licenze dei siti comunali: rispettarli sempre; attivare una fonte solo con licenza sui contenuti (CC0/CC-BY).
 - OpenStreetMap/Nominatim: User-Agent identificativo, max 1 richiesta/s.
-- Design: rispettare il design system (README §6b, `web/src/lib/styles/tokens.css`, controllo automatico in `design.test.ts`). Non esiste un DESIGN.md.
+- Design: **prima di ogni modifica al frontend (`web/`) leggi `DESIGN.md`** e rispetta il design system; i valori stanno in `web/src/lib/styles/tokens.css`, il controllo automatico in `design.test.ts`.
 
 ## Comandi (da `web/` salvo diversa indicazione)
 - Dev: `npm run dev` (legge `.env`); anteprima Cloudflare: `npm run preview` (porta 8788).
