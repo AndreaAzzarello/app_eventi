@@ -4,7 +4,7 @@
 	import { loadEvent, saveEvent } from '$lib/admin';
 	import EventForm from '$lib/components/EventForm.svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
-	import { eventPath, type Event, type EventInput } from '$lib/event';
+	import { LISTING_NOTE, eventPath, type Event, type EventInput } from '$lib/event';
 	import { toast } from '$lib/toast.svelte';
 
 	const id = page.params.id === 'nuovo' ? null : page.params.id!;
@@ -13,7 +13,7 @@
 
 	async function save(input: EventInput) {
 		const savedId = await saveEvent(id, input);
-		toast(id ? 'Evento aggiornato.' : 'Evento creato.', { label: 'Vedi', href: eventPath({ id: savedId, title: input.title }) });
+		toast(`${id ? 'Evento aggiornato.' : 'Evento creato.'} ${LISTING_NOTE}`, { label: 'Vedi', href: eventPath({ id: savedId, title: input.title }) }, 12000);
 		await goto('/admin');
 	}
 </script>

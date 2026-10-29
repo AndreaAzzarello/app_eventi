@@ -68,6 +68,9 @@ export interface Event extends EventInput {
 
 export const LONG_RUNNING_DAYS = 14;
 
+/** Elenchi e mappa leggono liste precalcolate dall'importer (bundle): un evento salvato dall'admin vi entra al prossimo import. */
+export const LISTING_NOTE = 'Visibile in elenco e mappa dal prossimo aggiornamento (entro 24 ore); la pagina dell’evento è già online.';
+
 const str = (v: unknown, fallback = '') => (v == null ? fallback : String(v));
 const num = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 

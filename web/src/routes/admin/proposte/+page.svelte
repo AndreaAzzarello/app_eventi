@@ -6,7 +6,7 @@
 	import { CATEGORY_ICONS } from '$lib/categoryIcons';
 	import Check from '@lucide/svelte/icons/check';
 	import X from '@lucide/svelte/icons/x';
-	import { CATEGORIES, PRICE_TYPES, eventPath } from '$lib/event';
+	import { CATEGORIES, LISTING_NOTE, PRICE_TYPES, eventPath } from '$lib/event';
 	import type { Submission } from '$lib/submissions';
 	import { toast } from '$lib/toast.svelte';
 
@@ -34,7 +34,7 @@
 		try {
 			const id = await approve(s);
 			subs = subs?.filter((x) => x.id !== s.id) ?? null;
-			toast(`Pubblicato “${s.title}”.`, { label: 'Vedi', href: eventPath({ id, title: s.title }) });
+			toast(`Pubblicato “${s.title}”. ${LISTING_NOTE}`, { label: 'Vedi', href: eventPath({ id, title: s.title }) }, 12000);
 		} catch (e) {
 			console.error(e);
 			toast('Approvazione non riuscita.');
