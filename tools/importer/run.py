@@ -372,21 +372,34 @@ def _write(events, now, ok_hosts, horizon_days, regions, db, max_writes, max_rea
 
 def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[tuple[str, str], tuple[float, float]],
                  now_ms: int) -> dict:
-    """Documento coverage/{regione}: i comuni coperti (fonti attive) con centro e numero di eventi di oggi.
+    """Documento coverage/{regione}: le città con eventi di oggi (qualunque fonte) più i comuni delle fonti attive.
 
-    Lo legge la webapp per la scelta regione → comune e per le pagine /regione/[slug]; un comune senza centro
-    geocodificato non si può scegliere e resta fuori.
+    Lo legge la webapp per la ricerca dei luoghi, la scelta regione → comune e le pagine /regione/[slug]. Un comune di
+    una fonte attiva ha il centro geocodificato (resta fuori senza); una città nata solo dagli eventi (fonte
+    regionale, Open Data Hub, futuri aggregatori) ha il centro medio dei suoi eventi e, se bilingue, l'alias.
     """
-    counts = Counter(ev["citySlug"] for ev in events if ev["importRegion"] == slugify(region))
-    comuni = []
-    for s in sorted(sources, key=lambda s: s.city):
+    mine = [ev for ev in events if ev["importRegion"] == slugify(region)]
+    counts = Counter(ev["citySlug"] for ev in mine)
+    comuni: dict[str, dict] = {}
+    for s in sources:
         slug = slugify(s.city)
         if (region, slug) in centers:
             lat, lng = centers[(region, slug)]
             alt = ALT.get((s.province, slug))
-            comuni.append({"name": s.city, "slug": slug, "province": s.province, "lat": round(lat, 4),
-                           "lng": round(lng, 4), "events": counts.get(slug, 0), **({"alt": alt[1]} if alt else {})})
-    return {"name": region, "updatedAt": now_ms, "comuni": comuni}
+            comuni[slug] = {"name": s.city, "slug": slug, "province": s.province, "lat": round(lat, 4),
+                            "lng": round(lng, 4), "events": counts.get(slug, 0), **({"alt": alt[1]} if alt else {})}
+    by_city: dict[str, list[dict]] = {}
+    for ev in mine:
+        if ev["citySlug"] not in comuni:
+            by_city.setdefault(ev["citySlug"], []).append(ev)
+    for slug, evs in by_city.items():
+        points = [e for e in evs if not e.get("approxLocation")] or evs  # i punti approssimati contano solo se non ce ne sono altri
+        first = evs[0]
+        comuni[slug] = {"name": first["city"], "slug": slug, "province": first["province"],
+                        "lat": round(sum(e["lat"] for e in points) / len(points), 4),
+                        "lng": round(sum(e["lng"] for e in points) / len(points), 4), "events": len(evs),
+                        **({"alt": first["cityAlt"]} if first.get("cityAlt") else {})}
+    return {"name": region, "updatedAt": now_ms, "comuni": sorted(comuni.values(), key=lambda c: c["name"])}
 
 
 def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], tuple[float, float]]:
@@ -409,9 +422,10 @@ def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], 
 def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_ms: int) -> int:
     """Una scrittura al giorno per regione (coverage/{slug})."""
     by_region: dict[str, list] = {}
-    for n in names:
+    for n in names:  # anche le regioni con sole fonti regionali: le loro città vengono dagli eventi
+        by_region.setdefault(SOURCES[n].region, [])
         if not getattr(SOURCES[n], "regional", False):
-            by_region.setdefault(SOURCES[n].region, []).append(SOURCES[n])
+            by_region[SOURCES[n].region].append(SOURCES[n])
     for region, sources in by_region.items():
         db.collection("coverage").document(slugify(region)).set(coverage_doc(region, sources, events, centers, now_ms))
     return len(by_region)

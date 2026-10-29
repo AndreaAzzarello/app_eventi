@@ -32,9 +32,7 @@
 	<p class="muted lead">
 		{visible.length === 1 ? 'Un evento in programma' : `${fmtNum(visible.length)} eventi in programma`} a {where}.
 	</p>
-	{#if data.mapQuery}
-		<p class="map-link"><a class="btn btn-sm" href={`/?${data.mapQuery}&vista=mappa`}><Map size={16} aria-hidden="true" /> Vedi sulla mappa</a></p>
-	{/if}
+	<p class="map-link"><a class="btn btn-sm" href={`/?luogo=${data.slug}&vista=mappa`}><Map size={16} aria-hidden="true" /> Vedi sulla mappa</a></p>
 	<EventList events={visible} {now}>
 		{#snippet empty()}
 			<h2>Per ora niente in programma</h2>

@@ -151,7 +151,7 @@ export function nearestComune(p: LatLng, regions: CoverageRegion[], km = NEAREST
 // --- URL della home: ?luogo=<slug> oppure ?nome=&lat=&lng= ---
 
 const ITALY = { lat: [35, 48], lng: [6, 19.5] };
-export const inItaly = (lat: number, lng: number) =>
+const inItaly = (lat: number, lng: number) =>
 	Number.isFinite(lat) && Number.isFinite(lng) && lat >= ITALY.lat[0] && lat <= ITALY.lat[1] && lng >= ITALY.lng[0] && lng <= ITALY.lng[1];
 
 /** Luogo indicato nell'URL, o null se manca o non è valido (la home usa allora il predefinito o quello salvato). */

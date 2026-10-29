@@ -232,3 +232,21 @@ def test_manifest_pota_gli_eventi_che_la_pulizia_elimina(tmp_path):
     del db.data["events/e0"]  # la pulizia l'ha eliminato
     s = mrun(db, [old, event(1)], tmp_path, now=DAY2)
     assert (s["compare"], s["written"]) == ("manifest", 1) and "events/e0" in db.data  # non risulta più "noto"
+
+
+def test_coverage_include_le_citta_con_eventi_anche_senza_fonte_comunale():
+    """Bolzano arriva da Open Data Hub (fonte regionale): niente riga nel registro, ma ha eventi → è coperta."""
+    from types import SimpleNamespace
+
+    from run import coverage_doc
+
+    src = [SimpleNamespace(city="Trento", province="TN")]
+    centers = {("Trentino-Alto Adige", "trento"): (46.07, 11.12)}
+    odh = {"importRegion": "trentino-alto-adige", "city": "Bolzano", "citySlug": "bolzano", "cityAlt": "Bozen", "province": "BZ"}
+    events = [event(1, **odh, lat=46.49, lng=11.35), event(2, **odh, lat=46.51, lng=11.37),
+              event(3, **odh, lat=40.0, lng=10.0, approxLocation=True),  # centro approssimato: non sposta la media
+              event(4, citySlug="trento", importRegion="trentino-alto-adige", city="Trento", province="TN")]
+    doc = coverage_doc("Trentino-Alto Adige", src, events, centers, 5)
+    assert doc["comuni"] == [
+        {"name": "Bolzano", "slug": "bolzano", "province": "BZ", "lat": 46.5, "lng": 11.36, "events": 3, "alt": "Bozen"},
+        {"name": "Trento", "slug": "trento", "province": "TN", "lat": 46.07, "lng": 11.12, "events": 1}]
