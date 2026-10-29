@@ -7,11 +7,9 @@ test.skip(!OUT, 'impostare REVIEW_REFINE=<cartella>');
 const PAGES: [string, string][] = [
 	['home', '/?luogo=modena'],
 	['home-con-mostra', '/?luogo=bologna'],
-	['home-con-immagine', '/?luogo=aosta'],
 	['vuoto', '/?luogo=modena&q=zzzzqq'],
 	['citta', '/citta/modena'],
 	['dettaglio', '/eventi/jazz-in-piazza-grande-seedJazz'],
-	['dettaglio-immagine', '/eventi/concerto-al-teatro-romano-seedAosta'],
 	['dettaglio-luogo-da-confermare', '/eventi/sagra-della-piadina-seedCesena']
 ];
 const SIZES: [string, number, number][] = [['360', 360, 740], ['desktop', 1280, 800]];

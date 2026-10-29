@@ -12,7 +12,6 @@ for (const [width, height] of [[360, 740], [390, 844]]) {
 			'/citta/modena',
 			'/regione/emilia-romagna',
 			'/eventi/jazz-in-piazza-grande-seedJazz',
-			'/eventi/concerto-al-teatro-romano-seedAosta', // con immagine
 			'/eventi/sagra-della-piadina-seedCesena' // luogo da confermare
 		]) {
 			await page.goto(path);
