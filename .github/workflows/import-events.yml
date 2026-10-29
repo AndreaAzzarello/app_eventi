@@ -2,9 +2,8 @@ name: Import eventi
 
 on:
   schedule:
-    # Ogni giorno alle 06:17 ora italiana (minuto non tondo: meno ritardi sui runner).
-    - cron: "17 6 * * *"
-      timezone: "Europe/Rome"
+    # Ogni giorno alle 05:17 UTC: 06:17 in Italia con l'ora solare, 07:17 con l'ora legale (minuto non tondo: meno ritardi sui runner).
+    - cron: "17 5 * * *"
   workflow_dispatch:
     inputs:
       dry_run:

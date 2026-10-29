@@ -5,9 +5,8 @@ name: Ricontrollo fonti
 # Il workflow aggiorna sources/*.csv e fa il commit da sé: l'import del mattino li trova già attivi.
 on:
   schedule:
-    # Domenica alle 23:00 ora italiana, ben prima dell'import delle 06:17 del lunedì.
-    - cron: "0 23 * * 0"
-      timezone: "Europe/Rome"
+    # Domenica alle 22:00 UTC: 23:00 in Italia con l'ora solare, 00:00 del lunedì con l'ora legale; comunque prima dell'import.
+    - cron: "0 22 * * 0"
   workflow_dispatch:
     inputs:
       dry_run:

@@ -379,7 +379,7 @@ python seed_demo.py
 
 `.github/workflows/import-events.yml`:
 
-- Esecuzione ogni giorno alle **06:17 ora italiana** (`cron` con `timezone: Europe/Rome`).
+- Esecuzione ogni giorno alle **05:17 UTC**, cioè 06:17 in Italia con l'ora solare e 07:17 con l'ora legale (`cron: "17 5 * * *"`, senza `timezone`).
 - Avvio manuale: **Actions → Import eventi → Run workflow**, con le opzioni `dry_run` e `regione` (slug, per esempio `lombardia`).
 - Job `plan`: gira `pytest` e `ci_report.py matrix`, che elenca le regioni con almeno una fonte attiva e divide le soglie di quota tra i job.
 - Job `import`: **una matrice per regione**, 4 in parallelo (`max-parallel: 4`), timeout 330 minuti (limite GitHub 360). Ogni job ha `NOMINATIM_INTERVAL=4`, cioè 0,25 richieste al secondo: quattro job insieme restano a 1 richiesta al secondo in tutto, come chiede la policy di Nominatim. `geocache.json` e `.httpcache` sono salvati con `actions/cache` **per regione** (chiave `importer-<regione>-<run>`).
@@ -481,7 +481,7 @@ python activate.py --regione lombardia
 Molti comuni sono respinti con "nessun evento futuro valido" solo perché in quel momento non avevano eventi (fuori stagione). Ogni **domenica alle 23:00 ora italiana** il workflow riesegue `activate.py --tutte --only-reason "nessun evento futuro valido"`: rivaluta solo le righe `da_verificare` respinte per quel motivo e attiva quelle che ora rispettano **tutte** le condizioni a–d (le condizioni a–c sono quelle già registrate nel CSV, non vengono ricontrollate sui siti; il dry-run sì).
 
 - Riepilogo in `GITHUB_STEP_SUMMARY`: per regione, comuni rivalutati, attivati (con i nomi) e ancora respinti.
-- Se qualcosa cambia, il workflow fa il commit di `tools/importer/sources/*.csv` ("Ricontrollo settimanale: attivate N fonti…") e lo manda a `main` con `GITHUB_TOKEN` (permesso `contents: write`). L'import delle 06:17 del lunedì trova le nuove fonti già attive. Se `main` ha una regola di protezione che vieta il push al bot, il passaggio di commit fallisce: consenti al bot o apri una PR a mano.
+- Se qualcosa cambia, il workflow fa il commit di `tools/importer/sources/*.csv` ("Ricontrollo settimanale: attivate N fonti…") e lo manda a `main` con `GITHUB_TOKEN` (permesso `contents: write`). L'import del lunedì mattina (05:17 UTC) trova le nuove fonti già attive. Se `main` ha una regola di protezione che vieta il push al bot, il passaggio di commit fallisce: consenti al bot o apri una PR a mano.
 - Avvio manuale: Actions → Ricontrollo fonti → Run workflow (con `dry_run` non modifica nulla). Stessa cosa in locale: `python activate.py --tutte --only-reason "nessun evento futuro valido" --dry-run`.
 - Durata stimata 1-2 ore con circa 1.000 comuni (12 in parallelo, 1 richiesta al secondo per sito); timeout 240 minuti. Il commit del bot non rilancia altri workflow.
 
