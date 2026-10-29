@@ -4,7 +4,17 @@ import { signInByEmail } from './helpers';
 for (const [width, height] of [[360, 740], [390, 844]]) {
 	test(`header e pagine senza overflow orizzontale a ${width}px`, async ({ page }) => {
 		await page.setViewportSize({ width, height });
-		for (const path of ['/', '/citta/modena', '/regione/emilia-romagna', '/eventi/jazz-in-piazza-grande-seedJazz']) {
+		for (const path of [
+			'/',
+			'/?luogo=modena&vista=mappa',
+			'/?luogo=bologna', // con la sezione "In corso" compatta
+			'/?luogo=modena&q=zzzzqq', // stato vuoto
+			'/citta/modena',
+			'/regione/emilia-romagna',
+			'/eventi/jazz-in-piazza-grande-seedJazz',
+			'/eventi/concerto-al-teatro-romano-seedAosta', // con immagine
+			'/eventi/sagra-della-piadina-seedCesena' // luogo da confermare
+		]) {
 			await page.goto(path);
 			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 			const { sw, cw } = await page.evaluate(() => ({

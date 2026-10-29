@@ -191,8 +191,10 @@ describe.each([
 		expect(ratio(c('accent-ink'), c('accent-hover'))).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('tinta tenue d’accento (date, categorie, card in hover): testo, muted e accento scuro ≥ 4.5', () => {
+	it('tinta tenue d’accento (testata, evidenziazioni): testo, muted e accento scuro ≥ 4.5, accento ≥ 3 (solo titolo grande)', () => {
 		for (const fg of ['text', 'muted', 'accent-hover']) expect(ratio(c(fg), c('accent-soft')), `${fg} su accent-soft`).toBeGreaterThanOrEqual(4.5);
+		// il terracotta come testo corrente non regge 4.5 sulla tinta (chiaro 4.48): sulla testata il link usa l’accento scuro, il terracotta resta per il titolo display
+		expect(ratio(c('accent'), c('accent-soft')), 'accent su accent-soft (testo grande)').toBeGreaterThanOrEqual(3);
 	});
 
 	it('la tinta tenue si distingue dalla superficie ma resta una tinta (non un fondo pieno)', () => {

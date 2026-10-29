@@ -213,7 +213,7 @@
 				<p class="summary" aria-live="polite">
 					{#if loading || pending}Cerco eventi…{:else}{count} vicino a
 						<button type="button" class="place-link" onclick={() => search?.openPlaces()} aria-haspopup="listbox">
-							<MapPin size={16} aria-hidden="true" />{place.label}</button> · entro {filter.radiusKm} km{/if}
+							<MapPin size={16} aria-hidden="true" />{place.label}</button> <span class="nowrap">· entro {filter.radiusKm} km</span>{/if}
 				</p>
 				<button type="button" class="btn btn-sm" onclick={locate} disabled={locating}>
 					<LocateFixed size={16} aria-hidden="true" /> Usa la mia posizione
@@ -227,7 +227,7 @@
 			<h2 id="first-title">Dove cerchi eventi?</h2>
 			<p class="muted">Scrivi il tuo comune o la tua regione, oppure usa la tua posizione.</p>
 			<div class="first-search">
-				<SearchBox placesOnly label="Cerca il tuo comune o regione" {filter} onfilter={setFilter} onplace={choosePlace} {eventMatches} />
+				<SearchBox placesOnly label="Comune o regione" {filter} onfilter={setFilter} onplace={choosePlace} {eventMatches} />
 			</div>
 			<button class="btn btn-primary" onclick={locate} disabled={locating}>
 				<LocateFixed size={20} aria-hidden="true" /> Usa la mia posizione
@@ -448,7 +448,7 @@
 		border: none;
 		border-radius: var(--radius-sm);
 		background: none;
-		color: var(--accent);
+		color: var(--accent-hover);
 		font: inherit;
 		text-decoration: underline;
 		cursor: pointer;
@@ -490,6 +490,12 @@
 		from {
 			opacity: 0;
 		}
+	}
+	.nowrap {
+		white-space: nowrap;
+	}
+	.split {
+		margin-top: var(--space-3);
 	}
 	.split[data-view='list'] .map-pane,
 	.split[data-view='map'] .list-pane {

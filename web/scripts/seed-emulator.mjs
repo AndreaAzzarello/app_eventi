@@ -103,8 +103,8 @@ const events = [
 	ev('seedRoma', 'roma', { title: 'Concerto all’Auditorium', category: 'music', priceType: 'premium', startTime: at(4, 20), endTime: at(4, 23) }),
 	ev('seedLecce', 'lecce', { title: 'Festa del barocco leccese', category: 'culture', startTime: at(5, 18), endTime: at(5, 23) }),
 	ev('seedBolzano', 'bolzano', { title: 'Mercatino di Natale in Piazza Walther', category: 'market', startTime: at(2, 10), endTime: at(2, 20) }),
-	ev('seedCesena', 'cesena', { title: 'Sagra della piadina', category: 'food', startTime: at(2, 12), endTime: at(2, 22) }),
-	ev('seedAosta', 'aosta', { title: 'Concerto al Teatro Romano', category: 'music', startTime: at(3, 20), endTime: at(3, 22) }),
+	ev('seedCesena', 'cesena', { title: 'Sagra della piadina', category: 'food', approxLocation: true, startTime: at(2, 12), endTime: at(2, 22) }),
+	ev('seedAosta', 'aosta', { title: 'Concerto al Teatro Romano', category: 'music', imageUrl: '/icons/apple-touch-icon.png', startTime: at(3, 20), endTime: at(3, 22) }),
 	ev('seedFinito', 'modena', { title: 'Evento già concluso', startTime: at(-3, 10), endTime: at(-3, 12) })
 ];
 

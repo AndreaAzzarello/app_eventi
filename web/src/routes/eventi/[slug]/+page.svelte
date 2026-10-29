@@ -132,7 +132,7 @@
 						<span class="note">Il Comune non ha ancora indicato l’indirizzo preciso.{#if source.href} <a href={source.href} target="_blank" rel="noopener noreferrer">Controlla sulla fonte</a>.{/if}</span>
 					{:else}{e.address}{/if}
 					{#if e.locality && e.locality !== e.city}<br />{e.locality}, {e.city}{/if}
-					{#if away}<br /><span class="away">{away}</span>{/if}
+					{#if away}<span class="away">{away}</span>{/if}
 					{#if e.citySlug}<br /><a href={cityPath(e.citySlug)}>Altri eventi a {e.city}</a>{/if}
 				</dd>
 			</div>
@@ -260,11 +260,9 @@
 	}
 	.note,
 	.away {
+		display: block;
 		color: var(--muted);
 		font-size: var(--text-sm);
-	}
-	.note {
-		display: block;
 	}
 	.actions {
 		display: grid;

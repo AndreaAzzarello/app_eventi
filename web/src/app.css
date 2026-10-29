@@ -357,11 +357,11 @@ dialog::backdrop {
 	filter: sepia(0.3) saturate(0.7) brightness(1.02);
 }
 :root[data-theme='dark'] .leaflet-tile-pane {
-	filter: invert(1) hue-rotate(180deg) sepia(0.3) brightness(0.9) contrast(0.9) saturate(0.6);
+	filter: invert(1) hue-rotate(180deg) sepia(0.3) brightness(1.1) contrast(0.95) saturate(0.6);
 }
 @media (prefers-color-scheme: dark) {
 	:root:not([data-theme='light']) .leaflet-tile-pane {
-		filter: invert(1) hue-rotate(180deg) sepia(0.3) brightness(0.9) contrast(0.9) saturate(0.6);
+		filter: invert(1) hue-rotate(180deg) sepia(0.3) brightness(1.1) contrast(0.95) saturate(0.6);
 	}
 }
 .leaflet-container {
