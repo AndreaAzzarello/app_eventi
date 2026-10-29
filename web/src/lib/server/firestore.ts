@@ -4,6 +4,7 @@ import { env } from '$env/dynamic/private';
 import { env as pub } from '$env/dynamic/public';
 import { compareEvents, fromData, type Event } from '$lib/event';
 import { SNAP_MARGIN_KM, distanceKm, radiusBounds, snapCoord, type LatLng } from '$lib/geo';
+import { cellsAround, parseRows, rowToEvent } from './bundles';
 
 type Value = {
 	stringValue?: string;
@@ -173,10 +174,44 @@ async function longRunningQuery(where: Filter[], orderBy: string[]): Promise<Eve
 	}
 }
 
+// Liste precalcolate dall'importer (collezione bundles, vedi bundles.ts): una lettura per cella o città invece di una per
+// evento. Finché il primo import non li ha creati (bundles/coverage assente) si ricade sulle query sulla collezione events.
+// bundles/coverage è scritto dallo stesso import: se c'è, ci sono anche le liste. Lo legge comunque ogni pagina (è la copertura).
+const bundlesReady = async () => (await coverageBundle()) !== null;
+
+/** Righe dei bundle richiesti (una richiesta; una seconda solo per quelli divisi in più documenti). Un bundle assente è vuoto. */
+async function readBundles(names: string[]): Promise<unknown[][]> {
+	if (!names.length) return [];
+	const r = root();
+	const batchGet = async (ids: string[]) => {
+		readCount += ids.length;
+		const rows = await call<{ found?: Doc }[]>(':batchGet', { documents: ids.map((n) => `${r.name}/bundles/${n}`) });
+		return new Map((rows ?? []).flatMap((x) => (x.found ? [[x.found.name.slice(x.found.name.lastIndexOf('/') + 1), decodeFields(x.found.fields) as { json?: string; parts?: number }] as const] : [])));
+	};
+	const first = new Map<string, string[]>();
+	const more: string[] = [];
+	for (const [name, d] of await batchGet(names)) {
+		first.set(name, [d.json ?? '[]']);
+		for (let k = 1; k < (d.parts ?? 1); k++) more.push(`${name}~${k}`);
+	}
+	if (more.length) for (const [name, d] of await batchGet(more)) first.get(name.split('~')[0])?.push(d.json ?? '[]');
+	return [...first.values()].flatMap(parseRows);
+}
+
+/** Più cache di liste ripetono lo stesso evento: id unico, finito escluso. */
+const liveEvents = (rows: unknown[][], now: number) => {
+	const seen = new Set<string>();
+	return rows.map(rowToEvent).filter((e) => e.endTime >= now && !seen.has(e.id) && seen.add(e.id));
+};
+
 /** Eventi non finiti entro km dal centro: una query per intervallo di geohash, mai l'intera collezione. */
 export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 	return cached(`near:${center.lat},${center.lng},${km}`, async () => {
 		const now = nowMinute();
+		if (await bundlesReady()) {
+			const rows = await readBundles(cellsAround(center, km));
+			return liveEvents(rows, now).filter((e) => distanceKm(center, e) <= km).sort(compareEvents(now));
+		}
 		const batches = await Promise.all(
 			radiusBounds(center, km).flatMap(([start, end]) => {
 				const where = [
@@ -214,6 +249,9 @@ export function eventsAround(place: LatLng, radiusKm: number) {
 
 export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
 	return cached(`city:${citySlug}:${limit}`, async () => {
+		if (/^[a-z0-9-]{1,80}$/.test(citySlug) && (await bundlesReady())) {
+			return liveEvents(await readBundles([`c_${citySlug}`]), nowMinute()).sort(compareEvents(Date.now())).slice(0, limit);
+		}
 		const where = [f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))];
 		// Indice (citySlug, longRunning, endTime) per la seconda query.
 		const [list, long] = await Promise.all([runQuery(where, ['endTime'], limit), longRunningQuery(where, ['endTime'])]);
@@ -225,7 +263,10 @@ export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
 export function upcomingEvents(limit: number): Promise<Event[]> {
 	return cached(
 		`upcoming:${limit}`,
-		() => runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], ['endTime'], limit),
+		async () =>
+			(await bundlesReady())
+				? liveEvents(await readBundles(['sitemap']), nowMinute()).sort((a, b) => a.endTime - b.endTime).slice(0, limit)
+				: runQuery([f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))], ['endTime'], limit),
 		FRESH.sitemap
 	);
 }
@@ -251,9 +292,20 @@ const toCoverage = (d: Doc): Coverage => {
 	return { slug: d.name.slice(d.name.lastIndexOf('/') + 1), name: f.name ?? '', comuni: f.comuni ?? [] };
 };
 
+/** Copertura di tutte le regioni in un documento (bundles/coverage): una lettura invece di una per regione. Null finché non esiste. */
+const coverageBundle = (): Promise<Coverage[] | null> =>
+	cached('coverage-bundle', async () => {
+		readCount++;
+		const doc = await call<Doc>('/bundles/coverage');
+		const json = doc && (decodeFields(doc.fields) as { json?: string }).json;
+		return json ? (JSON.parse(json) as Coverage[]) : null;
+	});
+
 /** Regioni coperte e loro comuni (scritto ogni giorno dall'importer): una lettura per regione, in cache 5 minuti. */
 export function coverage(): Promise<Coverage[]> {
 	return cached('coverage', async () => {
+		const bundle = await coverageBundle();
+		if (bundle) return bundle;
 		const res = await call<{ documents?: Doc[] }>('/coverage?pageSize=50');
 		const docs = res?.documents ?? [];
 		readCount += Math.max(docs.length, 1);
@@ -264,6 +316,8 @@ export function coverage(): Promise<Coverage[]> {
 export function regionCoverage(slug: string): Promise<Coverage | null> {
 	if (!/^[a-z0-9-]{1,70}$/.test(slug)) return Promise.resolve(null);
 	return cached(`region:${slug}`, async () => {
+		const hit = (await coverageBundle())?.find((r) => r.slug === slug);
+		if (hit) return hit;
 		readCount++;
 		const doc = await call<Doc>(`/coverage/${slug}`);
 		return doc ? toCoverage(doc) : null;

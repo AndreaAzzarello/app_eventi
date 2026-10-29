@@ -188,3 +188,35 @@ for (const [id, data] of Object.entries(stats)) {
 	if (!res.ok) throw new Error(`stats/${id}: ${res.status} ${await res.text()}`);
 }
 console.log(`Inseriti ${Object.keys(stats).length} documenti in stats`);
+
+// Come bundles/* scritti dall'importer (tools/importer/bundles.py): le liste lette dalla webapp. SEED_NO_BUNDLES=1 li salta
+// (prova del ripiego sulle query, valido finché il primo import non li crea).
+if (!process.env.SEED_NO_BUNDLES) {
+	const FIELDS = ['id', 'title', 'startTime', 'endTime', 'category', 'priceType', 'venueName', 'address', 'locality', 'city',
+		'citySlug', 'cityAlt', 'province', 'region', 'lat', 'lng', 'imageUrl', 'tags', 'longRunning', 'approxLocation'];
+	const NUM = new Set(['startTime', 'endTime', 'lat', 'lng']);
+	const rowOf = ({ id, data }) =>
+		FIELDS.map((f) => {
+			const v = id && f === 'id' ? id : data[f];
+			if (f === 'tags') return (v ?? []).filter((t) => t === 'kids' || t === 'family');
+			if (f === 'longRunning') return !!v || data.endTime - data.startTime > 14 * 24 * H;
+			if (f === 'approxLocation') return !!v;
+			return NUM.has(f) ? (v ?? 0) : (v ?? '');
+		});
+	const live = events.filter((e) => e.data.endTime >= now);
+	const buckets = { sitemap: live.map(rowOf) };
+	for (const e of live) {
+		for (const name of [`g_${e.data.geohash.slice(0, 4)}`, `c_${e.data.citySlug}`]) (buckets[name] ??= []).push(rowOf(e));
+	}
+	buckets.coverage = Object.entries(coverage).map(([slug, c]) => ({ slug, name: c.name, comuni: c.comuni }));
+	for (const [name, rows] of Object.entries(buckets)) {
+		const doc = { json: JSON.stringify(rows), parts: 1, hash: name, updatedAt: now };
+		const res = await fetch(`${BASE}/bundles/${name}`, {
+			method: 'PATCH',
+			headers: { 'content-type': 'application/json', Authorization: 'Bearer owner' },
+			body: JSON.stringify({ fields: Object.fromEntries(Object.entries(doc).map(([k, v]) => [k, enc(v)])) })
+		});
+		if (!res.ok) throw new Error(`bundles/${name}: ${res.status} ${await res.text()}`);
+	}
+	console.log(`Inseriti ${Object.keys(buckets).length} bundle`);
+}

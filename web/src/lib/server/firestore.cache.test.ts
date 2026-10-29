@@ -38,7 +38,8 @@ beforeEach(() => {
 	vi.resetModules();
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.stubGlobal('caches', fakeCaches);
-	fetchMock = vi.fn(async () =>
+	fetchMock = vi.fn(async (_u: string, init?: { body?: string }) =>
+		!init?.body ? new Response('{}', { status: 404 }) : // bundles/coverage assente: si usano le query
 		status === 200 ? new Response(JSON.stringify(row('e1'))) : new Response('quota', { status })
 	);
 	vi.stubGlobal('fetch', fetchMock);
@@ -90,10 +91,10 @@ describe('cache dei dati Firestore', () => {
 
 	it('429 sulla query degli eventi lunghi non diventa una lista vuota in cache', async () => {
 		const f = await import('./firestore');
-		fetchMock.mockImplementation(async (_u: string, init: { body: string }) =>
-			init.body.includes('longRunning') ? new Response('quota', { status: 429 }) : new Response(JSON.stringify(row('e1')))
+		fetchMock.mockImplementation(async (_u: string, init?: { body?: string }) =>
+			!init?.body ? new Response('{}', { status: 404 }) : init.body.includes('longRunning') ? new Response('quota', { status: 429 }) : new Response(JSON.stringify(row('e1')))
 		);
 		await expect(f.eventsAround(center, 25)).rejects.toThrow('429');
-		expect(store.size).toBe(0);
+		expect([...store.keys()].some((k) => k.includes('near'))).toBe(false); // nessuna lista in cache
 	});
 });

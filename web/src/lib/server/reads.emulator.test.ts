@@ -1,6 +1,7 @@
 // Letture Firestore per OGNI rotta, misurate sull'emulatore con i dati di seed (scripts/seed-emulator.mjs).
 // Conta i documenti restituiti dal server (minimo 1 per richiesta), non i contatori interni del codice.
 // Ogni rotta parte da cache vuota (moduli ricaricati). Fallisce se una pagina supera il suo budget.
+// Con i bundle dell'importer (seed) ogni lista costa una lettura per cella; senza, l'ultimo test prova il ripiego sulle query.
 // Si salta senza emulatore. Lancio: npm run test:reads
 import { execFileSync } from 'node:child_process';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -48,32 +49,32 @@ const ROUTES: { label: string; run: Run; maxReads: number; maxRequests: number; 
 	{
 		label: '/ (senza luogo)',
 		run: async () => (await import('../../routes/+page.server')).load(ev('/') as never),
-		maxReads: 6, maxRequests: 1, maxWorst: 10
+		maxReads: 2, maxRequests: 1, maxWorst: 2
 	},
 	{
 		label: '/?luogo=modena',
 		run: async () => (await import('../../routes/+page.server')).load(ev('/?luogo=modena') as never),
-		maxReads: 14, maxRequests: 6, maxWorst: 520
+		maxReads: 12, maxRequests: 3, maxWorst: 12
 	},
 	{
 		label: '/?luogo=bologna&r=100',
 		run: async () => (await import('../../routes/+page.server')).load(ev('/?luogo=bologna&r=100') as never),
-		maxReads: 24, maxRequests: 14, maxWorst: 1520
+		maxReads: 90, maxRequests: 3, maxWorst: 90
 	},
 	{
 		label: '/?luogo=atlantide (sconosciuto)',
 		run: async () => (await import('../../routes/+page.server')).load(ev('/?luogo=atlantide') as never),
-		maxReads: 8, maxRequests: 3, maxWorst: 130
+		maxReads: 3, maxRequests: 3, maxWorst: 3
 	},
 	{
 		label: '/api/places',
 		run: async () => (await import('../../routes/api/places/+server')).GET(ev('/api/places') as never),
-		maxReads: 6, maxRequests: 1, maxWorst: 10
+		maxReads: 2, maxRequests: 1, maxWorst: 2
 	},
 	{
 		label: '/api/events?lat&lng&r=25',
 		run: async () => (await import('../../routes/api/events/+server')).GET(ev('/api/events?lat=44.65&lng=10.95&r=25') as never),
-		maxReads: 10, maxRequests: 5, maxWorst: 520
+		maxReads: 12, maxRequests: 3, maxWorst: 12
 	},
 	{
 		label: '/api/events?ids=a,b',
@@ -83,12 +84,12 @@ const ROUTES: { label: string; run: Run; maxReads: number; maxRequests: number; 
 	{
 		label: '/citta/modena',
 		run: async () => (await import('../../routes/citta/[slug]/+page.server')).load({ ...ev('/citta/modena'), params: { slug: 'modena' } } as never),
-		maxReads: 6, maxRequests: 3, maxWorst: 210
+		maxReads: 3, maxRequests: 3, maxWorst: 3
 	},
 	{
 		label: '/citta/zzz (404)',
 		run: async () => (await import('../../routes/citta/[slug]/+page.server')).load({ ...ev('/citta/zzz'), params: { slug: 'zzz' } } as never),
-		maxReads: 8, maxRequests: 3, maxWorst: 210, threw: true
+		maxReads: 3, maxRequests: 3, maxWorst: 3, threw: true
 	},
 	{
 		label: '/regione/emilia-romagna',
@@ -103,7 +104,7 @@ const ROUTES: { label: string; run: Run; maxReads: number; maxRequests: number; 
 	{
 		label: '/sitemap.xml',
 		run: async () => (await import('../../routes/sitemap.xml/+server')).GET(ev('/sitemap.xml') as never),
-		maxReads: 16, maxRequests: 2, maxWorst: 510
+		maxReads: 3, maxRequests: 3, maxWorst: 3
 	}
 ];
 
@@ -143,5 +144,18 @@ describe.skipIf(!HOST)('letture per rotta (emulatore)', () => {
 		await home(ev('/?luogo=modena') as never);
 		await api(ev(`/api/events?lat=${lat}&lng=${lng}&r=${km - 4}`) as never);
 		expect(stats.requests).toBe(0);
+	});
+
+	it('senza bundle (prima del primo import) ripiega sulle query e la home funziona', async () => {
+		await fetch(`http://${HOST}/v1/projects/demo-eventi/databases/(default)/documents/bundles/coverage`, {
+			method: 'DELETE',
+			headers: { Authorization: 'Bearer owner' }
+		});
+		vi.resetModules();
+		stats = { reads: 0, requests: 0, worst: 0 };
+		const res = (await (await import('../../routes/+page.server')).load(ev('/?luogo=modena') as never)) as { events: unknown[]; error: string };
+		expect(res.error).toBe('');
+		expect(res.events.length).toBeGreaterThan(0);
+		expect(stats.worst, 'è il comportamento di prima: query con limite').toBeGreaterThan(100);
 	});
 });

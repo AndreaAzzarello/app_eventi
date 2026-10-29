@@ -26,6 +26,7 @@ function fakeFirestore(docs: ReturnType<typeof doc>[]) {
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async (_url: string, init: { body: string }) => {
+			if (!init?.body) return new Response('{}', { status: 404 }); // bundles/coverage assente: si usano le query
 			const q = JSON.parse(init.body).structuredQuery;
 			const orderBy: string[] = q.orderBy.map((o: { field: { fieldPath: string } }) => o.field.fieldPath);
 			// Filtro longRunning == true: il finto server restituisce solo i documenti con il flag.
@@ -93,7 +94,7 @@ describe('eventsNear: mostre in una cella densa', () => {
 		const base = fakeFirestore([doc(1, now + H)]);
 		const ok = globalThis.fetch;
 		vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) =>
-			init.body.includes('longRunning') ? new Response('missing index', { status: 400 }) : ok(url, init)));
+			init?.body?.includes('longRunning') ? new Response('missing index', { status: 400 }) : ok(url, init)));
 		void base;
 		expect((await eventsNear(center, 3.456)).map((e) => e.id)).toEqual(['e1']);
 	});
@@ -137,6 +138,7 @@ describe('coverage', () => {
 			'fetch',
 			vi.fn(async (url: string) => {
 				urls.push(url);
+				if (url.includes('/bundles/')) return new Response('{}', { status: 404 }); // bundle assente: ripiego sui documenti per regione
 				return new Response(
 					JSON.stringify({
 						documents: [
@@ -147,24 +149,26 @@ describe('coverage', () => {
 				);
 			})
 		);
+		vi.resetModules();
 		const { coverage, readCount } = await import('./firestore');
 		const before = readCount;
 		const regions = await coverage();
 		expect(regions.map((r) => r.slug)).toEqual(['emilia-romagna', 'lombardia']); // ordinate per nome
 		expect(regions[1].comuni[0]).toMatchObject({ name: 'Lecco', events: 3 });
-		expect(urls).toHaveLength(1);
-		expect(urls[0]).toMatch(/\/coverage\?pageSize=50&key=k$/);
+		expect(urls).toHaveLength(2);
+		expect(urls[1]).toMatch(/\/coverage\?pageSize=50&key=k$/);
 		await coverage(); // dalla cache: nessuna nuova richiesta
-		expect(urls).toHaveLength(1);
-		expect((await import('./firestore')).readCount - before).toBe(2); // una lettura per regione
+		expect(urls).toHaveLength(2);
+		expect((await import('./firestore')).readCount - before).toBe(3); // il bundle assente, poi una lettura per regione
 	});
 
 	it('regionCoverage: 404 → null, slug non valido senza richiesta', async () => {
 		const fetchMock = vi.fn(async () => new Response('{}', { status: 404 }));
 		vi.stubGlobal('fetch', fetchMock);
+		vi.resetModules();
 		const { regionCoverage } = await import('./firestore');
 		expect(await regionCoverage('inesistente')).toBeNull();
 		expect(await regionCoverage('../eventi')).toBeNull();
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledTimes(2); // bundle assente, poi il documento della regione
 	});
 });
