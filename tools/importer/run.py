@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import sys
+import time
 import uuid
 from collections import Counter
 from datetime import datetime, timedelta, timezone
@@ -36,10 +37,14 @@ log = logging.getLogger("importer")
 
 
 def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: datetime,
-            horizon_days: int, stats: dict[str, dict] | None = None, excluded: list[dict] | None = None) -> list[dict]:
+            horizon_days: int, stats: dict[str, dict] | None = None, excluded: list[dict] | None = None,
+            retry_wait: float | None = None) -> list[dict]:
     """stats (opzionale): per fonte {"events", "skipped", "excluded", "error"}; "error" None = la fonte ha risposto.
-    excluded (opzionale): riceve le pagine scartate dal filtro anti-avvisi, {"id", "title", "reason", "source", "region"}."""
+    excluded (opzionale): riceve le pagine scartate dal filtro anti-avvisi, {"id", "title", "reason", "source", "region"}.
+    retry_wait (opzionale): a fine giro le fonti che non hanno risposto si riprovano una volta dopo tanti secondi; in stats
+    compaiono "retry" ("ok" o "fallito") e "first_error"."""
     events: dict[tuple, dict] = {}
+    owner: dict[tuple, str] = {}  # chiave di deduplica → fonte che ha tenuto l'evento
     stats = {} if stats is None else stats
 
     def fetch(name: str) -> tuple[list[dict], str | None]:
@@ -52,49 +57,60 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             log.exception("%s: errore imprevisto", name)
             return [], f"{type(e).__name__}: {e}"
 
-    with ThreadPoolExecutor(WORKERS) as pool:
-        fetched = list(pool.map(fetch, names))
-    # Geocoding (Nominatim, 1 richiesta/s in tutto) in sequenza, dagli eventi più vicini nel tempo: se il budget
-    # di richieste del giro finisce, i più lontani restano senza geocoding e lo prendono nei giorni dopo.
-    pending = []
-    for name, (found, error) in zip(names, fetched):
-        stats[name] = {"events": 0, "skipped": 0, "excluded": 0, "error": error}
-        if error:
-            log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
-        pending += [(name, ev) for ev in found]
-    pending.sort(key=lambda p: (p[1]["startTime"], p[1]["sourceUrl"]))
-    owner: dict[tuple, str] = {}  # chiave di deduplica → fonte che ha tenuto l'evento
-    for name, ev in pending:
-        source: Adapter = SOURCES[name]
-        year = datetime.fromtimestamp(ev["startTime"] / 1000, ROME).year
-        if reason := ev.pop("_excluded", None) or exclusion_reason(ev["title"], year):  # prima del geocoding: costa una richiesta
-            stats[name]["excluded"] += 1
-            if excluded is not None:
-                excluded.append({"id": ev["id"], "title": ev["title"], "reason": reason, "source": name,
-                                 "region": slugify(source.region)})
-            continue
-        locate(ev, source, geocoder)
-        if ev["lat"] is None:
-            stats[name]["skipped"] += 1
-            log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
-            continue
-        enrich(ev, ev.pop("_place", None) or place_of(geocoder, ev, source), fallback_place(source))
-        use_italian_name(ev)
-        clean_texts(ev)
-        if is_long_running(ev):
-            ev["longRunning"] = True
-        ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
-        ev["contentHash"] = content_hash(ev)
-        key, kept = dedupe_key(ev), owner.get(dedupe_key(ev))
-        # stesso evento da più fonti: vince quella comunale, più ricca, su una fonte regionale (Open Data Hub)
-        if kept is None or (getattr(SOURCES[kept], "regional", False) and not getattr(source, "regional", False)):
-            if kept is not None:
-                stats[kept]["events"] -= 1
-            events[key], owner[key] = ev, name
-            stats[name]["events"] += 1
-    for name in names:
-        log.info("%s: %d eventi, %d senza coordinate, %d esclusi", name, stats[name]["events"],
-                 stats[name]["skipped"], stats[name]["excluded"])
+    def process(batch: list[str]) -> None:
+        with ThreadPoolExecutor(WORKERS) as pool:
+            fetched = list(pool.map(fetch, batch))
+        # Geocoding (Nominatim, 1 richiesta/s in tutto) in sequenza, dagli eventi più vicini nel tempo: se il budget
+        # di richieste del giro finisce, i più lontani restano senza geocoding e lo prendono nei giorni dopo.
+        pending = []
+        for name, (found, error) in zip(batch, fetched):
+            stats[name] = {"events": 0, "skipped": 0, "excluded": 0, "error": error}
+            if error:
+                log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
+            pending += [(name, ev) for ev in found]
+        pending.sort(key=lambda p: (p[1]["startTime"], p[1]["sourceUrl"]))
+        for name, ev in pending:
+            source: Adapter = SOURCES[name]
+            year = datetime.fromtimestamp(ev["startTime"] / 1000, ROME).year
+            if reason := ev.pop("_excluded", None) or exclusion_reason(ev["title"], year):  # prima del geocoding: costa una richiesta
+                stats[name]["excluded"] += 1
+                if excluded is not None:
+                    excluded.append({"id": ev["id"], "title": ev["title"], "reason": reason, "source": name,
+                                     "region": slugify(source.region)})
+                continue
+            locate(ev, source, geocoder)
+            if ev["lat"] is None:
+                stats[name]["skipped"] += 1
+                log.warning("  senza coordinate, scartato: %s", ev["sourceUrl"])
+                continue
+            enrich(ev, ev.pop("_place", None) or place_of(geocoder, ev, source), fallback_place(source))
+            use_italian_name(ev)
+            clean_texts(ev)
+            if is_long_running(ev):
+                ev["longRunning"] = True
+            ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
+            ev["contentHash"] = content_hash(ev)
+            key, kept = dedupe_key(ev), owner.get(dedupe_key(ev))
+            # stesso evento da più fonti: vince quella comunale, più ricca, su una fonte regionale (Open Data Hub)
+            if kept is None or (getattr(SOURCES[kept], "regional", False) and not getattr(source, "regional", False)):
+                if kept is not None:
+                    stats[kept]["events"] -= 1
+                events[key], owner[key] = ev, name
+                stats[name]["events"] += 1
+        for name in batch:
+            log.info("%s: %d eventi, %d senza coordinate, %d esclusi", name, stats[name]["events"],
+                     stats[name]["skipped"], stats[name]["excluded"])
+
+    process(names)
+    failed = [n for n in names if stats[n]["error"]]
+    if failed and retry_wait is not None:
+        log.warning("%d fonti non raggiungibili: riprovo tra %d s", len(failed), retry_wait)
+        time.sleep(retry_wait)
+        first = {n: stats[n]["error"] for n in failed}
+        process(failed)
+        for n in failed:
+            stats[n] |= {"retry": "fallito" if stats[n]["error"] else "ok", "first_error": first[n]}
+        log.info("Secondo tentativo: %d fonti recuperate su %d", sum(1 for n in failed if not stats[n]["error"]), len(failed))
     return list(events.values())
 
 
@@ -394,13 +410,19 @@ def write_bundles(db, coll, events: list[dict], plan: dict, known: dict[str, dic
 
 
 def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[tuple[str, str], tuple[float, float]],
-                 now_ms: int) -> dict:
+                 now_ms: int, previous: dict | None = None, failed: frozenset[str] | set[str] = frozenset(),
+                 regional_failed: bool = False) -> dict:
     """Documento coverage/{regione}: le città con eventi di oggi (qualunque fonte) più i comuni delle fonti attive.
 
     Lo legge la webapp per la ricerca dei luoghi, la scelta regione → comune e le pagine /regione/[slug]. Un comune di
     una fonte attiva ha il centro geocodificato (resta fuori senza); una città nata solo dagli eventi (fonte
     regionale, Open Data Hub, futuri aggregatori) ha il centro medio dei suoi eventi e, se bilingue, l'alias.
+
+    Una fonte che oggi non ha risposto (`failed`: slug dei suoi comuni) non azzera il comune: restano i dati del documento di
+    ieri (`previous`), perché i suoi eventi in Firestore ci sono ancora. Se a mancare è la fonte regionale (`regional_failed`)
+    restano anche le città di ieri che oggi non compaiono.
     """
+    old = {c["slug"]: c for c in (previous or {}).get("comuni", [])}
     mine = [ev for ev in events if ev["importRegion"] == slugify(region)]
     counts = Counter(ev["citySlug"] for ev in mine)
     comuni: dict[str, dict] = {}
@@ -411,6 +433,10 @@ def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[t
             alt = ALT.get((s.province, slug))
             comuni[slug] = {"name": s.city, "slug": slug, "province": s.province, "lat": round(lat, 4),
                             "lng": round(lng, 4), "events": counts.get(slug, 0), **({"alt": alt[1]} if alt else {})}
+            if slug in failed and slug in old:
+                comuni[slug] = old[slug] | {"events": max(old[slug].get("events", 0), counts.get(slug, 0))}
+        elif slug in failed and slug in old:  # niente centro oggi (geocoding): quello di ieri
+            comuni[slug] = old[slug]
     by_city: dict[str, list[dict]] = {}
     for ev in mine:
         if ev["citySlug"] not in comuni:
@@ -422,7 +448,15 @@ def coverage_doc(region: str, sources: list, events: list[dict], centers: dict[t
                         "lat": round(sum(e["lat"] for e in points) / len(points), 4),
                         "lng": round(sum(e["lng"] for e in points) / len(points), 4), "events": len(evs),
                         **({"alt": first["cityAlt"]} if first.get("cityAlt") else {})}
+    if regional_failed:
+        comuni |= {slug: c for slug, c in old.items() if slug not in comuni}
     return {"name": region, "updatedAt": now_ms, "comuni": sorted(comuni.values(), key=lambda c: c["name"])}
+
+
+def previous_coverage(db, regions: set[str]) -> dict[str, dict]:
+    """coverage/{regione} di ieri (una lettura per regione): serve a non azzerare i comuni le cui fonti oggi non rispondono."""
+    refs = [db.collection("coverage").document(r) for r in sorted(regions)]
+    return {d.id: d.to_dict() or {} for d in db.get_all(refs) if d.exists} if refs else {}
 
 
 def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], tuple[float, float]]:
@@ -442,8 +476,9 @@ def find_centers(names: list[str], geocoder: Geocoder) -> dict[tuple[str, str], 
     return centers
 
 
-def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_ms: int) -> int:
-    """Una scrittura al giorno per regione (coverage/{slug})."""
+def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_ms: int,
+                   failed: set[str] | frozenset[str] = frozenset(), previous: dict[str, dict] | None = None) -> int:
+    """Una scrittura al giorno per regione (coverage/{slug}). `failed`: fonti che oggi non hanno risposto (vedi coverage_doc)."""
     by_region: dict[str, list] = {}
     docs: dict[str, dict] = {}
     for n in names:  # anche le regioni con sole fonti regionali: le loro città vengono dagli eventi
@@ -451,7 +486,10 @@ def write_coverage(db, events: list[dict], names: list[str], centers: dict, now_
         if not getattr(SOURCES[n], "regional", False):
             by_region[SOURCES[n].region].append(SOURCES[n])
     for region, sources in by_region.items():
-        docs[slugify(region)] = coverage_doc(region, sources, events, centers, now_ms)
+        bad = [SOURCES[n] for n in failed if SOURCES[n].region == region]
+        docs[slugify(region)] = coverage_doc(
+            region, sources, events, centers, now_ms, (previous or {}).get(slugify(region)),
+            {slugify(a.city) for a in bad if not getattr(a, "regional", False)}, any(getattr(a, "regional", False) for a in bad))
         db.collection("coverage").document(slugify(region)).set(docs[slugify(region)])
     return len(by_region) + bundles.write_coverage(db, docs, now_ms)["writes"]
 
@@ -512,11 +550,30 @@ def excluded_report(excluded: list[dict], sample: int = 20) -> str:
     return "\n".join(lines)
 
 
+def skipped_sources(collected: dict[str, dict], previous: dict[str, dict]) -> list[dict]:
+    """Fonti che non hanno risposto nemmeno al secondo tentativo, con gli eventi che il comune aveva ieri (copertura):
+    li legge ci_report.py per avvisare. Per una fonte regionale vale il totale degli eventi della regione."""
+    out = []
+    for name, st in sorted(collected.items()):
+        if not st["error"]:
+            continue
+        a, region = SOURCES[name], slugify(SOURCES[name].region)
+        comuni = previous.get(region, {}).get("comuni", [])
+        if getattr(a, "regional", False):
+            before = sum(c.get("events", 0) for c in comuni)
+        else:
+            before = next((c.get("events", 0) for c in comuni if c["slug"] == slugify(a.city)), 0)
+        out.append({"source": name, "city": a.city, "region": region, "error": str(st["error"])[:160], "before": before})
+    return out
+
+
 def summary(stats: dict[str, dict], sources: dict) -> str:
     """Tabella eventi per comune, errori e comuni a zero; va anche nel riepilogo del job GitHub."""
     lines = ["| comune | eventi | senza coordinate | errore |", "|---|---|---|---|"]
     for name, st in sorted(stats.items()):
-        lines.append(f"| {sources[name].city} | {st['events']} | {st['skipped']} | {st['error'] or ''} |")
+        retried = " (anche al secondo tentativo)" if st.get("retry") == "fallito" else ""
+        done = "riuscita al secondo tentativo" if st.get("retry") == "ok" else ""
+        lines.append(f"| {sources[name].city} | {st['events']} | {st['skipped']} | {(st['error'] or '') + retried}{done} |")
     zero = [sources[n].city for n, st in sorted(stats.items()) if st["events"] == 0]
     errors = [sources[n].city for n, st in sorted(stats.items()) if st["error"]]
     lines += ["", f"Totale: {sum(st['events'] for st in stats.values())} eventi da {len(stats)} comuni",
@@ -541,6 +598,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-geocode", type=int, default=MAX_GEOCODE,
                    help="richieste nuove a Nominatim per giro (le altre, dagli eventi più lontani, nei giorni dopo)")
     p.add_argument("--horizon-days", type=int, default=60, help="importa eventi che iniziano entro N giorni")
+    p.add_argument("--retry-wait", type=float, default=300,
+                   help="secondi prima di riprovare, a fine giro, le fonti non raggiungibili (0 = subito, -1 = non riprovare)")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -557,7 +616,8 @@ def main(argv: list[str] | None = None) -> int:
         stats: dict[str, dict] = {}
         excluded: list[dict] = []
         try:
-            events = collect(client, geocoder, names, now, args.horizon_days, stats, excluded)
+            events = collect(client, geocoder, names, now, args.horizon_days, stats, excluded,
+                             None if args.retry_wait < 0 else args.retry_wait)
             centers = {} if args.dry_run or args.source else find_centers(names, geocoder)
         finally:
             geocoder.save()
@@ -581,6 +641,7 @@ def main(argv: list[str] | None = None) -> int:
                   f"{ev['title'][:55]:<55}  {ev['city'][:18]:<18} {ev['province']:<2} {ev['geohash']}")
         return 0
     ok_hosts = {urlsplit(SOURCES[n].base).netloc for n, st in stats.items() if st["error"] is None}
+    collected = stats  # `write` restituisce le sue statistiche con lo stesso nome
     try:
         stats = write(events, now, ok_hosts, args.horizon_days, {slugify(SOURCES[n].region) for n in names},
                       max_writes=args.max_writes, max_reads=args.max_reads, excluded={x["id"] for x in excluded},
@@ -588,11 +649,14 @@ def main(argv: list[str] | None = None) -> int:
     except QuotaExceeded as e:
         log.error("%s", e)
         return 2
-    if not args.source:  # con --source il conteggio per comune sarebbe parziale
-        from db import client as firestore_client
+    from db import client as firestore_client
 
-        db = firestore_client()
-        stats["writes"] += write_coverage(db, events, names, centers, int(now.timestamp() * 1000))
+    db = firestore_client()
+    failed = {n for n, st in collected.items() if st["error"]}
+    previous = previous_coverage(db, {slugify(SOURCES[n].region) for n in failed})
+    stats["reads"] += len({slugify(SOURCES[n].region) for n in failed})
+    if not args.source:  # con --source il conteggio per comune sarebbe parziale
+        stats["writes"] += write_coverage(db, events, names, centers, int(now.timestamp() * 1000), failed, previous)
         reads, writes = write_month_stats(db, events, {slugify(SOURCES[n].region): SOURCES[n].region for n in names
                                                        if not getattr(SOURCES[n], "regional", False)}, now)
         stats["reads"] += reads
@@ -600,7 +664,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.stats_out:
         args.stats_out.write_text(json.dumps(stats | {
             "region": "+".join(sorted({slugify(SOURCES[n].region) for n in names})), "events": len(events), "excluded": len(excluded),
-            "sources": len(names), "geocode": geocoder.requests, "deferred": len(geocoder.deferred)}), encoding="utf-8")
+            "sources": len(names), "geocode": geocoder.requests, "deferred": len(geocoder.deferred),
+            "skipped_sources": skipped_sources(collected, previous),
+            "retried_ok": sorted(SOURCES[n].city for n, st in collected.items() if st.get("retry") == "ok")}), encoding="utf-8")
     return 0
 
 

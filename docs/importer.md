@@ -90,6 +90,11 @@ python seed_demo.py
 
 Per generare la chiave: Console Firebase → Impostazioni progetto → Account di servizio → Firebase Admin SDK → Genera nuova chiave privata. Il file va spostato fuori dal repository. Per revocarla: Google Cloud Console → IAM → Account di servizio → scheda Chiavi → elimina la chiave, poi aggiorna il secret.
 
+### Fonti che non rispondono
+- A fine giro le fonti che non hanno risposto (timeout, `robots.txt` non raggiungibile) si **riprovano una volta** dopo 5 minuti (`--retry-wait`, 0 = subito, -1 = mai). L'esito è nella tabella per comune.
+- Una fonte che resta muta **non azzera il comune**: `coverage/{regione}` mantiene i dati di ieri (`coverage_doc(previous, failed)`, una lettura per regione interessata) e i suoi eventi restano in Firestore (non vengono nascosti, vedi `ok_hosts`).
+- Il riepilogo del workflow elenca le fonti saltate (comune, regione, eventi di ieri, errore) e il job emette un'annotazione `::warning` se sono **più del 5%** delle fonti o se salta un comune con **più di 50 eventi** (una fonte regionale vale il totale della regione). Il job resta verde: l'avviso compare in cima alla pagina dell'esecuzione.
+
 ### Pulizia automatica
 
 `cleanup.py` gira ogni giorno dopo l'import. Le query usano solo indici a campo singolo, con proiezione dei campi.

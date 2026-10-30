@@ -8,6 +8,8 @@ Formato ispirato a [Keep a Changelog](https://keepachangelog.com/it/). Le versio
 - Ricerca su tutti i comuni italiani (~7.900, da ISTAT e Wikidata): file statico caricato al primo uso della barra, nomi bilingui, abbreviazioni (S. / San), omonimi con la sigla della provincia, `?luogo=` per qualsiasi comune senza letture Firestore.
 - Raggio allargato in automatico (50 o 100 km) dove non ci sono eventi vicini, con avviso; senza eventi nemmeno a 100 km, messaggio e comuni più vicini.
 - `tools/importer/build_comuni.py` e test del dataset.
+- Importer: le fonti non raggiungibili si riprovano a fine giro e non azzerano più il comune in copertura (restano i dati di ieri); il riepilogo CI elenca le fonti saltate e avvisa (`::warning`) se superano il 5% o se salta un comune con più di 50 eventi.
+- Province sarde della riforma (OT, OG, VS) in `provinces.json`.
 
 ## [1.0.0] - 2026-10-30
 

@@ -23,6 +23,10 @@ QUOTA = {"reads": 50_000, "writes": 20_000, "deletes": 20_000}
 BUDGET = {"reads": 40_000, "writes": 15_000, "geocode": 3_000}  # con margine, vedi run.py
 
 
+SKIPPED_SHARE = 0.05  # oltre questa quota di fonti saltate il job segnala un avviso
+BIG_COMUNE = 50  # un comune che ieri aveva più di tanti eventi e oggi non risponde segnala sempre un avviso
+
+
 RECONCILE_WEIGHT = 7  # una riconciliazione legge ~tutti gli eventi della regione: pesa come 7 giorni di import normale
 TURNOVER = 0.07  # quota di eventi nuovi o modificati ogni giorno (stima, vedi README §10)
 HORIZON_DAYS = 60
@@ -106,6 +110,34 @@ def simulate_text(sim: dict) -> str:
     return "\n".join(lines)
 
 
+def skipped_report(stats: list[dict]) -> tuple[list[str], list[str]]:
+    """(righe del riepilogo, avvisi ::warning) per le fonti che non hanno risposto nemmeno al secondo tentativo.
+
+    Avviso se sono più del 5% delle fonti dell'import o se tra loro c'è un comune (o una fonte regionale) con più di 50 eventi
+    ieri. Il job resta verde ma la pagina dell'esecuzione mostra l'avviso: l'import non fallisce, la copertura di ieri resta."""
+    total = sum(s.get("sources", 0) for s in stats)
+    skipped = sorted((x for s in stats for x in s.get("skipped_sources", [])), key=lambda x: (-x["before"], x["region"], x["city"]))
+    recovered = sorted(c for s in stats for c in s.get("retried_ok", []))
+    lines = []
+    if recovered:
+        lines += ["", f"Fonti recuperate al secondo tentativo: {len(recovered)} ({', '.join(recovered[:30])}{'…' if len(recovered) > 30 else ''})."]
+    if not skipped:
+        return lines, []
+    share = len(skipped) / max(1, total)
+    big = [x for x in skipped if x["before"] > BIG_COMUNE]
+    lines += ["", f"### ⚠️ Fonti saltate: {len(skipped)} su {total} ({share:.0%})", "",
+              "Non hanno risposto nemmeno al secondo tentativo: i loro eventi restano in Firestore e la copertura di ieri è stata mantenuta.", "",
+              "| comune | regione | eventi ieri | errore |", "|---|---|---|---|"]
+    lines += [f"| {x['city']} | {x['region']} | {x['before']} | {x['error'].replace('|', '/')} |" for x in skipped]
+    warnings = []
+    if share > SKIPPED_SHARE or big:
+        why = [f"{len(skipped)} fonti su {total} ({share:.0%}) non hanno risposto"] if share > SKIPPED_SHARE else []
+        if big:
+            why.append("comuni con più di %d eventi: %s" % (BIG_COMUNE, ", ".join(f"{x['city']} ({x['before']})" for x in big[:10])))
+        warnings.append("::warning title=Import: fonti saltate::" + "; ".join(why) + ". Elenco nel riepilogo dell'esecuzione.")
+    return lines, warnings
+
+
 def summary(stats: list[dict], cleanup: dict | None) -> str:
     cleanup = cleanup or {}
     head = ["| regione | comuni | eventi | letture | confronto | scritture | invariati | nascosti | geocoding | rimandati |",
@@ -123,6 +155,7 @@ def summary(stats: list[dict], cleanup: dict | None) -> str:
         lines.append(f"| {name} | {used} | {QUOTA[key]} | {'⚠️ oltre il 75%' if used > 0.75 * QUOTA[key] else 'ok'} |")
     if cleanup:
         lines += ["", f"Pulizia: {cleanup.get('deleted', 0)} documenti eliminati su {cleanup.get('due', 0)} da eliminare."]
+    lines += skipped_report(stats)[0]
     return "\n".join(lines)
 
 
@@ -142,6 +175,8 @@ def main(argv: list[str]) -> int:
         text = summary(stats, cleanup)
         sys.stdout.reconfigure(encoding="utf-8")
         print(text)
+        for w in skipped_report(stats)[1]:
+            print(w)  # annotazione GitHub: compare in cima alla pagina dell'esecuzione
         if path := os.environ.get("GITHUB_STEP_SUMMARY"):
             with open(path, "a", encoding="utf-8") as f:
                 f.write(text + "\n")
