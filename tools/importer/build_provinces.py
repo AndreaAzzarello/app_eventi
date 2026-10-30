@@ -1,10 +1,11 @@
 """Genera provinces.json: per ogni sigla di provincia il nome (ISTAT) e il riquadro (OpenStreetMap).
 
 Uso:  python build_provinces.py
-Dati: ISTAT "Elenco dei comuni italiani" (CC-BY 3.0 IT, nomi e sigle) · OpenStreetMap via Overpass (ODbL, riquadri).
+Dati: ISTAT "Elenco dei comuni italiani" (CC BY 4.0, nomi e sigle) · OpenStreetMap via Overpass (ODbL, riquadri).
 Il riquadro è quello dei confini amministrativi (admin_level 6) più un margine di MARGIN gradi: serve a scartare
 le omonimie lontane, non a tracciare i confini. La Valle d'Aosta non ha province: vale il riquadro della regione.
 Una sigla ISTAT senza confine in OSM viene segnalata e lasciata fuori (niente riquadri inventati a mano).
+Le province sarde della riforma 2025 (OT, OG, VS) non sono ancora nell'elenco ISTAT, che usa SS/NU/OR/SU/CA: nome e riquadro vengono da OSM.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ MARGIN = 0.05
 #: nome già usato nelle query a Nominatim e nelle chiavi di geocache.json: cambiarlo farebbe rifare le richieste
 NAME_KEEP = {"RE": "Reggio Emilia"}
 AOSTA = "AO"
+NEW_SARDINIA = ("OT", "OG", "VS")
 
 
 def parse_overpass(data: dict, margin: float = MARGIN) -> dict[str, str]:
@@ -42,6 +44,12 @@ def parse_overpass(data: dict, margin: float = MARGIN) -> dict[str, str]:
         code = AOSTA if code == "23" else code
         out[code] = f"{b['minlon'] - margin:.3f},{b['maxlat'] + margin:.3f},{b['maxlon'] + margin:.3f},{b['minlat'] - margin:.3f}"
     return out
+
+
+def parse_overpass_names(data: dict, codes: tuple[str, ...] = NEW_SARDINIA) -> dict[str, str]:
+    """sigla → nome (la parte italiana di "Tèttari/Sassari") per le province che l'ISTAT non ha ancora."""
+    return {c: el["tags"]["name"].split("/")[-1].strip() for el in data["elements"]
+            if (c := el.get("tags", {}).get("ISO3166-2", "")[3:]) in codes and el["tags"].get("name")}
 
 
 def parse_istat_names(text: str) -> dict[str, str]:
@@ -71,7 +79,7 @@ def main() -> int:
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=180, follow_redirects=True) as client:
         osm = client.post(OVERPASS, data={"data": QUERY}).raise_for_status().json()
         istat = client.get(ISTAT_URL).raise_for_status().content.decode("cp1252")
-    provinces, missing = build(parse_overpass(osm), parse_istat_names(istat))
+    provinces, missing = build(parse_overpass(osm), {**parse_overpass_names(osm), **parse_istat_names(istat)})
     OUT.write_text(json.dumps(provinces, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"{len(provinces)} province scritte in {OUT.name}")
     if missing:
