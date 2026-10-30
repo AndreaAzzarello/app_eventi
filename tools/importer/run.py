@@ -64,7 +64,7 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
         # di richieste del giro finisce, i più lontani restano senza geocoding e lo prendono nei giorni dopo.
         pending = []
         for name, (found, error) in zip(batch, fetched):
-            stats[name] = {"events": 0, "skipped": 0, "excluded": 0, "error": error}
+            stats[name] = {"events": 0, "skipped": 0, "excluded": 0, "duplicates": 0, "error": error}
             if error:
                 log.error("%s: fonte non raggiungibile (%s), la salto", name, error)
             pending += [(name, ev) for ev in found]
@@ -95,11 +95,16 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             if kept is None or (getattr(SOURCES[kept], "regional", False) and not getattr(source, "regional", False)):
                 if kept is not None:
                     stats[kept]["events"] -= 1
+                    stats[kept]["duplicates"] += 1
+                    keep_ticket(ev, events[key])
                 events[key], owner[key] = ev, name
                 stats[name]["events"] += 1
+            else:
+                stats[name]["duplicates"] += 1
+                keep_ticket(events[key], ev)
         for name in batch:
-            log.info("%s: %d eventi, %d senza coordinate, %d esclusi", name, stats[name]["events"],
-                     stats[name]["skipped"], stats[name]["excluded"])
+            log.info("%s: %d eventi, %d senza coordinate, %d esclusi, %d doppioni", name, stats[name]["events"],
+                     stats[name]["skipped"], stats[name]["excluded"], stats[name]["duplicates"])
 
     process(names)
     failed = [n for n in names if stats[n]["error"]]
@@ -112,6 +117,13 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             stats[n] |= {"retry": "fallito" if stats[n]["error"] else "ok", "first_error": first[n]}
         log.info("Secondo tentativo: %d fonti recuperate su %d", sum(1 for n in failed if not stats[n]["error"]), len(failed))
     return list(events.values())
+
+
+def keep_ticket(winner: dict, loser: dict) -> None:
+    """Stesso evento da due fonti: il vincitore senza link d'acquisto prende quello dell'altra (Ticketmaster)."""
+    if not winner["ticketUrl"] and loser["ticketUrl"]:
+        winner["ticketUrl"] = loser["ticketUrl"]
+        winner["contentHash"] = content_hash(winner)
 
 
 def alt_index(rows: list[dict]) -> dict[tuple[str, str], tuple[str, str]]:

@@ -1,0 +1,935 @@
+{
+ "_embedded": {
+  "events": [
+   {
+    "id": "T001",
+    "name": "Artista Uno - Tour 2026",
+    "url": "https://www.ticketmaster.it/event/1",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-12",
+      "localTime": "21:00:00",
+      "dateTime": "2026-12-12T20:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Music"
+      },
+      "genre": {
+       "name": "Pop"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Unipol Forum",
+       "city": {
+        "name": "Assago"
+       },
+       "state": {
+        "stateCode": "MI"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Di Vittorio 6"
+       },
+       "location": {
+        "latitude": "45.4",
+        "longitude": "9.133"
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "EUR",
+      "min": 45.5,
+      "max": 120
+     }
+    ],
+    "info": "Apertura porte alle 19:00."
+   },
+   {
+    "id": "T002",
+    "name": "Derby di esempio",
+    "url": "https://www.ticketmaster.it/event/2",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-06",
+      "localTime": "18:00:00",
+      "dateTime": "2026-12-06T17:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Sports"
+      },
+      "genre": {
+       "name": "Football"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Stadio Esempio",
+       "city": {
+        "name": "Torino"
+       },
+       "state": {
+        "stateCode": "TO"
+       },
+       "postalCode": "10134",
+       "address": {
+        "line1": "Via Filadelfia 96"
+       },
+       "location": {
+        "latitude": "45.109",
+        "longitude": "7.641"
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "EUR",
+      "min": 20,
+      "max": 90
+     }
+    ]
+   },
+   {
+    "id": "T003",
+    "name": "Il lago dei cigni",
+    "url": "https://www.ticketmaster.it/event/3",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-19",
+      "localTime": "20:30:00",
+      "dateTime": "2026-12-19T19:30:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Arts & Theatre"
+      },
+      "genre": {
+       "name": "Ballet"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Teatro Comunale",
+       "city": {
+        "name": "Bologna"
+       },
+       "state": {
+        "stateCode": "BO"
+       },
+       "postalCode": "40126",
+       "address": {
+        "line1": "Largo Respighi 1"
+       },
+       "location": {
+        "latitude": "44.4938",
+        "longitude": "11.3467"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T004",
+    "name": "Spettacolo per famiglie",
+    "url": "https://www.ticketmaster.it/event/4",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-20",
+      "localTime": "16:00:00",
+      "dateTime": "2026-12-20T15:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Miscellaneous"
+      },
+      "genre": {
+       "name": "Family"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Auditorium",
+       "city": {
+        "name": "Roma"
+       },
+       "state": {
+        "stateCode": "RM"
+       },
+       "postalCode": "00193",
+       "address": {
+        "line1": "Via della Conciliazione 4"
+       },
+       "location": {
+        "latitude": "41.9",
+        "longitude": "12.47"
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "EUR",
+      "min": 0,
+      "max": 0
+     }
+    ]
+   },
+   {
+    "id": "T005",
+    "name": "Concerto annullato",
+    "url": "https://www.ticketmaster.it/event/5",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-15",
+      "localTime": "21:00:00",
+      "dateTime": "2026-12-15T20:00:00Z"
+     },
+     "status": {
+      "code": "cancelled"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Music"
+      },
+      "genre": {
+       "name": "Rock"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Club",
+       "city": {
+        "name": "Milano"
+       },
+       "state": {
+        "stateCode": "MI"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       },
+       "location": {
+        "latitude": "45.47",
+        "longitude": "9.19"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T006",
+    "name": "Rassegna senza coordinate",
+    "url": "https://www.ticketmaster.it/event/6",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-18",
+      "localTime": "21:00:00",
+      "dateTime": "2026-12-18T20:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Music"
+      },
+      "genre": {
+       "name": "Jazz"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Sala Civica",
+       "city": {
+        "name": "Milano"
+       },
+       "state": {
+        "stateCode": "MI"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T007",
+    "name": "Parking Unipol Forum",
+    "url": "https://www.ticketmaster.it/event/7",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-12",
+      "localTime": "17:00:00",
+      "dateTime": "2026-12-12T16:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Miscellaneous"
+      },
+      "genre": {
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Parcheggio",
+       "city": {
+        "name": "Assago"
+       },
+       "state": {
+        "stateCode": "MI"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       },
+       "location": {
+        "latitude": "45.4",
+        "longitude": "9.133"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T008",
+    "name": "Festival in fiera",
+    "url": "https://www.ticketmaster.it/event/8",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-10",
+      "localTime": "20:00:00",
+      "dateTime": "2026-12-10T19:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Music"
+      },
+      "genre": {
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Fiera Milano",
+       "city": {
+        "name": "Fiera Milano Rho"
+       },
+       "state": {
+        "stateCode": "MI"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       },
+       "location": {
+        "latitude": "45.52",
+        "longitude": "9.08"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T009",
+    "name": "Concerto a Samone",
+    "url": "https://www.ticketmaster.it/event/9",
+    "dates": {
+     "start": {
+      "localDate": "2026-12-11",
+      "localTime": "21:00:00",
+      "dateTime": "2026-12-11T20:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Music"
+      },
+      "genre": {
+       "name": "Classical"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Sala",
+       "city": {
+        "name": "Samone"
+       },
+       "state": {
+        "stateCode": "TO"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       },
+       "location": {
+        "latitude": "45.45",
+        "longitude": "7.84"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T010",
+    "name": "Data da definire",
+    "url": "https://www.ticketmaster.it/event/10",
+    "dates": {
+     "start": {
+      "dateTBD": true,
+      "localDate": "2026-12-22"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Arts & Theatre"
+      },
+      "genre": {
+       "name": "Comedy"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Teatro",
+       "city": {
+        "name": "Milano"
+       },
+       "state": {
+        "stateCode": "MI"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       },
+       "location": {
+        "latitude": "45.46",
+        "longitude": "9.19"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "id": "T011",
+    "name": "Evento di luglio",
+    "url": "https://www.ticketmaster.it/event/11",
+    "dates": {
+     "start": {
+      "localDate": "2027-07-10",
+      "localTime": "21:00:00",
+      "dateTime": "2027-07-10T20:00:00Z"
+     },
+     "status": {
+      "code": "onsale"
+     }
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "name": "Music"
+      },
+      "genre": {
+       "name": "Pop"
+      },
+      "subGenre": {
+       "name": "Altro"
+      }
+     }
+    ],
+    "images": [
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_640.jpg",
+      "ratio": "16_9",
+      "width": 640,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_2048.jpg",
+      "ratio": "16_9",
+      "width": 2048,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_4_3_1024.jpg",
+      "ratio": "4_3",
+      "width": 1024,
+      "fallback": false
+     },
+     {
+      "url": "https://s1.ticketm.net/dam/img_16_9_1024.jpg",
+      "ratio": "16_9",
+      "width": 1024,
+      "fallback": true
+     }
+    ],
+    "_embedded": {
+     "venues": [
+      {
+       "name": "Arena",
+       "city": {
+        "name": "Roma"
+       },
+       "state": {
+        "stateCode": "RM"
+       },
+       "postalCode": "20090",
+       "address": {
+        "line1": "Via Esempio 1"
+       },
+       "location": {
+        "latitude": "41.9",
+        "longitude": "12.5"
+       }
+      }
+     ]
+    }
+   }
+  ]
+ },
+ "page": {
+  "size": 200,
+  "totalElements": 11,
+  "totalPages": 1,
+  "number": 0
+ },
+ "_nota": "Costruito a mano dallo schema documentato (developer.ticketmaster.com), NON registrato dalla API: sostituire con una risposta reale quando c'è la chiave."
+}

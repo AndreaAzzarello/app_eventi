@@ -6,6 +6,7 @@ Aggiungere un CMS: una classe con l'interfaccia di adapters/base.py e un ramo in
 from __future__ import annotations
 
 import logging
+import os
 
 from geo import PROVINCES, slugify
 from registry import base_url, read_rows
@@ -14,6 +15,7 @@ from .base import Adapter, fallback_place
 from .design_comuni_html import DesignComuniHtmlAdapter
 from .opendatahub import OpenDataHubAdapter
 from .plone import PloneAdapter
+from .ticketmaster import BASE as TICKETMASTER_BASE, TicketmasterAdapter
 from .wordpress import WordpressAdapter
 
 log = logging.getLogger("importer")
@@ -37,6 +39,10 @@ def load_sources(rows: list[dict] | None = None) -> dict[str, Adapter]:
         extra = {"url_eventi": r["url_eventi"]} if cls is DesignComuniHtmlAdapter else {}
         out[name] = cls(name, base_url(r["sito"]), r["comune"], r["provincia"], r["regione"],
                         PROVINCES.get(r["provincia"], ("", None))[1], **extra)
+    if os.environ.get("TICKETMASTER_API_KEY"):  # senza chiave la fonte non esiste: né CI né test cambiano
+        for region in sorted({a.region for a in out.values()}, key=slugify):
+            name = f"ticketmaster-{slugify(region)}"
+            out[name] = TicketmasterAdapter(name, TICKETMASTER_BASE, "Ticketmaster", "", region)
     return out
 
 
