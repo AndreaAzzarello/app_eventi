@@ -2,7 +2,7 @@
 
 Da inviare dalla tua casella, una volta per fornitore. Completa i campi tra parentesi quadre.
 
-Caso noto: in Lombardia circa 405 siti comunali rispondono con `server: HGATE` e un `robots.txt` che vieta tutto (`Disallow: /`) a ogni bot tranne Googlebot (verificato su comune.arzago.bg.it il 28/10/2026, una sola richiesta). Il fornitore dietro "HGATE" **non è stato identificato** da fonti pubbliche: prima di scrivere chiedi a un Comune (ufficio CED/URP) o guarda il piè di pagina del sito per sapere chi lo gestisce, poi sostituisci [fornitore]. Non ho inventato nessun indirizzo.
+Caso noto: in Lombardia circa 405 siti comunali rispondono con `server: HGATE` e un `robots.txt` che vieta tutto (`Disallow: /`) a ogni bot tranne Googlebot (verificato su comune.arzago.bg.it il 28/10/2026, una sola richiesta). Il fornitore dietro "HGATE" **non è stato identificato** da fonti pubbliche (ricerca del 30/10/2026: nessuna fonte collega HGATE a un fornitore; il robots.txt non contiene nomi né contatti). Prima di scrivere chiedi al Comune con `email_comune_robots.md`, poi sostituisci [fornitore]. Non ho inventato nessun indirizzo.
 
 **A**: [indirizzo del fornitore]
 **Oggetto**: Richiesta di eccezione nel robots.txt per un progetto gratuito di calendario eventi dei Comuni
