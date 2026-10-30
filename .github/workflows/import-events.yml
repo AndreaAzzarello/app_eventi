@@ -117,6 +117,8 @@ jobs:
       - name: Importer
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # solo in questo step (non nel job): Ticketmaster Discovery API; il log passa da logsafe (apikey=***)
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
         run: >
           python run.py --regione ${{ matrix.region }}
           --max-reads ${{ matrix.reads }} --max-writes ${{ needs.plan.outputs.writes }}
