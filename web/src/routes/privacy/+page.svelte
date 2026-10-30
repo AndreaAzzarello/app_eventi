@@ -27,7 +27,8 @@
 			<strong>Navigazione senza account.</strong> Non raccogliamo dati personali. La tua posizione (se la condividi o
 			cerchi una città), i preferiti e il tema scelto restano <em>solo sul tuo dispositivo</em> (localStorage): non li
 			salviamo sui nostri server. Per trovare gli eventi vicini il browser invia al server coordinate arrotondate a
-			qualche chilometro, che non vengono registrate.
+				qualche chilometro, che non vengono registrate. Se cerchi un luogo per nome, il testo cercato viene inviato
+				al nostro server, che lo passa a Nominatim (vedi sotto).
 		</li>
 		<li>
 			<strong>Account (facoltativo).</strong> Se accedi con Google o con un link via email trattiamo: identificativo
@@ -36,7 +37,10 @@
 		</li>
 		<li>
 			<strong>Proposte di evento.</strong> I dati dell’evento (titolo, luogo, date, link) vengono pubblicati se approvati.
-			Chi ha proposto l’evento non viene mai mostrato pubblicamente.
+			Chi ha proposto l’evento non viene mai mostrato pubblicamente e il suo identificativo non è salvato
+				nell’evento pubblicato: resta solo nella proposta, leggibile da te e dall’amministratore. Se usi la mappa del
+				modulo “Proponi”, le coordinate del segnaposto (arrotondate a circa 11 metri) vengono inviate al nostro server
+				per ricavare il comune tramite Nominatim.
 		</li>
 		<li>
 			<strong>Dati tecnici.</strong> I fornitori qui sotto trattano l’indirizzo IP e dati di connessione per consegnare le
@@ -53,19 +57,21 @@
 
 	<h2>Per quanto tempo</h2>
 	<ul>
-		<li>Dati dell’account, preferiti e proposte: finché non elimini l’account. Puoi farlo in ogni momento da <a href="/account">Il mio account</a> → “Elimina account e dati”: cancelliamo profilo, preferiti, proposte e l’account di accesso.</li>
-		<li>Account inattivi da oltre 24 mesi possono essere eliminati.</li>
+		<li>Dati dell’account e preferiti: finché non elimini l’account. Puoi farlo in ogni momento da <a href="/account">Il mio account</a> → “Elimina account e dati” (il pulsante è sempre disponibile): cancelliamo profilo, preferiti, proposte e l’account di accesso. In alternativa puoi chiederlo scrivendo{#if data.email} a <a href="mailto:{data.email}">{data.email}</a>{:else} al titolare{/if}.</li>
+			<li>Proposte già esaminate: le eliminiamo in automatico, quelle rifiutate dopo 90 giorni e quelle approvate dopo 30 giorni dalla revisione; quelle ancora in attesa restano finché non le ritiri o elimini l’account.</li>
 		<li>Gli eventi approvati restano pubblicati come contenuto dell’agenda, senza alcun riferimento visibile a chi li ha proposti.</li>
 		<li>Dati sul tuo dispositivo: finché non li cancelli dalle impostazioni del browser.</li>
 	</ul>
 
 	<h2>Fornitori e trasferimenti</h2>
 	<ul>
-		<li><strong>Google Firebase</strong> (Google LLC / Google Ireland Ltd): autenticazione e database. Responsabile del trattamento.</li>
+		<li><strong>Google Firebase</strong> (Google LLC / Google Ireland Ltd): autenticazione e database. Responsabile del trattamento. Il browser contatta i server di Google (SDK di accesso) solo se accedi o usi funzioni dell’account.</li>
 		<li><strong>Cloudflare, Inc.</strong>: hosting e consegna delle pagine. Responsabile del trattamento.</li>
 		<li>
 			<strong>OpenStreetMap Foundation</strong> (Regno Unito): le tessere della mappa sono scaricate direttamente dal tuo
-			browser; la ricerca di luoghi (Nominatim) passa dal nostro server, quindi Nominatim non riceve il tuo indirizzo IP.
+			browser, quindi OpenStreetMap vede il tuo indirizzo IP. La ricerca di luoghi (Nominatim) passa dal nostro server,
+				quindi Nominatim non riceve il tuo IP, ma riceve il testo cercato e, dal modulo “Proponi”, le coordinate del
+				segnaposto. Le risposte restano nella cache di Cloudflare per un giorno.
 		</li>
 	</ul>
 	<p>
@@ -79,15 +85,19 @@
 		Alcuni eventi (concerti e spettacoli) arrivano dall’API pubblica di Ticketmaster, che ne è la fonte. Il pulsante
 		“Acquista i biglietti” e i link alle fonti sono semplici collegamenti: finché non li apri non inviamo nulla a terzi e
 		non carichiamo script di Ticketmaster. L’unico contatto prima del clic sono le immagini degli eventi, che il tuo
-		browser scarica dai server di Ticketmaster (come per ogni immagine di una fonte esterna, il server che la
-		fornisce vede il tuo indirizzo IP). Dopo il clic sei sul sito del venditore, che può impostare i propri cookie e
+			browser scarica direttamente dai server che le ospitano: Ticketmaster, il sito del Comune o dell’ente che
+			pubblica l’evento (sono centinaia), Open Data Hub Alto Adige e, per gli eventi proposti dagli utenti, l’indirizzo
+			https indicato nella proposta. Il browser non invia l’indirizzo della pagina (niente Referer), ma il server che
+			fornisce l’immagine vede il tuo indirizzo IP. Dopo il clic sei sul sito del venditore, che può impostare i propri cookie e
 		trattare i tuoi dati con la propria informativa. Non riceviamo commissioni e non
 		sappiamo se acquisti.
 	</p>
 
 	<h2>Cookie e archiviazione locale</h2>
 	<p>
-		Usiamo solo archiviazione tecnica: preferiti, posizione, tema, e la sessione di accesso di Firebase. Nessun cookie
+		Usiamo solo archiviazione tecnica (localStorage e IndexedDB): preferiti, posizione, tema, la sessione di accesso di
+			Firebase, l’indirizzo email inserito per ricevere il link di accesso (cancellato quando l’accesso è completato completato) e la
+			memoria delle ultime ricerche di luoghi, per non ripeterle. Nessun cookie
 		di terze parti per pubblicità o statistiche sul nostro sito (quelli dei siti a cui rimandiamo nascono solo dopo il clic), per questo non vedi banner. Se in futuro attivassimo statistiche,
 		useremmo Cloudflare Web Analytics, che non usa cookie né identifica i visitatori.
 	</p>
