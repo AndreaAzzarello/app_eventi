@@ -28,6 +28,18 @@ service cloud.firestore {
       return v is string && v.size() <= 500 && (v == '' || v.matches('https?://[^\\s]+'));
     }
 
+    // Elemento i di una lista di tag (max 10): stringa di 1-30 caratteri; oltre la fine della lista vale sempre.
+    // Le regole non hanno cicli: si controllano gli indici 0..9 uno per uno. Lunghezze come LIMITS in event.ts.
+    function tagOk(t, i) {
+      return i >= t.size() || str(t[i], 1, 30);
+    }
+
+    function validTags(t) {
+      return t is list && t.size() <= 10
+        && tagOk(t, 0) && tagOk(t, 1) && tagOk(t, 2) && tagOk(t, 3) && tagOk(t, 4)
+        && tagOk(t, 5) && tagOk(t, 6) && tagOk(t, 7) && tagOk(t, 8) && tagOk(t, 9);
+    }
+
     // Campi comuni a eventi e proposte.
     function eventKeys() {
       return ['title', 'shortDescription', 'category', 'priceType', 'startTime', 'endTime',
@@ -47,7 +59,7 @@ service cloud.firestore {
         && d.lng is number && d.lng >= -180 && d.lng <= 180
         && !(d.lat == 0 && d.lng == 0)
         && optUrl(d.imageUrl) && optUrl(d.ticketUrl)
-        && d.tags is list && d.tags.size() <= 10
+        && validTags(d.tags)
         && str(d.geohash, 5, 12)
         && str(d.city, 1, 80) && str(d.citySlug, 1, 80)
         && str(d.province, 0, 4) && str(d.region, 0, 40);
@@ -218,9 +230,13 @@ service cloud.firestore {
 
       match /favorites/{eventId} {
         allow read, delete: if isOwner(uid);
+        // Id dell'evento come in firestore.ts (getEvent) e data non nel futuro.
         allow create, update: if isOwner(uid)
+          && eventId.matches('[A-Za-z0-9_]{1,64}')
           && request.resource.data.keys().hasOnly(['addedAt'])
-          && request.resource.data.addedAt is int;
+          && request.resource.data.addedAt is int
+          && request.resource.data.addedAt >= 0
+          && request.resource.data.addedAt <= request.time.toMillis() + 86400000;
       }
     }
 

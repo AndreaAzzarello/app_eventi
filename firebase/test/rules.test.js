@@ -193,6 +193,15 @@ describe('users', () => {
     await assertFails(setDoc(doc(db('alice'), 'users/alice/favorites/e2'), { addedAt: 1, note: 'x' }));
     await assertSucceeds(deleteDoc(doc(db('alice'), 'users/alice/favorites/e1')));
   });
+  it('preferiti: id e data validi', async () => {
+    const fav = (id, addedAt) => setDoc(doc(db('alice'), `users/alice/favorites/${id}`), { addedAt });
+    await assertFails(fav('a'.repeat(65), 1));
+    await assertFails(fav('con-trattino', 1));
+    await assertFails(fav('e1', -1));
+    await assertFails(fav('e1', Date.now() + 7 * 86_400_000));
+    await assertFails(fav('e1', 1.5));
+    await assertSucceeds(fav('a'.repeat(64), Date.now()));
+  });
   it('profilo non eliminabile con proposte pending', async () => {
     await submit(db('alice'), 'alice', 's1');
     await assertFails(deleteDoc(doc(db('alice'), 'users', 'alice')));
@@ -213,6 +222,14 @@ describe('submissions', () => {
   it('rifiuta locality (solo importer/admin)', () => assertFails(submit(db('alice'), 'alice', 's1', { locality: 'Frazione' })));
   it('rifiuta longRunning (solo importer/admin)', () => assertFails(submit(db('alice'), 'alice', 's1', { longRunning: true })));
   it('rifiuta campi interni (submittedBy)', () => assertFails(submit(db('alice'), 'alice', 's1', { submittedBy: 'alice' })));
+  it('tag: stringhe di 1-30 caratteri, al massimo 10', async () => {
+    await assertFails(submit(db('alice'), 'alice', 's1', { tags: [1] }));
+    await assertFails(submit(db('alice'), 'alice', 's1', { tags: [''] }));
+    await assertFails(submit(db('alice'), 'alice', 's1', { tags: ['x'.repeat(31)] }));
+    await assertFails(submit(db('alice'), 'alice', 's1', { tags: Array.from({ length: 11 }, (_, i) => `t${i}`) }));
+    await assertFails(submit(db('alice'), 'alice', 's1', { tags: [...Array(9).fill('ok'), { a: 1 }] }));
+    await assertSucceeds(submit(db('alice'), 'alice', 's1', { tags: Array.from({ length: 10 }, (_, i) => `t${i}`) }));
+  });
   it('massimo 5 pending', async () => {
     const fs = db('alice');
     for (let i = 1; i <= 5; i++) await assertSucceeds(submit(fs, 'alice', `s${i}`));
