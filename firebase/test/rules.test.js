@@ -63,6 +63,11 @@ describe('events', () => {
     await assertSucceeds(updateDoc(doc(fs, 'events', 'x'), { title: 'Nuovo titolo' }));
     await assertSucceeds(deleteDoc(doc(fs, 'events', 'x')));
   });
+  it("submittedBy non è più ammesso negli eventi, nemmeno all'admin", async () => {
+    const fs = db('adm', ADMIN);
+    await assertFails(setDoc(doc(fs, 'events', 'x'), { ...event(), source: 'user', submittedBy: 'alice', createdAt: 1, updatedAt: 1 }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { submittedBy: 'alice' }));
+  });
   it('approxLocation: booleano ammesso, altri tipi no', async () => {
     const fs = db('adm', ADMIN);
     await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { approxLocation: true }));
