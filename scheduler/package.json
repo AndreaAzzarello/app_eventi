@@ -1,0 +1,9 @@
+{
+  "name": "eventi-vicini-scheduler",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "deploy": "npx wrangler@4 deploy"
+  }
+}

@@ -11,7 +11,7 @@ Agenda gratuita di eventi pubblici locali (partita da Modena). Dettagli completi
 - **Tutto gratis**: Firebase piano Spark (solo Auth + Firestore; niente Storage, Functions, Hosting). Quote al giorno: 50.000 letture, 20.000 scritture, 20.000 cancellazioni. Nessuna carta.
 - Scrivere su Firestore solo i documenti cambiati (`contentHash`); l'importer si ferma oltre `--max-writes` (15.000) / `--max-reads` (40.000).
 - Import reali a tappe, una regione alla volta (`--regione`); prima sempre `--dry-run`. Mai import reali senza mia conferma.
-- Cron di GitHub Actions sempre in **UTC** (`17 8 * * *`: dopo il reset della quota Firestore, senza chiave `timezone`).
+- Cron sempre in **UTC**, dopo il reset della quota Firestore, senza chiave `timezone`. Avvio puntuale 08:17 dal Worker `scheduler/` (Cloudflare Cron Trigger → `workflow_dispatch` con `auto=true`); il cron di GitHub (10:17) è riserva; il job `guard` evita il doppio import.
 - Cloudflare: flusso **Pages**, non Workers. Root `web`, build `npm run build`, output `.svelte-kit/cloudflare`, `NODE_VERSION=24`.
 - robots.txt e licenze dei siti comunali: rispettarli sempre; attivare una fonte solo con licenza sui contenuti (CC0/CC-BY).
 - OpenStreetMap/Nominatim: User-Agent identificativo, max 1 richiesta/s.

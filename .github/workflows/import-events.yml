@@ -1,10 +1,12 @@
-name: Import eventi
+# Il titolo "Import eventi" nudo identifica un import completo: lo legge il controllo `guard`.
+run-name: Import eventi${{ inputs.dry_run && ' (dry-run)' || '' }}${{ inputs.regione && format(' [{0}]', inputs.regione) || '' }}
 
 on:
   schedule:
-    # Ogni giorno alle 08:17 UTC: 09:17 in Italia con l'ora solare, 10:17 con l'ora legale. Dopo il reset della quota Firestore
-    # (mezzanotte del Pacifico = 07:00 o 08:00 UTC), così l'import non consuma le letture della sera prima (minuto non tondo: meno ritardi sui runner).
-    - cron: "17 8 * * *"
+    # Terza riserva (10:17 UTC). L'avvio puntuale delle 08:17 UTC (dopo il reset della quota Firestore, che avviene a
+    # mezzanotte del Pacifico = 07:00 o 08:00 UTC) è il Cron Trigger del Worker in /scheduler, che chiama workflow_dispatch con
+    # auto=true. Il cron di GitHub può ritardare di ore o saltare: chi parte per secondo salta se l'import di oggi c'è già.
+    - cron: "17 10 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,6 +19,10 @@ on:
         default: ""
       reconcile:
         description: "Rilegge gli eventi da Firestore ignorando il manifest locale (riconciliazione completa)"
+        type: boolean
+        default: false
+      auto:
+        description: "Avvio automatico (Worker /scheduler): salta se l'import completo di oggi è già partito"
         type: boolean
         default: false
 
@@ -32,7 +38,27 @@ defaults:
     working-directory: tools/importer
 
 jobs:
+  # Una sola esecuzione completa al giorno: i tre avvii (Worker 08:17, cron GitHub 10:17, lancio manuale con auto) si
+  # serializzano con `concurrency` e i successivi trovano quella di oggi. I lanci manuali senza auto non sono controllati.
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUTO: ${{ github.event_name == 'schedule' || inputs.auto }}
+        run: python ci_report.py guard
+
   plan:
+    needs: guard
+    if: ${{ needs.guard.outputs.go == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:

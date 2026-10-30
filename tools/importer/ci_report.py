@@ -3,6 +3,7 @@
   python ci_report.py matrix                       # regioni con fonti attive e quote per job → GITHUB_OUTPUT
   python ci_report.py summary <cartella> [cleanup.json]   # riepilogo unico → stdout e GITHUB_STEP_SUMMARY
   python ci_report.py simulate [regioni.json]      # quote per giorno della settimana (scenario Italia)
+  python ci_report.py guard                        # avvio automatico: go=false se l'import completo di oggi c'è già
 
 Quote Spark giornaliere (50.000 letture, 20.000 scritture, 20.000 cancellazioni) divise tra i job della matrice.
 """
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -159,7 +161,42 @@ def summary(stats: list[dict], cleanup: dict | None) -> str:
     return "\n".join(lines)
 
 
+FULL_TITLE = "Import eventi"  # run-name di un import completo (senza "(dry-run)" né "[regione]")
+
+
+def import_done_today(runs: list[dict], today: str, current_id: int, plan_ran) -> bool:
+    """True se oggi (data UTC) è già partito un altro import completo: in corso o terminato, riuscito o no.
+
+    Contano solo i run il cui job `plan` è davvero partito (plan_ran(run_id)): un run che ha saltato per questo stesso
+    controllo non è un import. Cancellati e rifiutati dal controllo non contano, così si può ripartire."""
+    return any(r["id"] != current_id and r["created_at"].startswith(today) and r["display_title"] == FULL_TITLE
+               and r.get("conclusion") not in ("cancelled", "skipped") and plan_ran(r["id"]) for r in runs)
+
+
+def guard() -> bool:
+    """Scrive go=true/false in GITHUB_OUTPUT. I lanci manuali (AUTO diverso da true) partono sempre."""
+    go = True
+    if os.environ.get("AUTO") == "true":
+        repo, today = os.environ["GITHUB_REPOSITORY"], datetime.now(ZoneInfo("UTC")).strftime("%Y-%m-%d")
+
+        def gh(path: str) -> dict:
+            return json.loads(subprocess.run(["gh", "api", f"repos/{repo}/{path}"], capture_output=True, text=True,
+                                             check=True).stdout)
+
+        runs = gh(f"actions/workflows/import-events.yml/runs?created=>={today}&per_page=50")["workflow_runs"]
+        plan_ran = lambda rid: any(j["name"] == "plan" and j["conclusion"] != "skipped" for j in gh(f"actions/runs/{rid}/jobs")["jobs"])
+        go = not import_done_today(runs, today, int(os.environ.get("GITHUB_RUN_ID", 0)), plan_ran)
+        print("Import completo di oggi già avviato: salto." if not go else "Nessun import completo oggi: parto.")
+    if path := os.environ.get("GITHUB_OUTPUT"):
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"go={str(go).lower()}" + chr(10))
+    return go
+
+
 def main(argv: list[str]) -> int:
+    if argv[:1] == ["guard"]:
+        guard()
+        return 0
     if argv[:1] == ["matrix"]:
         m = matrix(read_rows(), os.environ.get("ONLY", ""), datetime.now(ZoneInfo("Europe/Rome")).weekday(),
                    os.environ.get("RECONCILE") == "true")

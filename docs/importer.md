@@ -78,7 +78,7 @@ python seed_demo.py
 
 `.github/workflows/import-events.yml`:
 
-- Esecuzione ogni giorno alle **08:17 UTC**, cioè 09:17 in Italia con l'ora solare e 10:17 con l'ora legale (`cron: "17 8 * * *"`, senza `timezone`). Va dopo il reset della quota Firestore (mezzanotte del Pacifico = 07:00 o 08:00 UTC, 08:00/09:00 in Italia): così l'import non intacca le letture del giorno prima.
+- Esecuzione ogni giorno alle **08:17 UTC**, cioè 09:17 in Italia con l'ora solare e 10:17 con l'ora legale (senza `timezone`). L'avvio puntuale è il Cron Trigger di un Worker Cloudflare gratuito (`scheduler/`, `17 8 * * *`) che lancia il workflow con `workflow_dispatch` e `auto=true`; il cron di GitHub (`17 10 * * *`) è una riserva e un job `guard` salta l'avvio se l'import completo di oggi è già partito (vedi `scheduler/README.md`). Va dopo il reset della quota Firestore (mezzanotte del Pacifico = 07:00 o 08:00 UTC, 08:00/09:00 in Italia): così l'import non intacca le letture del giorno prima.
 - Avvio manuale: **Actions → Import eventi → Run workflow**, con le opzioni `dry_run` e `regione` (slug, per esempio `lombardia`).
 - Job `plan`: gira `pytest` e `ci_report.py matrix`, che elenca le regioni con almeno una fonte attiva e divide le soglie di quota tra i job.
 - Job `import`: **una matrice per regione**, 4 in parallelo (`max-parallel: 4`), timeout 330 minuti (limite GitHub 360). Ogni job ha `NOMINATIM_INTERVAL=4`, cioè 0,25 richieste al secondo: quattro job insieme restano a 1 richiesta al secondo in tutto, come chiede la policy di Nominatim. `geocache.json` e `.httpcache` sono salvati con `actions/cache` **per regione** (chiave `importer-<regione>-<run>`).

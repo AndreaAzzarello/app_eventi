@@ -1,0 +1,15 @@
+# Worker Cloudflare gratuito con solo un Cron Trigger: avvia l'import giornaliero via GitHub (workflow_dispatch),
+# perché il cron di GitHub Actions può partire con ore di ritardo o saltare. Nessuna rotta pubblica.
+name = "eventi-vicini-scheduler"
+main = "src/index.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[triggers]
+crons = ["17 8 * * *"] # UTC, come il cron del workflow (che resta alle 10:17 come ultima riserva)
+
+[vars]
+GITHUB_REPO = "AndreaAzzarello/EventiVicini"
+WORKFLOW = "import-events.yml"
+REF = "main"
+# Segreto (mai nel repo): npx wrangler secret put GITHUB_TOKEN

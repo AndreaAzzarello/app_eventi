@@ -9,6 +9,7 @@ Formato ispirato a [Keep a Changelog](https://keepachangelog.com/it/). Le versio
 - Raggio allargato in automatico (50 o 100 km) dove non ci sono eventi vicini, con avviso; senza eventi nemmeno a 100 km, messaggio e comuni più vicini.
 - `tools/importer/build_comuni.py` e test del dataset.
 - Importer: le fonti non raggiungibili si riprovano a fine giro e non azzerano più il comune in copertura (restano i dati di ieri); il riepilogo CI elenca le fonti saltate e avvisa (`::warning`) se superano il 5% o se salta un comune con più di 50 eventi.
+- `scheduler/`: Worker Cloudflare gratuito (Cron Trigger 08:17 UTC) che avvia l'import via `workflow_dispatch`; il cron di GitHub passa alle 10:17 come riserva e il job `guard` salta l'avvio se l'import completo di oggi è già partito.
 - Province sarde della riforma (OT, OG, VS) in `provinces.json`.
 
 ## [1.0.0] - 2026-10-30
