@@ -45,7 +45,7 @@ test('da loggato, cambiare città sposta lista e mappa (regressione: il profilo 
 	await showMap(page);
 	await expectCenter(page, MODENA);
 
-	await choose(page, 'bologna', /^Bologna/);
+	await choose(page, 'bologna', /^Bologna \(BO\)/);
 	await expect(placeButton(page, 'Bologna')).toBeVisible();
 	await expectCenter(page, BOLOGNA);
 	// Resta lì: l'effetto del profilo non deve riportarla a Modena.
@@ -170,9 +170,9 @@ test('link condiviso con ?luogo= e con coordinate libere', async ({ page }) => {
 test('indietro e avanti riportano luogo, lista e mappa', async ({ page }) => {
 	await page.goto('/');
 	await showMap(page);
-	await choose(page, 'bolzano', /^Bolzano/);
+	await choose(page, 'bolzano', /^Bolzano Bozen/);
 	await expectCenter(page, BOLZANO);
-	await choose(page, 'bologna', /^Bologna/);
+	await choose(page, 'bologna', /^Bologna \(BO\)/);
 	await expectCenter(page, BOLOGNA);
 
 	await page.goBack();
@@ -222,13 +222,13 @@ test('città con eventi ma senza fonte comunale (Cesena, Bozen) è tra i luoghi,
 	await page.route('**/api/geocode*', (route) => route.abort()); // se la ricerca cadesse su Nominatim il test fallirebbe
 	await page.goto('/');
 	await searchBox(page).fill('cesena');
-	const option = page.getByRole('option', { name: /Cesena/ });
+	const option = page.getByRole('option', { name: /^Cesena \(FC\)/ });
 	await expect(option).toContainText('1 evento');
 	await expect(option).not.toContainText('Pochi eventi');
 	await searchBox(page).fill('bozen');
 	await expect(page.getByRole('option', { name: /Bolzano/ })).toBeVisible();
 	await searchBox(page).fill('cesena');
-	await page.getByRole('option', { name: /Cesena/ }).click();
+	await page.getByRole('option', { name: /^Cesena \(FC\)/ }).click();
 	await expect(page).toHaveURL(/luogo=cesena/);
 	await expect(placeButton(page, 'Cesena')).toBeVisible();
 });
@@ -247,7 +247,7 @@ test('combobox: frecce, Invio, Esc e annunci', async ({ page }) => {
 	await box.fill('bo');
 	await expect(box).toHaveAttribute('aria-expanded', 'true');
 	await expect(page.getByRole('listbox')).toBeVisible();
-	await expect(page.getByRole('status').filter({ hasText: /luoghi/ })).toContainText('2 luoghi');
+	await expect(page.getByRole('status').filter({ hasText: /luoghi/ })).toContainText('6 luoghi');
 
 	await box.press('Escape');
 	await expect(box).toHaveAttribute('aria-expanded', 'false');
@@ -291,11 +291,11 @@ test('0 eventi con il nome di un luogo: propone "Vai a" e ci porta', async ({ pa
 test('località non coperta: Nominatim, avviso "Pochi eventi" e scelta', async ({ page }) => {
 	await page.route('**/api/geocode**', (route) =>
 		route.fulfill({
-			json: [{ label: 'Lecce, Puglia, Italia', lat: 40.3515, lng: 18.175, place: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia' } }]
+			json: [{ label: 'Torre Chianca, Lecce, Puglia, Italia', lat: 40.3515, lng: 18.175, place: { city: 'Lecce', citySlug: 'lecce', province: 'LE', region: 'Puglia' } }]
 		})
 	);
 	await page.goto('/');
-	await searchBox(page).fill('Lecce');
+	await searchBox(page).fill('Torre Chianca'); // una frazione: non è un comune, quindi si ripiega su Nominatim
 	const option = page.getByRole('option', { name: /Lecce/ });
 	await expect(option).toContainText('Pochi eventi in questa zona', { timeout: 8000 });
 	await expect(page.getByText('OpenStreetMap / Nominatim')).toBeVisible();

@@ -66,7 +66,7 @@ test('prima visita: al focus i luoghi più frequenti, e il centro della mappa se
 	await page.goto('/');
 	await page.getByRole('region', { name: 'Dove cerchi eventi?' }).getByRole('combobox').focus();
 	await expect(page.getByRole('option', { name: /Modena/ })).toBeVisible();
-	await page.getByRole('option', { name: /Bologna/ }).click();
+	await page.getByRole('option', { name: /^Bologna \(BO\)/ }).click();
 	await page.getByRole('tab', { name: 'Mappa' }).click();
 	const map = page.getByRole('region', { name: 'Mappa degli eventi' });
 	await expect.poll(async () => Number(await map.getAttribute('data-lat'))).toBeCloseTo(44.49, 1);
@@ -98,7 +98,7 @@ test('pagina regione e breadcrumb della città', async ({ page }) => {
 test('la zona scelta va nel profilo al login e si ritrova su un altro dispositivo', async ({ page, browser }) => {
 	await page.goto('/');
 	await page.getByRole('region', { name: 'Dove cerchi eventi?' }).getByRole('combobox').fill('bologna');
-	await page.getByRole('option', { name: /Bologna/ }).click();
+	await page.getByRole('option', { name: /^Bologna \(BO\)/ }).click();
 
 	await signInByEmail(page, 'zona@example.org', '/');
 	const uid = await uidOf(page);
