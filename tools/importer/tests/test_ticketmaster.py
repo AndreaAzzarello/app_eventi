@@ -435,6 +435,26 @@ def test_due_sessioni_nello_stesso_giorno_non_sono_doppioni():
     assert TicketmasterAdapter.sessions is True
 
 
+def test_bambini_solo_se_lo_dice_la_classificazione_o_il_titolo():
+    """Ogni classificazione reale ha la chiave "family" (quasi sempre false): non deve rendere tutto "per bambini"."""
+    plain = make("Concerto rock")
+    plain["classifications"][0]["family"] = False
+    assert convert(plain)[0]["tags"] == []
+    fam = make("Spettacolo", segment="Arts & Theatre", genre="Theatre")
+    fam["classifications"][0]["family"] = True
+    assert convert(fam)[0]["tags"] == ["kids"]
+    assert convert(make("Burattini per bambini", segment="Arts & Theatre", genre="Theatre"))[0]["tags"] == ["kids"]
+
+
+@pytest.mark.skipif(not REAL.exists(), reason="fixture reale non ancora registrata")
+def test_fixture_reale_pochi_eventi_per_bambini():
+    items = json.loads(REAL.read_text(encoding="utf-8"))["_embedded"]["events"]
+    regions = sorted({r[2] for r in tm._comuni()[0]})
+    out = [e for r in regions for e in convert(*copy.deepcopy(items), region=r) if "_excluded" not in e]
+    kids = [e["title"] for e in out if "kids" in e["tags"]]
+    assert len(kids) < len(out) // 4, kids  # nel campione reale nessuna classificazione ha family=true
+
+
 def test_nessun_campo_di_servizio_in_piu():
     for e in convert(make("Serata"), make("Mostra", segment="Arts & Theatre", genre="Fine Art")):
         assert {k for k in e if k.startswith("_")} <= {"_geocode", "_place", "_excluded"}
