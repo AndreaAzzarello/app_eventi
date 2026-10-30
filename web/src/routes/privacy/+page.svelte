@@ -74,10 +74,21 @@
 		decisione di adeguatezza della Commissione europea.
 	</p>
 
+	<h2>Siti di terzi e biglietti</h2>
+	<p>
+		Alcuni eventi (concerti e spettacoli) arrivano dall’API pubblica di Ticketmaster, che ne è la fonte. Il pulsante
+		“Acquista i biglietti” e i link alle fonti sono semplici collegamenti: finché non li apri non inviamo nulla a terzi e
+		non carichiamo script di Ticketmaster. L’unico contatto prima del clic sono le immagini degli eventi, che il tuo
+		browser scarica dai server di Ticketmaster (come per ogni immagine di una fonte esterna, il server che la
+		fornisce vede il tuo indirizzo IP). Dopo il clic sei sul sito del venditore, che può impostare i propri cookie e
+		trattare i tuoi dati con la propria informativa. Non riceviamo commissioni e non
+		sappiamo se acquisti.
+	</p>
+
 	<h2>Cookie e archiviazione locale</h2>
 	<p>
-		Usiamo solo archiviazione tecnica: preferiti, posizione, tema, e la sessione di accesso di Firebase. Niente cookie
-		di terze parti per pubblicità o statistiche, per questo non vedi banner. Se in futuro attivassimo statistiche,
+		Usiamo solo archiviazione tecnica: preferiti, posizione, tema, e la sessione di accesso di Firebase. Nessun cookie
+		di terze parti per pubblicità o statistiche sul nostro sito (quelli dei siti a cui rimandiamo nascono solo dopo il clic), per questo non vedi banner. Se in futuro attivassimo statistiche,
 		useremmo Cloudflare Web Analytics, che non usa cookie né identifica i visitatori.
 	</p>
 

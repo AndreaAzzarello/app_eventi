@@ -15,7 +15,7 @@
 	import Navigation from '@lucide/svelte/icons/navigation';
 	import Share2 from '@lucide/svelte/icons/share-2';
 	import Ticket from '@lucide/svelte/icons/ticket';
-	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, runningLabel } from '$lib/event';
+	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, runningLabel, ticketLabel, ticketVendor } from '$lib/event';
 	import { fmtNum } from '$lib/format';
 	import { distanceKm, type ChosenPlace } from '$lib/geo';
 	import { imageSources } from '$lib/images';
@@ -45,6 +45,7 @@
 
 	const Cat = $derived(CATEGORY_ICONS[e.category]);
 	const source = $derived(eventSource(e));
+	const vendor = $derived(e.ticketUrl ? ticketVendor(e.ticketUrl) : null);
 	const img = $derived(e.imageUrl ? imageSources(e.imageUrl) : null);
 	const km = $derived(origin ? distanceKm(origin, e) : null);
 	const away = $derived(
@@ -156,7 +157,7 @@
 	<div class="actions">
 		{#if e.ticketUrl}
 			<a class="btn btn-primary wide" href={e.ticketUrl} target="_blank" rel="noopener noreferrer nofollow">
-				<Ticket size={20} aria-hidden="true" /> Biglietti
+				<Ticket size={20} aria-hidden="true" /> {ticketLabel(e.ticketUrl)}
 			</a>
 		{/if}
 		<button class="btn" onclick={downloadIcs}><Calendar size={20} aria-hidden="true" /> Aggiungi al calendario</button>
@@ -181,7 +182,10 @@
 		{/if}
 	</section>
 
-	<p class="source muted">Verifica sempre date e orari sul sito ufficiale prima di partire.</p>
+	<p class="source muted">
+		Verifica sempre date e orari sul sito ufficiale prima di partire.
+		{#if vendor}I biglietti li vende {vendor}: il pulsante apre il suo sito, dove valgono le sue condizioni.{/if}
+	</p>
 </article>
 
 <style>

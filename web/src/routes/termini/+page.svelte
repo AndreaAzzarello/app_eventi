@@ -12,7 +12,7 @@
 	<h2>Il servizio</h2>
 	<p>
 		Eventi Vicini è un’agenda gratuita, offerta da {data.controller}, che raccoglie eventi pubblicati dai siti
-		istituzionali dei Comuni (sempre citati come fonte) e proposti dagli utenti. Il servizio è fornito “così com’è”:
+		istituzionali dei Comuni (sempre citati come fonte), concerti e spettacoli dall’API di Ticketmaster e proposte degli utenti. Il servizio è fornito “così com’è”:
 		facciamo il possibile perché le informazioni siano corrette, ma date, orari e prezzi possono cambiare.
 		<strong>Verifica sempre sulla fonte ufficiale</strong> prima di partire.
 	</p>
@@ -38,7 +38,7 @@
 	<h2>Responsabilità</h2>
 	<p>
 		Non organizziamo gli eventi elencati e non rispondiamo del loro svolgimento. I link esterni (biglietti, fonti)
-		portano a siti di terzi con le proprie condizioni. Possiamo sospendere account che violano questi termini.
+		portano a siti di terzi con le proprie condizioni. I concerti e gli spettacoli sono forniti da Ticketmaster tramite la sua API: i biglietti si acquistano sul suo sito, alle sue condizioni, e Eventi Vicini non riceve commissioni né affiliazioni. Se Ticketmaster chiede di togliere un contenuto lo rimuoviamo entro 24 ore. Possiamo sospendere account che violano questi termini.
 	</p>
 
 	<h2>Modifiche e legge applicabile</h2>

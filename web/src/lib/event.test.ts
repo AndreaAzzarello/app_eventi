@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { romeTime } from './dates';
-import { compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, validateEvent, type EventInput } from './event';
+import { compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, ticketLabel, ticketVendor, validateEvent, type EventInput } from './event';
 
 const sample = (over: Partial<EventInput> = {}): EventInput => ({
 	title: 'Concerto in piazza',
@@ -115,11 +115,28 @@ describe('longRunning e ordinamento', () => {
 	});
 });
 
+describe('ticketLabel', () => {
+	it('nomina il venditore solo se è Ticketmaster', () => {
+		expect(ticketLabel('https://www.ticketmaster.it/event/1')).toBe('Acquista i biglietti su Ticketmaster');
+		expect(ticketVendor('https://www.ticketmaster.com/e/2')).toBe('Ticketmaster');
+		expect(ticketLabel('https://www.eticketmaster.it.evil.example/x')).toBe('Biglietti');
+		expect(ticketLabel('https://www.comune.modena.it/biglietti')).toBe('Biglietti');
+		expect(ticketLabel('non un url')).toBe('Biglietti');
+	});
+});
+
 describe('eventSource', () => {
 	it('cita Open Data Hub col suo nome e la licenza dei dati', () => {
 		expect(eventSource({ source: 'scraper', sourceUrl: 'https://tourism.opendatahub.com/v1/Event/ABC' })).toEqual({
 			text: 'Open Data Hub Alto Adige / Südtirol (dati CC0)',
 			href: 'https://opendatahub.com/'
+		});
+	});
+
+	it('cita Ticketmaster per i concerti importati dalla sua API', () => {
+		expect(eventSource({ source: 'scraper', sourceUrl: 'https://app.ticketmaster.com/discovery/v2/events/G5v0Z' })).toEqual({
+			text: 'Ticketmaster',
+			href: 'https://www.ticketmaster.it/'
 		});
 	});
 

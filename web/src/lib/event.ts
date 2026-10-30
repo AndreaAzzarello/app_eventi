@@ -148,11 +148,26 @@ export function eventSource(e: Pick<Event, 'source' | 'sourceUrl'>): { text: str
 	if (e.source === 'user') return { text: 'Segnalato da un utente e verificato dalla redazione' };
 	if (!e.sourceUrl) return { text: 'Redazione di Eventi Vicini' };
 	const host = new URL(e.sourceUrl).hostname.replace(/^www\./, '');
+	if (host === 'app.ticketmaster.com') return { text: 'Ticketmaster', href: 'https://www.ticketmaster.it/' };
 	if (host === 'tourism.opendatahub.com') return { text: 'Open Data Hub Alto Adige / Südtirol (dati CC0)', href: 'https://opendatahub.com/' };
 	const m = /^comune\.([a-z-]+)\./.exec(host);
 	const name = m ? `Comune di ${m[1].split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')}` : host;
 	return { text: name, href: e.sourceUrl };
 }
+
+/** Venditore del link d'acquisto, se è uno di quelli che nominiamo (oggi Ticketmaster): ne dipendono etichetta e nota. */
+export function ticketVendor(url: string): string | null {
+	try {
+		return /(^|\.)ticketmaster\.[a-z.]+$/.test(new URL(url).hostname) ? 'Ticketmaster' : null;
+	} catch {
+		return null;
+	}
+}
+
+export const ticketLabel = (url: string) => {
+	const vendor = ticketVendor(url);
+	return vendor ? `Acquista i biglietti su ${vendor}` : 'Biglietti';
+};
 
 /** "Live, outdoor , ,kids" → [live, outdoor, kids], minuscoli e senza doppioni (come parseTags in Dart). */
 export const parseTags = (raw: string) => [
