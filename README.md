@@ -24,14 +24,14 @@ Eventi Vicini è un'agenda **gratuita** degli eventi pubblici italiani: sagre, m
 <a id="screenshot"></a>
 ## Screenshot
 
-Dati reali dal sito, Modena, 30 ottobre 2026.
+Dati reali dal sito, Brescia, 30 ottobre 2026.
 
 | Tema chiaro | Tema scuro |
 |---|---|
-| <img src="docs/screenshots/home-desktop-chiaro.png" alt="Home desktop, tema chiaro: lista degli eventi di oggi a Modena e mappa"> | <img src="docs/screenshots/home-desktop-scuro.png" alt="Home desktop, tema scuro"> |
+| <img src="docs/screenshots/home-desktop-chiaro.png" alt="Home desktop, tema chiaro: lista degli eventi di oggi a Brescia e mappa"> | <img src="docs/screenshots/home-desktop-scuro.png" alt="Home desktop, tema scuro"> |
 | <img src="docs/screenshots/mappa-mobile-chiaro.png" width="49%" alt="Mappa su mobile con cluster di eventi entro 25 km"> <img src="docs/screenshots/evento-mobile-chiaro.png" width="49%" alt="Dettaglio evento su mobile"> | <img src="docs/screenshots/mappa-mobile-scuro.png" width="49%" alt="Mappa su mobile, tema scuro"> <img src="docs/screenshots/evento-mobile-scuro.png" width="49%" alt="Dettaglio evento su mobile, tema scuro"> |
 
-<sub>Immagine del dettaglio evento: Comune di Modena, [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.it) · [fonte](https://www.comune.modena.it/vivere-modena/eventi/2026/mat-la-settimana-della-salute-mentale).</sub>
+<sub>Immagine del dettaglio evento: Comune di Brescia, [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.it), licenza dichiarata nelle [note legali](https://www.comune.brescia.it/it/legal_notices) del sito · [fonte](https://www.comune.brescia.it/it/eventi/la-vittoria-di-brescia-2517862-2517870-2518098-2518288-2518464-2518595-2518756-2518996-2519319-2519486-2519746-2520013).</sub>
 
 <a id="funzioni"></a>
 ## Funzioni

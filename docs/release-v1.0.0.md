@@ -6,6 +6,8 @@ Prima versione pubblica: un'agenda gratuita degli eventi pubblici di **tutta Ita
 
 ![Home desktop](https://raw.githubusercontent.com/AndreaAzzarello/EventiVicini/v1.0.0/docs/screenshots/home-desktop-chiaro.png)
 
+<sub>Screenshot con dati reali di Brescia (30 ottobre 2026); immagine dell'evento: Comune di Brescia, CC-BY 4.0 dichiarata nelle [note legali](https://www.comune.brescia.it/it/legal_notices) del sito.</sub>
+
 ## Novità
 
 - **Bundle delle liste**: l'importer scrive liste precalcolate per cella geohash e per città (`bundles/*`); la webapp legge una sola volta per cella invece di una query per visita.
