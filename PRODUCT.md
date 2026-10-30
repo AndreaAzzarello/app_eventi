@@ -9,7 +9,7 @@ web
 # Eventi Vicini: brief di prodotto
 
 ## Cos'è
-Eventi Vicini è un'agenda locale degli eventi pubblici italiani (fonti: siti dei Comuni e open data), gratuita, senza pubblicità né tracciamento.
+Eventi Vicini è un'agenda locale degli eventi pubblici italiani (fonti: siti dei Comuni e open data; per concerti e spettacoli l'API di Ticketmaster, con link ufficiale d'acquisto, senza affiliazione né commissioni), gratuita, senza pubblicità né tracciamento.
 
 ## Chi la usa
 Persone del posto, famiglie con bambini, turisti. Soprattutto da telefono, spesso all'ultimo momento.
