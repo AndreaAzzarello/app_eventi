@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { comuneFromChunk, decodeComuni, fold, shorten, withCoverage, type RawComuni, type SlugChunk } from './comuni';
 import raw from './data/comuni.json';
-import { slugify } from './event';
 import { rankPlaces, strongPlace, type CoverageRegion } from './places';
 
 const all = decodeComuni(raw as unknown as RawComuni);
