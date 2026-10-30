@@ -2,7 +2,14 @@
 
 Formato ispirato a [Keep a Changelog](https://keepachangelog.com/it/). Le versioni sono ricostruite dalla cronologia dei commit.
 
-## [1.0.0] - 2026-10-29
+## [Non rilasciato]
+
+### Aggiunto
+- Ricerca su tutti i comuni italiani (~7.900, da ISTAT e Wikidata): file statico caricato al primo uso della barra, nomi bilingui, abbreviazioni (S. / San), omonimi con la sigla della provincia, `?luogo=` per qualsiasi comune senza letture Firestore.
+- Raggio allargato in automatico (50 o 100 km) dove non ci sono eventi vicini, con avviso; senza eventi nemmeno a 100 km, messaggio e comuni più vicini.
+- `tools/importer/build_comuni.py` e test del dataset.
+
+## [1.0.0] - 2026-10-30
 
 Prima versione pubblica, su tutta Italia.
 

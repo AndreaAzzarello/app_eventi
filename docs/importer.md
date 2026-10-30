@@ -152,6 +152,9 @@ Usa la cache HTTP (`.httpcache`, risposte 304) e, a fine giro, riprova una volta
 
 Solo fonti con licenza che consente il riuso (CC0, CC-BY, CC-BY-SA, IODL). Mai testate giornalistiche o siti commerciali.
 
+### Comuni per la ricerca: `build_comuni.py`
+Genera `web/src/lib/data/comuni.json` (tutti i comuni: nome, nome nell'altra lingua, sigla, centro, popolazione, slug degli omonimi con la sigla). Elenco e nomi bilingui da ISTAT (CC BY 4.0); coordinate e popolazione da Wikidata (CC0, una query SPARQL), uniti per codice ISTAT e, dove i codici non coincidono (Sardegna dopo la riforma), per nome. `python build_comuni.py` usa la cache in `.httpcache/`, `--refresh` riscarica. Il test (`tests/test_build_comuni.py`) verifica il numero di comuni, gli slug unici e che ogni centro cada nel riquadro della sua provincia (per la Sardegna, in quello dell'isola). Il sito carica il file solo al primo uso della barra di ricerca.
+
 ### Licenze: `licenses.py`
 
 `python licenses.py` verifica la licenza dei contenuti dei siti candidati (più Modena, Formigine, Sassuolo e Mirandola). Cerca le pagine di note legali e privacy, estrae la frase sulla licenza e scrive `reports/licenze_er.md`. Legge il `robots.txt` con `protego`, con 1 richiesta al secondo per sito. Aggiorna le colonne `licenza` e `note` dei CSV, mai `stato`; `--no-csv` non tocca i CSV. `--regione` limita a una regione. La nota comincia con `licenza[attivare|da|escludere]` (la raccomandazione) e, se il sito contiene "esclusiva proprietà" o "tutti i diritti riservati", con `conflitto`: `activate.py` legge questi marcatori. Le etichette `CC-BY-NC` e `CC-BY-ND` sono distinte. Le licenze "non chiara" o "non trovata" vanno lette a mano. Per tutti i comuni con un CMS: `python licenses.py --cms design_comuni_html --out reports/licenze_design_comuni.md` (non solo i candidati).
