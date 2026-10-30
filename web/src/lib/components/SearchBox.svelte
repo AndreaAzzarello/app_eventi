@@ -3,6 +3,7 @@
 	import CalendarDays from '@lucide/svelte/icons/calendar-days';
 	import MapPin from '@lucide/svelte/icons/map-pin';
 	import Search from '@lucide/svelte/icons/search';
+	import { comuniStore } from '$lib/comuni.svelte';
 	import { coverageStore } from '$lib/coverage.svelte';
 	import { eventPath, type Event } from '$lib/event';
 	import type { Filter } from '$lib/filters';
@@ -50,7 +51,7 @@
 		}
 	});
 	const trimmed = $derived(text.trim());
-	const local = $derived(rankPlaces(trimmed, coverageStore.regions));
+	const local = $derived(rankPlaces(trimmed, coverageStore.regions, 6, comuniStore.index));
 	const events = $derived(placesOnly || trimmed.length < 2 ? [] : eventMatches(trimmed).slice(0, 3));
 	const places = $derived(
 		trimmed.length < 2 ? (showPopular ? popularPlaces(coverageStore.regions) : []) : local.length ? local : remote
@@ -75,7 +76,8 @@
 	// Località non coperte: solo se il testo non è né un luogo coperto né un evento, e con più pazienza
 	// (Nominatim non è pensato per l'autocompletamento: debounce lungo, cache, 1 richiesta al secondo).
 	const searchRemote = debounce(async (v: string) => {
-		if (v !== trimmed || v.length < 4 || rankPlaces(v, coverageStore.regions).length || (!placesOnly && eventMatches(v).length)) return;
+		await comuniStore.load(); // prima di cercare altrove si guarda in tutti i comuni
+		if (v !== trimmed || v.length < 4 || rankPlaces(v, coverageStore.regions, 6, comuniStore.index).length || (!placesOnly && eventMatches(v).length)) return;
 		remoteBusy = true;
 		try {
 			const found = await searchPlaces(v, 'city');
@@ -97,7 +99,7 @@
 	export function openPlaces() {
 		showPopular = true;
 		open = true;
-		coverageStore.load();
+		load();
 		input?.focus();
 	}
 
@@ -109,12 +111,18 @@
 		remote = [];
 		open = true;
 		active = -1;
-		coverageStore.load();
+		load();
 		searchRemote(v.trim());
 	}
 
-	function onfocus() {
+	/** Copertura (eventi per comune) ed elenco di tutti i comuni: al primo uso della barra, non prima. */
+	function load() {
 		coverageStore.load();
+		comuniStore.load();
+	}
+
+	function onfocus() {
+		load();
 		if (placesOnly) {
 			showPopular = true;
 			open = true;
@@ -203,7 +211,7 @@
 								<MapPin size={16} aria-hidden="true" />
 								<span class="grow"><span class="name">{hit.place.label}</span> <span class="muted">{hit.detail}</span></span>
 								<span class="n">
-									{#if hit.place.slug !== undefined}{hit.events === 1 ? '1 evento' : `${fmtNum(hit.events)} eventi`}{:else if hit.events === 0}Pochi eventi in questa zona{/if}
+									{#if hit.events > 0 && hit.place.slug !== undefined}{hit.events === 1 ? '1 evento' : `${fmtNum(hit.events)} eventi`}{:else if hit.place.slug === undefined && hit.events === 0}Pochi eventi in questa zona{/if}
 								</span>
 							</li>
 						{/each}

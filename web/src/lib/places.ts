@@ -1,5 +1,6 @@
 // Luoghi: normalizzazione, ranking sui comuni/regioni coperti e (de)serializzazione nell'URL della home.
 // Puro e senza dipendenze dal browser: lo usano la ricerca, la load server e i test.
+import { comunePlace as datasetPlace, fold, foldedScore, scoreComune, shorten, type Comune } from './comuni';
 import { slugify } from './event';
 import { filterToParams, type Filter } from './filters';
 import { distanceKm, type ChosenPlace, type LatLng } from './geo';
@@ -23,15 +24,7 @@ export interface CoverageRegion {
 /** Raggio proposto quando si sceglie una regione intera. */
 export const REGION_RADIUS_KM = 100;
 
-/** Senza accenti, minuscolo; apostrofi e trattini diventano spazi ("Reggio nell'Emilia" = "reggio nell emilia"). */
-export const fold = (s: string) =>
-	s
-		.normalize('NFD')
-		.replace(/[̀-ͯ]/g, '')
-		.toLowerCase()
-		.replace(/['’`´-]/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim();
+export { fold };
 
 export interface PlaceHit {
 	kind: 'comune' | 'regione';
@@ -41,15 +34,11 @@ export interface PlaceHit {
 	events: number;
 	/** 0 esatto, 1 prefisso, 2 inizio di parola, 3 contenuto. */
 	score: number;
+	/** Abitanti (0 se ignoti): a parità di eventi vince il comune più grande. */
+	pop?: number;
 }
 
-function matchScore(name: string, q: string): number | null {
-	const n = fold(name);
-	if (n === q) return 0;
-	if (n.startsWith(q)) return 1;
-	if (n.includes(` ${q}`)) return 2;
-	return n.includes(q) ? 3 : null;
-}
+const matchScore = (name: string, q: string) => foldedScore(fold(name), q);
 
 /** Centro di una regione: media dei comuni pesata sul numero di eventi (semplice se nessuno ne ha). */
 export function regionCenter(r: CoverageRegion): LatLng {
@@ -71,24 +60,42 @@ const comunePlace = (c: CoverageComune, r: CoverageRegion): ChosenPlace => ({
 	region: r.name
 });
 
-/** Comuni (anche col nome bilingue) poi regioni che corrispondono al testo, dal migliore. */
-export function rankPlaces(text: string, regions: CoverageRegion[], limit = 6): PlaceHit[] {
+/**
+ * Comuni (anche col nome bilingue) poi regioni che corrispondono al testo, dal migliore.
+ * Con `comuni` (dataset di tutti i comuni già unito alla copertura, vedi withCoverage) si cerca lì; senza, nei soli comuni coperti.
+ * A parità di punteggio: prima i comuni, poi quelli con più eventi, più abitanti, in ordine alfabetico.
+ */
+export function rankPlaces(text: string, regions: CoverageRegion[], limit = 6, comuni: Comune[] = []): PlaceHit[] {
 	const q = fold(text);
 	if (q.length < 2) return [];
+	const qs = shorten(q);
 	const hits: PlaceHit[] = [];
+	for (const c of comuni) {
+		const score = scoreComune(c, q, qs);
+		if (score !== null)
+			hits.push({
+				kind: 'comune',
+				place: datasetPlace(c),
+				detail: [c.alt, c.province && `(${c.province})`].filter(Boolean).join(' '),
+				events: c.events,
+				score,
+				pop: c.pop
+			});
+	}
 	for (const r of regions) {
-		for (const c of r.comuni) {
-			const names = c.alt ? [c.name, c.alt, `${c.name} ${c.alt}`] : [c.name];
-			const scores = names.map((n) => matchScore(n, q)).filter((s): s is number => s !== null);
-			if (scores.length)
-				hits.push({
-					kind: 'comune',
-					place: comunePlace(c, r),
-					detail: [c.alt, c.province && `(${c.province})`].filter(Boolean).join(' '),
-					events: c.events,
-					score: Math.min(...scores)
-				});
-		}
+		if (!comuni.length)
+			for (const c of r.comuni) {
+				const names = c.alt ? [c.name, c.alt, `${c.name} ${c.alt}`] : [c.name];
+				const scores = names.map((n) => matchScore(n, q)).filter((s): s is number => s !== null);
+				if (scores.length)
+					hits.push({
+						kind: 'comune',
+						place: comunePlace(c, r),
+						detail: [c.alt, c.province && `(${c.province})`].filter(Boolean).join(' '),
+						events: c.events,
+						score: Math.min(...scores)
+					});
+			}
 		const s = matchScore(r.name, q);
 		if (s !== null)
 			hits.push({
@@ -106,14 +113,16 @@ export function rankPlaces(text: string, regions: CoverageRegion[], limit = 6): 
 				a.score - b.score ||
 				kindOrder[a.kind] - kindOrder[b.kind] ||
 				b.events - a.events ||
-				a.place.label.localeCompare(b.place.label, 'it')
+				(b.pop ?? 0) - (a.pop ?? 0) ||
+				a.place.label.localeCompare(b.place.label, 'it') ||
+				a.detail.localeCompare(b.detail, 'it')
 		)
 		.slice(0, limit);
 }
 
 /** Il luogo che il testo nomina senza ambiguità (corrispondenza esatta o per prefisso), se c'è. */
-export const strongPlace = (text: string, regions: CoverageRegion[]) =>
-	rankPlaces(text, regions, 1).find((h) => h.score <= 1) ?? null;
+export const strongPlace = (text: string, regions: CoverageRegion[], comuni: Comune[] = []) =>
+	rankPlaces(text, regions, 1, comuni).find((h) => h.score <= 1) ?? null;
 
 /** Comuni con più eventi: i suggerimenti quando si apre la ricerca dei luoghi senza scrivere. */
 export function popularPlaces(regions: CoverageRegion[], limit = 6): PlaceHit[] {

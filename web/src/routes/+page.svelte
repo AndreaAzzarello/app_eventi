@@ -12,6 +12,7 @@
 	import SearchBox from '$lib/components/SearchBox.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { SITE_NAME } from '$lib/config';
+	import { comuniStore } from '$lib/comuni.svelte';
 	import { coverageStore } from '$lib/coverage.svelte';
 	import type { Event } from '$lib/event';
 	import { applyFilter, filterFromParams, type Filter } from '$lib/filters';
@@ -50,7 +51,7 @@
 	const visible = $derived(applyFilter(events, filter, now, place));
 	const covered = $derived(distanceKm(place, fetched) + filter.radiusKm <= fetched.km);
 	const eventMatches = (text: string) => applyFilter(events, { ...filter, q: text }, now, place);
-	const placeHit = $derived(filter.q.trim() ? strongPlace(filter.q, coverageStore.regions) : null);
+	const placeHit = $derived(filter.q.trim() ? strongPlace(filter.q, coverageStore.regions, comuniStore.index) : null);
 
 	const nav = { keepFocus: true, noScroll: true } as const;
 
@@ -111,7 +112,10 @@
 	});
 
 	$effect(() => {
-		if (filter.q) coverageStore.load();
+		if (filter.q) {
+			coverageStore.load();
+			comuniStore.load();
+		}
 	});
 
 	/** Con il permesso già concesso si parte dalla posizione; altrimenti si chiede dove cercare, senza partire da Modena. */
