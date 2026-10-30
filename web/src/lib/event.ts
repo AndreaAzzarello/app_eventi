@@ -165,6 +165,9 @@ export function ticketVendor(url: string): string | null {
 	}
 }
 
+/** Biglietti fuori vendita (esauriti o non ancora in vendita): l'importer lo segna con il tag "offsale". */
+export const ticketsOffSale = (e: Pick<Event, 'tags'>) => e.tags.includes('offsale');
+
 export const ticketLabel = (url: string) => {
 	const vendor = ticketVendor(url);
 	return vendor ? `Acquista i biglietti su ${vendor}` : 'Biglietti';

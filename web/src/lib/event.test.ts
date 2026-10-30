@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { romeTime } from './dates';
-import { PRICE_TYPES, compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, ticketLabel, ticketVendor, validateEvent, type EventInput } from './event';
+import { PRICE_TYPES, compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, ticketLabel, ticketVendor, ticketsOffSale, validateEvent, type EventInput } from './event';
 
 const sample = (over: Partial<EventInput> = {}): EventInput => ({
 	title: 'Concerto in piazza',
@@ -119,6 +119,14 @@ describe('PRICE_TYPES', () => {
 	it('un prezzo sconosciuto non diventa "Gratis"', () => {
 		expect(PRICE_TYPES.unknown).toBe('Prezzo sul sito');
 		expect(fromData('x', { priceType: 'unknown' }).priceType).toBe('unknown');
+	});
+});
+
+describe('ticketsOffSale', () => {
+	it('riconosce i biglietti fuori vendita dal tag offsale', () => {
+		expect(ticketsOffSale({ tags: ['offsale'] })).toBe(true);
+		expect(ticketsOffSale({ tags: ['kids'] })).toBe(false);
+		expect(ticketsOffSale({ tags: [] })).toBe(false);
 	});
 });
 

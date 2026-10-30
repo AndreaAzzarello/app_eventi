@@ -15,7 +15,7 @@
 	import Navigation from '@lucide/svelte/icons/navigation';
 	import Share2 from '@lucide/svelte/icons/share-2';
 	import Ticket from '@lucide/svelte/icons/ticket';
-	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, runningLabel, ticketLabel, ticketVendor } from '$lib/event';
+	import { CATEGORIES, PRICE_TYPES, cityPath, eventPath, eventSource, isForKids, runningLabel, ticketLabel, ticketsOffSale, ticketVendor } from '$lib/event';
 	import { fmtNum } from '$lib/format';
 	import { distanceKm, type ChosenPlace } from '$lib/geo';
 	import { imageSources } from '$lib/images';
@@ -46,6 +46,7 @@
 	const Cat = $derived(CATEGORY_ICONS[e.category]);
 	const source = $derived(eventSource(e));
 	const vendor = $derived(e.ticketUrl ? ticketVendor(e.ticketUrl) : null);
+	const offSale = $derived(ticketsOffSale(e));
 	const img = $derived(e.imageUrl ? imageSources(e.imageUrl) : null);
 	const km = $derived(origin ? distanceKm(origin, e) : null);
 	const away = $derived(
@@ -155,7 +156,9 @@
 	</section>
 
 	<div class="actions">
-		{#if e.ticketUrl}
+		{#if e.ticketUrl && offSale}
+			<p class="wide off-sale"><Ticket size={20} aria-hidden="true" /> Biglietti non in vendita</p>
+		{:else if e.ticketUrl}
 			<a class="btn btn-primary wide" href={e.ticketUrl} target="_blank" rel="noopener noreferrer nofollow">
 				<Ticket size={20} aria-hidden="true" /> {ticketLabel(e.ticketUrl)}
 			</a>
@@ -184,7 +187,7 @@
 
 	<p class="source muted">
 		Verifica sempre date e orari sul sito ufficiale prima di partire.
-		{#if vendor}I biglietti li vende {vendor}: il pulsante apre il suo sito, dove valgono le sue condizioni.{/if}
+		{#if vendor && !offSale}I biglietti li vende {vendor}: il pulsante apre il suo sito, dove valgono le sue condizioni.{/if}
 	</p>
 </article>
 
@@ -282,6 +285,16 @@
 	}
 	.actions .wide {
 		grid-column: 1 / -1;
+	}
+	.off-sale {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		min-height: var(--control);
+		margin: 0;
+		color: var(--muted);
+		font-weight: var(--fw-strong);
 	}
 	.desc {
 		font-size: var(--text-lg);

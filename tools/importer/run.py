@@ -605,6 +605,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--dry-run", action="store_true", help="stampa gli eventi senza scrivere")
     p.add_argument("--source", action="append", choices=sorted(SOURCES), help="fonte (ripetibile)")
+    p.add_argument("--solo-ticketmaster", action="store_true",
+                   help="solo le fonti Ticketmaster (tutte le regioni, o quelle di --regione), senza i comuni; vale come --source")
     p.add_argument("--dump", type=Path, help="con --dry-run: scrive gli eventi in questo file JSON (per i controlli)")
     p.add_argument("--regione", action="append", help="regione del registro (ripetibile), per esempio lombardia")
     p.add_argument("--max-writes", type=int, default=MAX_WRITES, help="si ferma prima di scrivere oltre N documenti")
@@ -622,6 +624,12 @@ def main(argv: list[str] | None = None) -> int:
     logsafe.setup()
 
     now = datetime.now(timezone.utc)
+    if args.solo_ticketmaster:  # come --source: niente coverage né statistiche mensili, che sarebbero parziali
+        args.source = [n for n, a in SOURCES.items() if n.startswith("ticketmaster-")
+                       and (not args.regione or slugify(a.region) in args.regione)]
+        if not args.source:
+            log.error("Nessuna fonte Ticketmaster: imposta TICKETMASTER_API_KEY")
+            return 1
     names = args.source or [n for n, a in SOURCES.items() if not args.regione or slugify(a.region) in args.regione]
     if not names:
         log.error("Nessuna fonte attiva per questa selezione")

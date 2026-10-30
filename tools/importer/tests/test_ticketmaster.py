@@ -438,3 +438,33 @@ def test_due_sessioni_nello_stesso_giorno_non_sono_doppioni():
 def test_nessun_campo_di_servizio_in_piu():
     for e in convert(make("Serata"), make("Mostra", segment="Arts & Theatre", genre="Fine Art")):
         assert {k for k in e if k.startswith("_")} <= {"_geocode", "_place", "_excluded"}
+
+
+def test_fuori_vendita_resta_con_il_tag_offsale():
+    item = make("Concerto esaurito")
+    item["dates"]["status"] = {"code": "offsale"}
+    (ev,) = convert(item)
+    assert "_excluded" not in ev and ev["tags"] == ["offsale"] and ev["ticketUrl"]
+    assert convert(make("In vendita"))[0]["tags"] == []
+
+
+def test_solo_ticketmaster_esegue_solo_le_fonti_ticketmaster(monkeypatch):
+    seen = {}
+
+    def fake_collect(client, geocoder, names, *a, **k):
+        seen["names"] = names
+        return []
+
+    monkeypatch.setattr(run, "collect", fake_collect)
+    monkeypatch.setitem(run.SOURCES, "ticketmaster-lombardia", adapter("Lombardia"))
+    monkeypatch.setitem(run.SOURCES, "ticketmaster-veneto", adapter("Veneto"))
+    assert run.main(["--dry-run", "--solo-ticketmaster", "--retry-wait", "-1"]) == 1  # nessun evento dal finto collect
+    assert sorted(seen["names"]) == sorted(n for n in run.SOURCES if n.startswith("ticketmaster-"))
+    run.main(["--dry-run", "--solo-ticketmaster", "--regione", "veneto", "--retry-wait", "-1"])
+    assert seen["names"] == ["ticketmaster-veneto"]
+
+
+def test_solo_ticketmaster_senza_chiave(monkeypatch):
+    for n in [n for n in run.SOURCES if n.startswith("ticketmaster-")]:
+        monkeypatch.delitem(run.SOURCES, n)
+    assert run.main(["--dry-run", "--solo-ticketmaster"]) == 1

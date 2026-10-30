@@ -356,7 +356,9 @@ class TicketmasterAdapter:
             "lng": lng,
             "imageUrl": _image(item),
             "ticketUrl": url,
-            "tags": ["kids"] if KIDS_RE.search(title) or KIDS_GENRE.search(json.dumps(item.get("classifications") or [])) else [],
+            "tags": (["kids"] if KIDS_RE.search(title) or KIDS_GENRE.search(json.dumps(item.get("classifications") or [])) else [])
+                    # fuori vendita (esauriti o non ancora in vendita): l'evento resta, il dettaglio non mostra "Acquista"
+                    + (["offsale"] if (item.get("dates") or {}).get("status", {}).get("code") == "offsale" else []),
             "source": "scraper",
             "sourceUrl": source_url,
             "approxLocation": approx,
