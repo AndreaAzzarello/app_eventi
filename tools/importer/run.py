@@ -92,6 +92,10 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
             ev["importRegion"] = slugify(source.region)  # regione del registro, non quella di Nominatim
             ev["contentHash"] = content_hash(ev)
             key, kept = dedupe_key(ev), owner.get(dedupe_key(ev))
+            if kept == name and getattr(source, "sessions", False) and events[key]["startTime"] != ev["startTime"]:
+                # due spettacoli dello stesso titolo nello stesso giorno e comune, a orari diversi (Ticketmaster): sono sessioni, non doppioni
+                key = key + (ev["startTime"],)
+                kept = owner.get(key)
             # stesso evento da più fonti: vince quella comunale, più ricca, su una fonte regionale (Open Data Hub)
             if kept is None or (getattr(SOURCES[kept], "regional", False) and not getattr(source, "regional", False)):
                 if kept is not None:

@@ -54,13 +54,17 @@ NOT_EVENTS = [
 ]
 #: nomi di tipo/sottotipo/segmento della classificazione che indicano un prodotto e non un evento
 NOT_EVENT_CLASS = re.compile(r"\b(parking|upsell|pass(?:es)?|season|subscription|abbonament\w*|package|merchandise|voucher|gift)\b", re.I)
-YOUTH = re.compile(r"\b(giovanili|u\s?1\d|juniores|allievi|esordienti|attivit[àa] di base|triangolar\w*)\b", re.I)
+YOUTH = re.compile(r"\b(giovanili|u\s?1\d|juniores|allievi|esordienti|attivit[àa] di base|triangolar\w*|academy|prospects)\b", re.I)
+#: società dilettantistiche per forma giuridica (SSD, ASD, USD): non è sport professionistico
+AMATEUR = re.compile(r"\b(?:s\.?s\.?d\.?|a\.?s\.?d\.?|u\.?s\.?d\.?)(?=\s|$|-)", re.I)
+#: mostre e visite a biglietto giornaliero, dalla classificazione (genere, sottotipo): sono le sole che si uniscono in una serie
+EXHIBIT = re.compile(r"fine art|museum|expo|cultural|multimedia|exhibition|mostra", re.I)
+WEEKDAY = re.compile(r"\b(?:luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato|domenica)\b", re.I)
 KIDS_GENRE = re.compile(r"famil|child|bambin", re.I)
 TV = re.compile(r"registrazion\w*|\bTV\b|televis\w*|talk\s*show|programma\s+televisiv\w*|pubblico in studio", re.I)
 CLASSICAL = re.compile(r"classic|orchestr|symphon|sinfon|concert|recital", re.I)
 SEGMENTS = {"music": "music", "sports": "sport"}
-EXHIBITION_MIN_COVERAGE = 0.5  # giorni con un biglietto / giorni tra il primo e l'ultimo: mostre e simili
-OTHER_MIN_DATES, OTHER_MIN_COVERAGE = 10, 0.8  # musica e sport: solo se è davvero un biglietto per ogni giorno
+EXHIBITION_MIN_COVERAGE = 0.5  # giorni con un biglietto / giorni tra il primo e l'ultimo
 
 _LOCK = threading.Lock()
 _CACHE: dict[tuple, list[dict] | Exception] = {}
@@ -218,6 +222,8 @@ def _not_event(item: dict, title: str, category: str) -> str | None:
         return "prodotto non evento"
     if category == "sport" and YOUTH.search(title):
         return "sport giovanile"
+    if category == "sport" and AMATEUR.search(title):
+        return "sport dilettantistico"
     return None
 
 
@@ -255,28 +261,33 @@ def _comune_of(item: dict) -> tuple | None:
     return _COMUNE[item.get("id")]
 
 
+def _series_title(title: str) -> str:
+    """Titolo senza il giorno della settimana ("Castello Volante - Sabato" → "Castello Volante")."""
+    return re.sub(r"\s*[-–|,:]*\s*$", "", re.sub(r"\s{2,}", " ", WEEKDAY.sub("", title))).strip() or title
+
+
 def merge_daily(evs: list[dict]) -> Iterator[dict]:
-    """Biglietti giornalieri della stessa sede e dello stesso titolo (una mostra con un biglietto al giorno) → un solo
-    evento longRunning dal primo all'ultimo giorno. Le serie di date vere (residency di un cantante) restano separate.
-    Si unisce se i giorni coprono almeno metà del periodo (musica e sport: 10 date e l'80%)."""
+    """Mostre e visite con un biglietto al giorno (stessa sede, stesso titolo a meno del giorno della settimana) → un solo
+    evento longRunning dal primo all'ultimo giorno. Solo per le mostre (classificazione): le serie di date vere, come le
+    residency di un cantante, restano separate. Si unisce con almeno 3 date che coprono metà del periodo (almeno 5 giorni)."""
     groups: dict[tuple, list[dict]] = {}
     for ev in evs:
-        if "_excluded" in ev:
+        exhibit = ev.pop("_exhibit", False)
+        if "_excluded" in ev or not exhibit:
             yield ev
         else:
-            groups.setdefault((slugify(ev["title"]), ev["venueName"], ev["_place"]["citySlug"]), []).append(ev)
+            groups.setdefault((slugify(_series_title(ev["title"])), ev["venueName"], ev["_place"]["citySlug"]), []).append(ev)
     for (title, venue, city), group in groups.items():
         days = sorted({datetime.fromtimestamp(e["startTime"] / 1000, ROME).date() for e in group})
         span = (days[-1] - days[0]).days + 1
-        other = group[0]["category"] in ("music", "sport")
-        if len(days) >= (OTHER_MIN_DATES if other else 3) and span >= 5 and len(days) / span >= (OTHER_MIN_COVERAGE if other else EXHIBITION_MIN_COVERAGE):
+        if len(days) >= 3 and span >= 5 and len(days) / span >= EXHIBITION_MIN_COVERAGE:
             group.sort(key=lambda e: e["startTime"])
             known = [e["priceType"] for e in group if e["priceType"] != "unknown"]
-            ev = group[0] | {"endTime": max(e["endTime"] for e in group), "longRunning": True,
+            ev = group[0] | {"title": _series_title(group[0]["title"]), "endTime": max(e["endTime"] for e in group), "longRunning": True,
                              "sourceUrl": f"{BASE}/discovery/v2/series/{event_id(f'{title}|{venue}|{city}')}",
                              "priceType": max(known, key=("free", "low", "premium").index, default="unknown")}
             ev["id"] = event_id(ev["sourceUrl"])
-            log.info("  Ticketmaster: %d date di «%s» unite in un evento", len(group), group[0]["title"])
+            log.info("  Ticketmaster: %d date di «%s» unite in un evento", len(group), ev["title"])
             yield ev
         else:
             yield from group
@@ -292,6 +303,8 @@ class TicketmasterAdapter:
     viewbox: str | None = None
     #: fonte regionale: niente scheda comune nella copertura, e nella deduplica vince la fonte comunale
     regional: ClassVar[bool] = True
+    #: più sessioni dello stesso titolo nello stesso giorno e comune, a orari diversi, restano eventi distinti (run.collect)
+    sessions: ClassVar[bool] = True
 
     def events(self, client: httpx.Client, now: datetime, horizon_days: int) -> Iterator[dict]:
         found = [ev for item in fetch_italy(client, now, horizon_days) if (ev := self._event(item, now, horizon_days)) is not None]
@@ -354,4 +367,5 @@ class TicketmasterAdapter:
             ev["_excluded"] = "annullato"  # run.collect lo scarta e, se già nel database, lo nasconde subito
         elif reason := _not_event(item, title, category):
             ev["_excluded"] = reason  # idem: contato per motivo nel riepilogo del dry-run
+        ev["_exhibit"] = bool(EXHIBIT.search(" ".join(_classes(item).values())))  # tolto da merge_daily
         return ev

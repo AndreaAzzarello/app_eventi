@@ -383,3 +383,58 @@ def test_run_collect_non_riporta_la_chiave_negli_errori_di_fonte():
 def test_nessuna_fixture_contiene_la_chiave():
     for f in (Path(__file__).parent / "fixtures").glob("ticketmaster*.json"):
         assert "apikey" not in f.read_text(encoding="utf-8").lower(), f.name
+
+
+def test_mostra_con_un_titolo_per_giorno_della_settimana_e_una_sola():
+    giorni = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
+    items = [make(f"Castello Volante - {giorni[d % 7]}", f"2026-12-{d:02d}", segment="Arts & Theatre", genre="Fine Art",
+                  classifications=[{"primary": True, "segment": {"name": "Arts & Theatre"}, "genre": {"name": "Fine Art"},
+                                    "subGenre": {"name": "Fine Art"}, "type": {"name": "Event Style"}, "subType": {"name": "Audio/Visual"}}])
+             for d in range(1, 15)]
+    (ev,) = convert(*items)
+    assert ev["title"] == "Castello Volante" and ev["longRunning"] is True
+
+
+def test_musica_non_si_unisce_mai_nemmeno_se_ogni_giorno():
+    """Una residency di 17 serate di fila (Einaudi) resta in date separate: la serie si unisce solo per le mostre."""
+    items = [make("Ludovico Einaudi", f"2026-12-{d:02d}") for d in range(1, 18)]
+    out = convert(*items)
+    assert len(out) == 17 and not any(e.get("longRunning") for e in out)
+
+
+@pytest.mark.parametrize("title,reason", [
+    ("Club Milano SSD - U.S.D. Scanzorosciate", "sport dilettantistico"),
+    ("A.S.D. Esempio - Union", "sport dilettantistico"),
+    ("Milano HC Prospects vs Storm Pinerolo", "sport giovanile"),
+    ("Novipiù Monferrato Basket - Varese Academy", "sport giovanile"),
+])
+def test_sport_dilettantistico_o_giovanile(title, reason):
+    assert convert(make(title, segment="Sports", genre="Soccer"))[0]["_excluded"] == reason
+
+
+def test_sport_professionistico_resta():
+    for t in ("Milano HC vs EC Red Bull Salzburg", "U.S. Folgore Caratese - Union Brescia", "Olimpia Milano vs Virtus Bologna"):
+        assert "_excluded" not in convert(make(t, segment="Sports", genre="Hockey"))[0]
+
+
+def test_due_sessioni_nello_stesso_giorno_non_sono_doppioni():
+    mattina = make("Lo Schiaccianoci", "2026-12-20", segment="Arts & Theatre", genre="Ballet")
+    sera = make("Lo Schiaccianoci", "2026-12-20", segment="Arts & Theatre", genre="Ballet", id="X-sera")
+    sera["dates"]["start"] = {"localDate": "2026-12-20", "localTime": "21:00:00", "dateTime": "2026-12-20T20:00:00Z"}
+    mattina["dates"]["start"] = {"localDate": "2026-12-20", "localTime": "15:00:00", "dateTime": "2026-12-20T14:00:00Z"}
+    a = adapter("Lombardia")
+    src = SimpleNamespace(name="ticketmaster-x", base=tm.BASE, city="T", province="", region="Lombardia", viewbox=None, regional=True,
+                          sessions=True, events=lambda c, n, h: iter(list(tm.merge_daily([a._event(i, NOW, 60) for i in (mattina, sera)]))))
+    run.SOURCES["ticketmaster-x"] = src
+    try:
+        stats = {}
+        out = run.collect(None, NoGeocoder(), ["ticketmaster-x"], NOW, 60, stats)
+    finally:
+        del run.SOURCES["ticketmaster-x"]
+    assert len(out) == 2 and stats["ticketmaster-x"]["duplicates"] == 0
+    assert TicketmasterAdapter.sessions is True
+
+
+def test_nessun_campo_di_servizio_in_piu():
+    for e in convert(make("Serata"), make("Mostra", segment="Arts & Theatre", genre="Fine Art")):
+        assert {k for k in e if k.startswith("_")} <= {"_geocode", "_place", "_excluded"}

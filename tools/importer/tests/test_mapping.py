@@ -168,3 +168,15 @@ def test_shorten_non_taglia_dentro_un_tag():
 ])
 def test_category_from_title_tedesco_francese(title, expected):
     assert category_from_title(title) == expected
+
+
+def test_durata_massima_confine():
+    """365 giorni e qualche ora non è "oltre 365" (il messaggio stampa i giorni interi): si scarta da 366 in su."""
+    from datetime import timedelta
+
+    from mapping import MAX_EVENT_DAYS, too_long
+
+    start = datetime(2026, 11, 1, 9, 0, tzinfo=ROME)
+    assert not too_long(start, start + timedelta(days=MAX_EVENT_DAYS), "u")
+    assert not too_long(start, start + timedelta(days=MAX_EVENT_DAYS, hours=5), "u")  # il caso di Francavilla Marittima
+    assert too_long(start, start + timedelta(days=MAX_EVENT_DAYS + 1), "u")

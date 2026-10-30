@@ -97,7 +97,7 @@ def shorten(text: str) -> str:
 
 def too_long(start: datetime, end: datetime, url: str) -> bool:
     """True (e log) se la durata supera il tetto di sicurezza."""
-    if end - start <= timedelta(days=MAX_EVENT_DAYS):
+    if (end - start).days <= MAX_EVENT_DAYS:  # giorni interi, come nel messaggio: 365 giorni e 5 ore non sono "oltre 365"
         return False
     log.warning("  durata di %d giorni (oltre %d), scartato: %s", (end - start).days, MAX_EVENT_DAYS, url)
     return True
