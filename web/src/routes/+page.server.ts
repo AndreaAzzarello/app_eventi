@@ -1,7 +1,9 @@
+import { redirect } from '@sveltejs/kit';
+import { comuneBySlug, type RawComuni } from '$lib/comuni';
 import { HTML_CACHE } from '$lib/server/cache';
 import { filterFromParams } from '$lib/filters';
 import { DEFAULT_PLACE, type ChosenPlace } from '$lib/geo';
-import { placeFromEvents, placeFromParams, popularPlaces } from '$lib/places';
+import { autoRadius, nearestWithEvents, placeFromEvents, placeFromParams, popularPlaces } from '$lib/places';
 import { coverage, eventsAround, eventsInCity } from '$lib/server/firestore';
 import type { PageServerLoad } from './$types';
 
@@ -16,11 +18,22 @@ export const load: PageServerLoad = async ({ url, setHeaders }) => {
 	const regions = await coverage().catch(() => []);
 	const slug = url.searchParams.get('luogo') ?? '';
 	let fromUrl = wanted ? placeFromParams(url.searchParams, regions) : null;
+	// Qualsiasi comune italiano si apre anche senza eventi: lo risolve il file dei comuni, senza letture Firestore (e senza
+	// decodificarlo né caricarlo se serve altro).
+	if (wanted && !fromUrl && /^[a-z0-9-]{1,80}$/.test(slug)) fromUrl = comuneBySlug((await import('$lib/data/comuni.json')).default as unknown as RawComuni, slug);
 	// Città con eventi ma (ancora) fuori dalla copertura: si ricava il luogo dagli eventi, mai il predefinito in silenzio.
 	if (wanted && !fromUrl && /^[a-z0-9-]{1,80}$/.test(slug)) fromUrl = placeFromEvents(slug, await eventsInCity(slug, 20).catch(() => []));
 	const place: ChosenPlace = fromUrl ?? { ...DEFAULT_PLACE };
+	// Senza raggio nell'URL, dove non ci sono eventi vicini si allarga fino a trovarne (se ce ne sono): il redirect tiene coerenti URL, filtri e pagina.
+	const { radiusKm: auto, quiet } = fromUrl && regions.length ? autoRadius(place, regions) : { radiusKm, quiet: false };
+	if (fromUrl && !url.searchParams.has('r') && auto !== radiusKm) {
+		const to = new URL(url);
+		to.searchParams.set('r', String(auto));
+		redirect(307, to.pathname + to.search);
+	}
+	const nearest = fromUrl && quiet ? nearestWithEvents(place, regions) : [];
 	const view = url.searchParams.get('vista') === 'mappa' ? ('map' as const) : ('list' as const);
-	const base = { place, fromUrl: !!fromUrl, unknownPlace: wanted && !fromUrl ? slug : null, noPlace: !wanted, view };
+	const base = { place, fromUrl: !!fromUrl, unknownPlace: wanted && !fromUrl ? slug : null, noPlace: !wanted, view, quiet, nearest };
 
 	if (!wanted || !fromUrl) {
 		// Senza luogo (o con un luogo che non conosciamo) niente eventi: si sceglie il luogo, non si ripiega su Modena.

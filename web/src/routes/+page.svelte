@@ -16,7 +16,7 @@
 	import { coverageStore } from '$lib/coverage.svelte';
 	import type { Event } from '$lib/event';
 	import { applyFilter, filterFromParams, type Filter } from '$lib/filters';
-	import { distanceKm, SNAP_MARGIN_KM, snapCoord, type ChosenPlace } from '$lib/geo';
+	import { DEFAULT_RADIUS_KM, distanceKm, SNAP_MARGIN_KM, snapCoord, type ChosenPlace } from '$lib/geo';
 	import { fmtNum } from '$lib/format';
 	import { locateMe } from '$lib/locate';
 	import { homeUrl, nearestComune, strongPlace } from '$lib/places';
@@ -204,6 +204,8 @@
 		}
 	}
 
+	/** Nessun evento vicino al luogo scelto: il raggio è stato allargato fino a trovarne (vedi autoRadius). */
+	const widened = $derived(data.quiet && data.fromUrl && filter.radiusKm > DEFAULT_RADIUS_KM && !loading && !error && !pending && !filter.q.trim() && visible.length > 0);
 	const count = $derived(visible.length === 1 ? '1 evento' : `${fmtNum(visible.length)} eventi`);
 </script>
 
@@ -281,6 +283,11 @@
 		<div class="split" data-view={view}>
 			<div id="panel-list" class="list-pane" role="tabpanel" aria-labelledby="tab-list">
 				<h2 class="visually-hidden">Eventi in programma</h2>
+				{#if widened}
+					<p class="widened" role="status">
+						<span class="strong">Nessun evento a {place.label} nei prossimi giorni.</span> Ti mostriamo gli eventi entro {filter.radiusKm} km.
+					</p>
+				{/if}
 				<EventList
 					events={visible}
 					{now}
@@ -302,6 +309,19 @@
 								>
 									Vai a {placeHit.place.label}
 								</button>
+							</div>
+						{:else if data.quiet && data.nearest.length && !events.length}
+							<h2>Nessun evento a {place.label} nei prossimi giorni</h2>
+							<p class="muted">Gli eventi più vicini sono qui.</p>
+							<div class="actions">
+								{#each data.nearest as n (n.slug)}
+									<button
+										class="btn"
+										onclick={() => choosePlace({ lat: n.lat, lng: n.lng, label: n.label, slug: n.slug, region: n.region })}
+									>
+										{n.label} · {fmtNum(n.km)} km
+									</button>
+								{/each}
 							</div>
 						{:else}
 							<h2>
@@ -431,6 +451,19 @@
 	.toolbar {
 		display: flex;
 		margin: var(--space-3) 0;
+	}
+	.widened {
+		margin: 0 0 var(--space-3);
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--muted);
+		font-size: var(--text-sm);
+	}
+	.widened .strong {
+		color: var(--text);
+		font-weight: var(--fw-strong);
 	}
 	.where {
 		display: flex;

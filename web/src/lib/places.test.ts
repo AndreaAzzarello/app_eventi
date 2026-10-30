@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_FILTER } from './filters';
 import {
+	autoRadius,
 	fold,
 	homeUrl,
 	nearCovered,
 	nearestComune,
+	nearestWithEvents,
 	placeFromEvents,
 	placeFromParams,
 	placeToParams,
@@ -158,5 +160,33 @@ describe('placeFromEvents', () => {
 	it('senza eventi o con coordinate fuori Italia nessun luogo', () => {
 		expect(placeFromEvents('lecce', [])).toBeNull();
 		expect(placeFromEvents('lecce', [ev(0, 0)])).toBeNull();
+	});
+});
+
+describe('raggio automatico', () => {
+	const modena = { lat: 44.6458, lng: 10.9256 };
+	const parma = { lat: 44.9, lng: 9.7 }; // ~75 km dal comune con eventi più vicino
+	const pavullo = { lat: 44.33, lng: 10.84 }; // ~35 km da Modena
+	const lontano = { lat: 46.5, lng: 8.0 }; // oltre 100 km da ogni comune con eventi
+	it('comuni con eventi dal più vicino', () => {
+		expect(nearestWithEvents(pavullo, REGIONS, 2).map((p) => [p.label, p.slug])).toEqual([
+			['Modena', 'modena'],
+			['Bologna', 'bologna']
+		]);
+		expect(nearestWithEvents(modena, REGIONS, 1)[0].km).toBe(0);
+		expect(nearestWithEvents(modena, REGIONS).every((p) => p.label !== 'Forlì')).toBe(true); // Forlì non ha eventi
+	});
+	it('resta 25 km dove ci sono eventi vicini', () => {
+		expect(autoRadius(modena, REGIONS)).toEqual({ radiusKm: 25, quiet: false });
+	});
+	it('allarga al più piccolo raggio che arriva a un comune con eventi', () => {
+		expect(autoRadius(pavullo, REGIONS)).toEqual({ radiusKm: 50, quiet: true });
+		expect(autoRadius(parma, REGIONS)).toEqual({ radiusKm: 100, quiet: true });
+	});
+	it('senza eventi nemmeno a 100 km resta 25 e segnala la quiete', () => {
+		expect(autoRadius(lontano, REGIONS)).toEqual({ radiusKm: 25, quiet: true });
+	});
+	it('senza copertura non inventa nulla', () => {
+		expect(autoRadius(modena, [])).toEqual({ radiusKm: 25, quiet: false });
 	});
 });

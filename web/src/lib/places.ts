@@ -3,7 +3,7 @@
 import { comunePlace as datasetPlace, fold, foldedScore, scoreComune, shorten, type Comune } from './comuni';
 import { slugify } from './event';
 import { filterToParams, type Filter } from './filters';
-import { distanceKm, type ChosenPlace, type LatLng } from './geo';
+import { DEFAULT_RADIUS_KM, distanceKm, RADII_KM, type ChosenPlace, type LatLng } from './geo';
 
 export interface CoverageComune {
 	name: string;
@@ -142,6 +142,25 @@ export function popularPlaces(regions: CoverageRegion[], limit = 6): PlaceHit[] 
 /** Vero se un comune con eventi dista meno di `km` dal punto: altrimenti "Pochi eventi in questa zona". */
 export const nearCovered = (p: LatLng, regions: CoverageRegion[], km = 25) =>
 	regions.some((r) => r.comuni.some((c) => c.events > 0 && distanceKm(p, c) <= km));
+
+/** Comuni coperti con eventi, dal più vicino al punto (con la distanza). */
+export function nearestWithEvents(p: LatLng, regions: CoverageRegion[], n = 3): (ChosenPlace & { km: number })[] {
+	return regions
+		.flatMap((r) => r.comuni.filter((c) => c.events > 0).map((c) => ({ ...comunePlace(c, r), km: Math.round(distanceKm(p, c)) })))
+		.sort((a, b) => a.km - b.km)
+		.slice(0, n);
+}
+
+/**
+ * Raggio con cui mostrare un luogo scelto senza raggio nell'URL: quello predefinito se entro lì ci sono eventi, altrimenti il più piccolo
+ * dei raggi disponibili che arriva al comune con eventi più vicino (con 2 km di margine: gli eventi non sono al centro del comune).
+ * `quiet` = nessun evento entro il raggio predefinito; senza eventi nemmeno al raggio massimo il raggio resta quello predefinito.
+ */
+export function autoRadius(p: LatLng, regions: CoverageRegion[]): { radiusKm: number; quiet: boolean } {
+	const [near] = nearestWithEvents(p, regions, 1);
+	if (!near || near.km <= DEFAULT_RADIUS_KM) return { radiusKm: DEFAULT_RADIUS_KM, quiet: !near && regions.length > 0 };
+	return { radiusKm: RADII_KM.find((r) => r >= near.km + 2) ?? DEFAULT_RADIUS_KM, quiet: true };
+}
 
 /** Raggio entro cui la posizione del dispositivo si "aggancia" a un comune coperto (l'unico dato che esce dal browser). */
 export const NEAREST_COMUNE_KM = 30;
