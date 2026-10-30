@@ -24,13 +24,12 @@ Eventi Vicini è un'agenda **gratuita** degli eventi pubblici italiani: sagre, m
 <a id="screenshot"></a>
 ## Screenshot
 
-<!-- TODO: screenshot con dati reali da catturare dal sito dopo le 9:30 del 2026-10-30, quando i bundle sono stati creati.
-     File attesi in docs/screenshots/: {home,mappa,evento,ricerca}-{mobile,desktop}-{chiaro,scuro}.png -->
+Dati reali dal sito, Modena, 30 ottobre 2026.
 
 | Tema chiaro | Tema scuro |
 |---|---|
-| _Screenshot in arrivo: home desktop_ | _Screenshot in arrivo: home desktop_ |
-| _Screenshot in arrivo: mappa e dettaglio evento, mobile_ | _Screenshot in arrivo: mappa e dettaglio evento, mobile_ |
+| <img src="docs/screenshots/home-desktop-chiaro.png" alt="Home desktop, tema chiaro: lista degli eventi di oggi a Modena e mappa"> | <img src="docs/screenshots/home-desktop-scuro.png" alt="Home desktop, tema scuro"> |
+| <img src="docs/screenshots/mappa-mobile-chiaro.png" width="49%" alt="Mappa su mobile con cluster di eventi entro 25 km"> <img src="docs/screenshots/evento-mobile-chiaro.png" width="49%" alt="Dettaglio evento su mobile"> | <img src="docs/screenshots/mappa-mobile-scuro.png" width="49%" alt="Mappa su mobile, tema scuro"> <img src="docs/screenshots/evento-mobile-scuro.png" width="49%" alt="Dettaglio evento su mobile, tema scuro"> |
 
 <a id="funzioni"></a>
 ## Funzioni
