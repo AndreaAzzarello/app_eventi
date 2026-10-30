@@ -23,6 +23,7 @@ import httpx
 from concurrent.futures import ThreadPoolExecutor
 
 import bundles
+import logsafe
 import manifest
 from adapters import SOURCES, Adapter, fallback_place
 from geo import PROVINCES, enrich, in_viewbox, slugify
@@ -52,10 +53,10 @@ def collect(client: httpx.Client, geocoder: Geocoder, names: list[str], now: dat
         try:
             return list(SOURCES[name].events(client, now, horizon_days)), None
         except httpx.HTTPError as e:
-            return [], str(e) or type(e).__name__
+            return [], logsafe.redact(str(e)) or type(e).__name__
         except Exception as e:  # un bug o una pagina anomala in una fonte non deve fermare le altre
             log.exception("%s: errore imprevisto", name)
-            return [], f"{type(e).__name__}: {e}"
+            return [], logsafe.redact(f"{type(e).__name__}: {e}")
 
     def process(batch: list[str]) -> None:
         with ThreadPoolExecutor(WORKERS) as pool:
@@ -614,8 +615,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="secondi prima di riprovare, a fine giro, le fonti non raggiungibili (0 = subito, -1 = non riprovare)")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logsafe.setup()
 
     now = datetime.now(timezone.utc)
     names = args.source or [n for n, a in SOURCES.items() if not args.regione or slugify(a.region) in args.regione]

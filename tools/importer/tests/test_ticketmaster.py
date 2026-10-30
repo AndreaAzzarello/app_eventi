@@ -1,8 +1,11 @@
 """Ticketmaster Discovery API: mappatura, comune del luogo, finestre di date, chiave mai nei messaggi, doppioni."""
 
 import copy
+import io
 import json
+import logging
 import sys
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,6 +14,7 @@ import httpx
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
+import logsafe  # noqa: E402
 import run  # noqa: E402
 from adapters import load_sources  # noqa: E402
 from adapters import ticketmaster as tm  # noqa: E402
@@ -293,3 +297,89 @@ def test_fixture_reale_tutte_le_regioni():
     for e in out:
         assert e["category"] in {"music", "food", "sport", "culture", "kids", "market", "other"} and e["priceType"] in {"free", "low", "premium", "unknown"}
         assert e["ticketUrl"].startswith("https://") and e["title"] and e["endTime"] >= e["startTime"] and e["lat"] and e["lng"]
+
+
+# --- la chiave non esce mai ---------------------------------------------------------------------------------------
+
+def _run_leaky(handler, status=200):
+    """Esegue l'adapter con httpx a INFO (come faceva record_ticketmaster.py) e raccoglie ciò che esce da `handler`."""
+    root, httpx_log = logging.getLogger(), logging.getLogger("httpx")
+    old = (root.level, httpx_log.level)
+    root.addHandler(handler)
+    root.setLevel(logging.DEBUG)
+    httpx_log.setLevel(logging.INFO)
+    errors = []
+    try:
+        def respond(req):
+            return httpx.Response(status, json=RAW if status == 200 else {})
+
+        with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+            try:
+                list(adapter("Lombardia").events(client, NOW, 8))
+            except Exception as e:  # noqa: BLE001
+                errors.append(e)
+    finally:
+        root.removeHandler(handler)
+        root.setLevel(old[0])
+        httpx_log.setLevel(old[1])
+    return errors
+
+
+def test_senza_filtro_httpx_stampa_la_chiave():
+    """Controllo del test: il log INFO di httpx contiene davvero l'URL con la chiave (è il bug segnalato)."""
+    out = io.StringIO()
+    h = logging.StreamHandler(out)
+    _run_leaky(h)
+    assert f"apikey={KEY}" in out.getvalue()
+
+
+def test_la_chiave_non_compare_in_log_output_ed_eccezioni(capsys):
+    out = io.StringIO()
+    _run_leaky(logsafe.handler(out))  # httpx a INFO ma con il filtro: l'URL esce con apikey=***
+    assert "apikey=***" in out.getvalue() and KEY not in out.getvalue()
+
+    for status in (401, 429, 500):  # errori: messaggio, repr, traceback, catena delle eccezioni
+        tm._CACHE.clear()
+        out = io.StringIO()
+        errors = _run_leaky(logsafe.handler(out), status)
+        (e,) = errors
+        text = "".join(traceback.format_exception(e)) + str(e) + repr(e) + out.getvalue()
+        assert KEY not in text and "apikey" not in str(e).lower() and e.__cause__ is None and e.__suppress_context__
+    # timeout e simili: stessa cosa
+    tm._CACHE.clear()
+
+    def boom(req):
+        raise httpx.ConnectTimeout("timeout", request=req)
+
+    with pytest.raises(httpx.HTTPError) as e:
+        list(adapter("Lombardia").events(httpx.Client(transport=httpx.MockTransport(boom)), NOW, 8))
+    assert KEY not in "".join(traceback.format_exception(e.value)) + repr(e.value)
+    shown = capsys.readouterr()
+    assert KEY not in shown.out + shown.err
+
+
+def test_redact_e_silenzio_degli_script(monkeypatch):
+    assert logsafe.redact("GET https://x/y?a=1&apikey=segreto123&b=2") == "GET https://x/y?a=1&apikey=***&b=2"
+    assert logsafe.redact(f"errore con {KEY} nel testo") == f"errore con *** nel testo"  # anche senza "apikey=" davanti
+    logging.getLogger("httpx").setLevel(logging.INFO)
+    logging.getLogger("httpcore").setLevel(logging.DEBUG)
+    logsafe.quiet()
+    assert logging.getLogger("httpx").level == logging.WARNING and logging.getLogger("httpcore").level == logging.WARNING
+
+
+def test_run_collect_non_riporta_la_chiave_negli_errori_di_fonte():
+    """L'errore di una fonte finisce in stats e nel riepilogo CI: dev'essere già ripulito."""
+    run.SOURCES["ticketmaster-x"] = SimpleNamespace(
+        name="ticketmaster-x", base=tm.BASE, city="T", province="", region="Lombardia", viewbox=None, regional=True,
+        events=lambda c, n, h: (_ for _ in ()).throw(httpx.HTTPError(f"GET https://x/?apikey={KEY} fallita")))
+    try:
+        stats = {}
+        run.collect(None, NoGeocoder(), ["ticketmaster-x"], NOW, 60, stats)
+    finally:
+        del run.SOURCES["ticketmaster-x"]
+    assert KEY not in json.dumps(stats) and "apikey=***" in stats["ticketmaster-x"]["error"]
+
+
+def test_nessuna_fixture_contiene_la_chiave():
+    for f in (Path(__file__).parent / "fixtures").glob("ticketmaster*.json"):
+        assert "apikey" not in f.read_text(encoding="utf-8").lower(), f.name

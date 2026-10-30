@@ -17,6 +17,7 @@ from pathlib import Path
 
 import httpx
 
+import logsafe
 from adapters import ticketmaster as tm
 from registry import USER_AGENT
 
@@ -48,7 +49,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--out", type=Path, default=OUT)
     args = p.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logsafe.setup()
     now = datetime.now(timezone.utc)
     with httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=30) as client:
         items = tm.fetch_italy(client, now, 60)

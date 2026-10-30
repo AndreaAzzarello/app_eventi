@@ -17,6 +17,7 @@ from pathlib import Path
 
 import httpx
 
+import logsafe
 from geo import enrich
 from geocode import Geocoder
 from mapping import html_to_text, one_line
@@ -93,8 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--texts", action="store_true", help="solo: toglie tag ed entità HTML dai testi degli eventi")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logsafe.setup()
 
     if args.texts:
         return fix_texts(args.dry_run)

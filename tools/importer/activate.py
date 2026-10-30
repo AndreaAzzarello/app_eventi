@@ -28,6 +28,7 @@ from pathlib import Path
 
 import httpx
 
+import logsafe
 from adapters import CMS_ADAPTERS, load_sources
 from fetch import Blocked, RobotsUnknown
 from geo import PROVINCES, in_viewbox, slugify
@@ -131,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--workers", type=int, default=8, help="comuni in parallelo (1 richiesta/s per host)")
     args = p.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
-    logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    logsafe.setup(logging.WARNING)
 
     if not args.regione and not args.tutte:
         p.error("indica --regione <nome> (ripetibile) oppure --tutte")

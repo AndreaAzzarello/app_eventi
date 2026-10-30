@@ -87,6 +87,8 @@ def _get(client: httpx.Client, key: str, params: dict, budget: _Budget) -> dict:
         raise httpx.HTTPError(f"Ticketmaster {type(e).__name__}") from None
     except ValueError:
         raise httpx.HTTPError("Ticketmaster: risposta non JSON") from None
+    except Exception as e:  # anche un'eccezione inattesa (es. InvalidURL) non deve portarsi dietro l'URL
+        raise httpx.HTTPError(f"Ticketmaster {type(e).__name__}") from None
     finally:
         time.sleep(PAUSE)
 

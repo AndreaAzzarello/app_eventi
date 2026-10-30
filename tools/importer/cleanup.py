@@ -19,6 +19,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import logsafe
 from run import BATCH, commit_in_batches
 
 log = logging.getLogger("importer")
@@ -86,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-deletes", type=int, default=MAX_DELETES)
     p.add_argument("--stats-out", type=Path, help="scrive qui le statistiche (JSON)")
     args = p.parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logsafe.setup()
     from db import client
 
     stats = run(client(), datetime.now(timezone.utc), args.dry_run, args.max_deletes)
