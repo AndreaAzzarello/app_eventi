@@ -126,7 +126,7 @@ Stato al momento della stesura (da `comuni.csv`, 330 comuni): 4 `attivo` (Formig
 
 **`build_registry.py`** genera o aggiorna il registro dagli open data:
 
-- comuni da ISTAT, "Elenco dei comuni italiani" (CC-BY 3.0 IT);
+- comuni da ISTAT, "Elenco dei comuni italiani" (CC BY 4.0);
 - siti istituzionali da IndicePA, "Amministrazioni" (CC-BY 4.0).
 
 Si indica `--regione <nome>` (ripetibile) oppure `--tutte`; senza argomenti dà errore. Le righe `attivo` e `manuale` non vengono toccate. Le altre aggiornano regione, provincia, comune e sito. I comuni nuovi entrano come `da_verificare`. Se il sito cambia, il rilevamento precedente viene azzerato.

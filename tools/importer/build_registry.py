@@ -4,7 +4,7 @@ Uso:  python build_registry.py --regione Lombardia    # ripetibile
       python build_registry.py --tutte                # tutte le regioni italiane
 Le righe già nel CSV con stato attivo/manuale non vengono toccate; le altre aggiornano solo
 regione, provincia, comune e sito. I comuni nuovi entrano come da_verificare.
-Dati: ISTAT "Elenco dei comuni italiani" (CC-BY 3.0 IT) · IndicePA "Amministrazioni" (CC-BY 4.0).
+Dati: ISTAT "Elenco dei comuni italiani" (CC BY 4.0) · IndicePA "Amministrazioni" (CC-BY 4.0).
 """
 
 from __future__ import annotations
