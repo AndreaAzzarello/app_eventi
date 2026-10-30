@@ -39,7 +39,7 @@ service cloud.firestore {
       return str(d.title, 1, 200)
         && str(d.shortDescription, 0, 1000)
         && d.category in ['music', 'food', 'sport', 'culture', 'kids', 'market', 'other']
-        && d.priceType in ['free', 'low', 'premium']
+        && d.priceType in ['free', 'low', 'premium', 'unknown']
         && d.startTime is int && d.endTime is int && d.endTime >= d.startTime
         && str(d.venueName, 0, 200)
         && str(d.address, 1, 300)

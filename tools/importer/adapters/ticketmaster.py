@@ -43,12 +43,28 @@ MAX_CALLS = 300  # per giro: oltre, qualcosa non va (quota giornaliera 5.000)
 PAUSE = 0.5  # secondi tra due richieste (limite 5 al secondo)
 NEAREST_KM = 15  # luogo con un nome di città che non è un comune: si prende il comune più vicino entro tanti km
 EVENT_HOURS = 3  # la API non dà la fine: durata presunta
-JUNK = re.compile(r"\b(parking|parcheggio|upgrade|vip package|pacchetto|hospitality|shuttle|navetta|meet\s*&\s*greet)\b", re.I)
+#: biglietti che non sono eventi: (motivo, regex sul titolo). Da tarare sui dati reali (--dump del dry-run).
+NOT_EVENTS = [
+    ("abbonamento o pass", re.compile(
+        r"\b(abbonament\w*|season\s*pass|carnet|tessera|(?:daily|weekend|\d+[\s-]*days?|\d+[\s-]*giorn\w*)\s*(?:pass|ticket|ingresso)"
+        r"|pass\s+(?:giornalier\w*|weekend|\d+[\s-]*giorn\w*))\b", re.I)),
+    ("pre-show", re.compile(r"\bpre[\s-]?show\b", re.I)),
+    ("programma gare", re.compile(r"\bprogramma\s+gare\b", re.I)),
+    ("parcheggio o upgrade", re.compile(r"\b(parking|parcheggio|upgrade|vip package|pacchetto|hospitality|shuttle|navetta|meet\s*&\s*greet)\b", re.I)),
+]
+#: nomi di tipo/sottotipo/segmento della classificazione che indicano un prodotto e non un evento
+NOT_EVENT_CLASS = re.compile(r"\b(parking|upsell|pass(?:es)?|season|subscription|abbonament\w*|package|merchandise|voucher|gift)\b", re.I)
+YOUTH = re.compile(r"\b(giovanili|u\s?1\d|juniores|allievi|esordienti|attivit[àa] di base|triangolar\w*)\b", re.I)
 KIDS_GENRE = re.compile(r"famil|child|bambin", re.I)
-SEGMENTS = {"music": "music", "sports": "sport", "arts & theatre": "culture", "film": "culture"}
+TV = re.compile(r"registrazion\w*|\bTV\b|televis\w*|talk\s*show|programma\s+televisiv\w*|pubblico in studio", re.I)
+CLASSICAL = re.compile(r"classic|orchestr|symphon|sinfon|concert|recital", re.I)
+SEGMENTS = {"music": "music", "sports": "sport"}
+EXHIBITION_MIN_COVERAGE = 0.5  # giorni con un biglietto / giorni tra il primo e l'ultimo: mostre e simili
+OTHER_MIN_DATES, OTHER_MIN_COVERAGE = 10, 0.8  # musica e sport: solo se è davvero un biglietto per ogni giorno
 
 _LOCK = threading.Lock()
 _CACHE: dict[tuple, list[dict] | Exception] = {}
+_COMUNE: dict[str, tuple | None] = {}  # id evento → comune del luogo (calcolato una volta, condiviso dalle istanze)
 
 
 class _Budget:
@@ -123,7 +139,8 @@ def _fetch(client: httpx.Client, now: datetime, horizon_days: int) -> list[dict]
                 seen.add(item["id"])
                 out.append(item)
         t = end + timedelta(seconds=1)
-    log.info("Ticketmaster: %d eventi in Italia, %d chiamate", len(out), budget.calls)
+    unplaced = sum(1 for item in out if _comune_of(item) is None)
+    log.info("Ticketmaster: %d eventi in Italia, %d chiamate, %d senza comune riconosciuto (scartati)", len(out), budget.calls, unplaced)
     return out
 
 
@@ -167,13 +184,39 @@ def find_comune(city: str, province: str, lat: float | None, lng: float | None) 
 
 # --- mappatura --------------------------------------------------------------------------------------------------
 
-def _category(item: dict, title: str) -> str:
+def _classes(item: dict) -> dict:
     cls = item.get("classifications") or []
     c = next((x for x in cls if x.get("primary")), cls[0] if cls else {})
-    genres = " ".join((c.get(k) or {}).get("name", "") for k in ("genre", "subGenre"))
+    return {k: ((c.get(k) or {}).get("name") or "") for k in ("segment", "genre", "subGenre", "type", "subType")}
+
+
+def _category(item: dict, title: str) -> str:
+    c = _classes(item)
+    segment, genres = c["segment"].lower(), f"{c['genre']} {c['subGenre']}"
+    if TV.search(title) or TV.search(genres):
+        return "other"  # registrazioni televisive e talk show non sono concerti
     if KIDS_GENRE.search(genres):
         return "kids"
-    return SEGMENTS.get(((c.get("segment") or {}).get("name") or "").lower()) or category_from_title(title) or "other"
+    if segment in SEGMENTS:
+        return SEGMENTS[segment]
+    if segment in ("arts & theatre", "film"):
+        return "music" if CLASSICAL.search(genres) else "culture"
+    return category_from_title(title) or "other"
+
+
+def _not_event(item: dict, title: str, category: str) -> str | None:
+    """Motivo per cui non è un evento (abbonamento, pass, parcheggio…), da titolo, classificazione e tipo del record."""
+    if item.get("test") or (item.get("type") or "event") != "event":
+        return "prodotto non evento"
+    for reason, rx in NOT_EVENTS:
+        if rx.search(title):
+            return reason
+    c = _classes(item)
+    if NOT_EVENT_CLASS.search(f"{c['segment']} {c['type']} {c['subType']}"):
+        return "prodotto non evento"
+    if category == "sport" and YOUTH.search(title):
+        return "sport giovanile"
+    return None
 
 
 def _image(item: dict) -> str:
@@ -196,6 +239,47 @@ def _times(item: dict) -> tuple[datetime, datetime] | None:
     return datetime.combine(day, dtime(0, 0), ROME), datetime.combine(day, dtime(23, 59), ROME)
 
 
+def _comune_of(item: dict) -> tuple | None:
+    venue = next(iter((item.get("_embedded") or {}).get("venues") or []), {})
+    if item.get("id") not in _COMUNE:
+        loc = venue.get("location") or {}
+        try:
+            lat, lng = float(loc["latitude"]), float(loc["longitude"])
+            lat, lng = (lat, lng) if lat or lng else (None, None)
+        except (KeyError, TypeError, ValueError):
+            lat = lng = None
+        _COMUNE[item.get("id")] = find_comune((venue.get("city") or {}).get("name", ""),
+                                              (venue.get("state") or {}).get("stateCode", ""), lat, lng)
+    return _COMUNE[item.get("id")]
+
+
+def merge_daily(evs: list[dict]) -> Iterator[dict]:
+    """Biglietti giornalieri della stessa sede e dello stesso titolo (una mostra con un biglietto al giorno) → un solo
+    evento longRunning dal primo all'ultimo giorno. Le serie di date vere (residency di un cantante) restano separate.
+    Si unisce se i giorni coprono almeno metà del periodo (musica e sport: 10 date e l'80%)."""
+    groups: dict[tuple, list[dict]] = {}
+    for ev in evs:
+        if "_excluded" in ev:
+            yield ev
+        else:
+            groups.setdefault((slugify(ev["title"]), ev["venueName"], ev["_place"]["citySlug"]), []).append(ev)
+    for (title, venue, city), group in groups.items():
+        days = sorted({datetime.fromtimestamp(e["startTime"] / 1000, ROME).date() for e in group})
+        span = (days[-1] - days[0]).days + 1
+        other = group[0]["category"] in ("music", "sport")
+        if len(days) >= (OTHER_MIN_DATES if other else 3) and span >= 5 and len(days) / span >= (OTHER_MIN_COVERAGE if other else EXHIBITION_MIN_COVERAGE):
+            group.sort(key=lambda e: e["startTime"])
+            known = [e["priceType"] for e in group if e["priceType"] != "unknown"]
+            ev = group[0] | {"endTime": max(e["endTime"] for e in group), "longRunning": True,
+                             "sourceUrl": f"{BASE}/discovery/v2/series/{event_id(f'{title}|{venue}|{city}')}",
+                             "priceType": max(known, key=("free", "low", "premium").index, default="unknown")}
+            ev["id"] = event_id(ev["sourceUrl"])
+            log.info("  Ticketmaster: %d date di «%s» unite in un evento", len(group), group[0]["title"])
+            yield ev
+        else:
+            yield from group
+
+
 @dataclass(frozen=True)
 class TicketmasterAdapter:
     name: str
@@ -208,17 +292,15 @@ class TicketmasterAdapter:
     regional: ClassVar[bool] = True
 
     def events(self, client: httpx.Client, now: datetime, horizon_days: int) -> Iterator[dict]:
-        for item in fetch_italy(client, now, horizon_days):
-            ev = self._event(item, now, horizon_days)
-            if ev is not None:
-                yield ev
+        found = [ev for item in fetch_italy(client, now, horizon_days) if (ev := self._event(item, now, horizon_days)) is not None]
+        yield from merge_daily(found)
 
     def _event(self, item: dict, now: datetime, horizon_days: int) -> dict | None:
         title = one_line(item.get("name"))
         url = str(item.get("url") or "")
         times = _times(item)
         venue = next(iter((item.get("_embedded") or {}).get("venues") or []), {})
-        if not item.get("id") or not title or not url.startswith("https://") or times is None or not venue or JUNK.search(title):
+        if not item.get("id") or not title or not url.startswith("https://") or times is None or not venue:
             return None
         start, end = times
         source_url = f"{BASE}/discovery/v2/events/{item['id']}"
@@ -230,24 +312,26 @@ class TicketmasterAdapter:
             lat, lng = (lat, lng) if lat or lng else (None, None)
         except (KeyError, TypeError, ValueError):
             lat = lng = None
-        comune = find_comune((venue.get("city") or {}).get("name", ""), (venue.get("state") or {}).get("stateCode", ""), lat, lng)
+        comune = _comune_of(item)
         if comune is None or slugify(comune[2]) != slugify(self.region):
             return None  # luogo non riconosciuto, o di un'altra regione (la sua istanza lo tiene)
         nome, sigla, regione, clat, clng, cslug = comune
+        category = _category(item, title)
         approx = lat is None
         if approx:
             lat, lng = clat, clng  # centro del comune: niente geocoding, e il dettaglio dice "luogo da confermare"
-        price = next((p for p in item.get("priceRanges") or [] if p.get("currency") == "EUR" and isinstance(p.get("min"), (int, float))), None)
-        price_type = "low" if price is None else "free" if price["min"] == 0 else "premium" if price["min"] >= PREMIUM_FROM_EUR else "low"
-        text = " ".join(filter(None, [f"Biglietti da {price['min']:g} €." if price and price["min"] else "",
-                                      one_line(item.get("info") or item.get("pleaseNote"))]))
+        prices = [p for p in item.get("priceRanges") or [] if p.get("currency") == "EUR" and isinstance(p.get("min"), (int, float))]
+        low, high = min((p["min"] for p in prices), default=0), max((p.get("max") or p["min"] for p in prices), default=0)
+        # senza fasce di prezzo in euro: "unknown" (prezzo sul sito del venditore), mai "low" di default; fasce come per gli altri adapter
+        price_type = "unknown" if not prices else "free" if high == 0 else "premium" if high >= PREMIUM_FROM_EUR else "low"
+        text = " ".join(filter(None, [f"Biglietti da {low:g} €." if low else "", one_line(item.get("info") or item.get("pleaseNote"))]))
         street = one_line((venue.get("address") or {}).get("line1"))
         zip_city = f"{venue.get('postalCode') or ''} {nome}".strip()
         ev = {
             "id": event_id(source_url),
             "title": title,
             "shortDescription": shorten(text),
-            "category": _category(item, title),
+            "category": category,
             "priceType": price_type,
             "startTime": int(start.timestamp() * 1000),
             "endTime": int(end.timestamp() * 1000),
@@ -266,4 +350,6 @@ class TicketmasterAdapter:
         }
         if (item.get("dates") or {}).get("status", {}).get("code") in ("cancelled", "canceled"):
             ev["_excluded"] = "annullato"  # run.collect lo scarta e, se già nel database, lo nasconde subito
+        elif reason := _not_event(item, title, category):
+            ev["_excluded"] = reason  # idem: contato per motivo nel riepilogo del dry-run
         return ev

@@ -14,7 +14,8 @@ export const CATEGORIES = {
 } as const;
 export type Category = keyof typeof CATEGORIES;
 
-export const PRICE_TYPES = { free: 'Gratis', low: 'Economico', premium: 'A pagamento' } as const;
+// unknown: prezzo non dato dalla fonte (biglietti Ticketmaster senza fasce): si rimanda al sito del venditore
+export const PRICE_TYPES = { free: 'Gratis', low: 'Economico', premium: 'A pagamento', unknown: 'Prezzo sul sito' } as const;
 export type PriceType = keyof typeof PRICE_TYPES;
 
 export const LIMITS = {

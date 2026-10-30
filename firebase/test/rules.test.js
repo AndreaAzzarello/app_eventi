@@ -75,6 +75,11 @@ describe('events', () => {
     await assertFails(updateDoc(doc(fs, 'events', 'e1'), { locality: 'a'.repeat(81) }));
     await assertFails(updateDoc(doc(fs, 'events', 'e1'), { locality: 5 }));
   });
+  it('priceType: unknown (prezzo sul sito del venditore) ammesso, valori inventati no', async () => {
+    const fs = db('adm', ADMIN);
+    await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { priceType: 'unknown' }));
+    await assertFails(updateDoc(doc(fs, 'events', 'e1'), { priceType: 'cheap' }));
+  });
   it('longRunning: booleano ammesso, altri tipi no', async () => {
     const fs = db('adm', ADMIN);
     await assertSucceeds(updateDoc(doc(fs, 'events', 'e1'), { longRunning: true }));

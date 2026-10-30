@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { romeTime } from './dates';
-import { compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, ticketLabel, ticketVendor, validateEvent, type EventInput } from './event';
+import { PRICE_TYPES, compareEvents, eventSource, eventPath, fromData, runningLabel, idFromSlug, parseTags, safeUrl, slugify, ticketLabel, ticketVendor, validateEvent, type EventInput } from './event';
 
 const sample = (over: Partial<EventInput> = {}): EventInput => ({
 	title: 'Concerto in piazza',
@@ -112,6 +112,13 @@ describe('longRunning e ordinamento', () => {
 		expect(runningLabel(ev('x', now - 20 * day, end))).toBe('In corso fino al 12 nov');
 		expect(runningLabel(ev('Mostra di foto', now - 20 * day, end, { category: 'culture' }))).toBe('Mostra');
 		expect(runningLabel(ev('x', now - 20 * day, end, { category: 'culture', tags: ['mostra'] }))).toBe('Mostra');
+	});
+});
+
+describe('PRICE_TYPES', () => {
+	it('un prezzo sconosciuto non diventa "Gratis"', () => {
+		expect(PRICE_TYPES.unknown).toBe('Prezzo sul sito');
+		expect(fromData('x', { priceType: 'unknown' }).priceType).toBe('unknown');
 	});
 });
 

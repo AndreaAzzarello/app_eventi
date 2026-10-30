@@ -33,6 +33,7 @@ def evs(region: str) -> dict[str, dict]:
 @pytest.fixture(autouse=True)
 def clean(monkeypatch):
     tm._CACHE.clear()
+    tm._COMUNE.clear()
     monkeypatch.setattr(tm.time, "sleep", lambda s: None)
     monkeypatch.setenv("TICKETMASTER_API_KEY", KEY)
 
@@ -55,11 +56,11 @@ def test_concerto_mappato():
 
 def test_categorie_e_prezzo():
     lomb, pie, ero, laz = evs("Lombardia"), evs("Piemonte"), evs("Emilia-Romagna"), evs("Lazio")
-    assert pie["Derby di esempio"]["category"] == "sport" and pie["Derby di esempio"]["priceType"] == "low"
-    assert ero["Il lago dei cigni"]["category"] == "culture" and ero["Il lago dei cigni"]["priceType"] == "low"
+    assert pie["Derby di esempio"]["category"] == "sport" and pie["Derby di esempio"]["priceType"] == "premium"  # 20-90 €: come gli altri adapter, vale il massimo
+    assert ero["Il lago dei cigni"]["category"] == "culture" and ero["Il lago dei cigni"]["priceType"] == "unknown"
     fam = laz["Spettacolo per famiglie"]
     assert fam["category"] == "kids" and fam["priceType"] == "free" and fam["tags"] == ["kids"] and fam["shortDescription"] == ""
-    assert lomb["Rassegna senza coordinate"]["priceType"] == "low"  # senza prezzo: mai "gratis"
+    assert lomb["Rassegna senza coordinate"]["priceType"] == "unknown"  # senza priceRanges: prezzo sul sito del venditore, mai "low" di default
 
 
 def test_filtro_per_regione():
@@ -69,7 +70,7 @@ def test_filtro_per_regione():
 
 def test_scarti():
     lomb = evs("Lombardia")
-    assert "Parking Unipol Forum" not in lomb  # servizio, non evento
+    assert lomb["Parking Unipol Forum"]["_excluded"] == "parcheggio o upgrade"  # servizio, non evento
     assert "Data da definire" not in lomb and "Evento di luglio" not in evs("Lazio")  # data non fissata / oltre 60 giorni
     assert lomb["Concerto annullato"]["_excluded"] == "annullato"
 
@@ -85,6 +86,95 @@ def test_comune_dal_nome_dalla_sigla_e_dal_piu_vicino():
     assert find_comune("Fiera Milano Rho", "MI", 45.53, 9.04)[0] == "Rho"  # non è un comune: il più vicino entro 15 km
     assert find_comune("Luogo ignoto", "", 45.0, 3.0) is None  # troppo lontano da tutto
     assert evs("Piemonte")["Concerto a Samone"]["_place"]["citySlug"] == "samone-to"
+
+
+def make(title: str, day: str = "2026-12-12", segment: str = "Music", genre: str = "Pop", city: str = "Assago", **over) -> dict:
+    """Evento sintetico (come quelli della fixture) con titolo, giorno e classificazione a scelta."""
+    item = copy.deepcopy(RAW["_embedded"]["events"][0])
+    item.pop("priceRanges", None), item.pop("info", None)
+    item.update(id=f"X-{title}-{day}", name=title, url=f"https://www.ticketmaster.it/e/{title}-{day}")
+    item["dates"]["start"] = {"localDate": day, "localTime": "21:00:00", "dateTime": f"{day}T20:00:00Z"}
+    item["classifications"] = [{"primary": True, "segment": {"name": segment}, "genre": {"name": genre}, "subGenre": {"name": "Altro"}}]
+    item["_embedded"]["venues"][0]["city"] = {"name": city}
+    return item | over
+
+
+def convert(*items, region="Lombardia") -> list[dict]:
+    a = adapter(region)
+    return list(tm.merge_daily([e for i in items if (e := a._event(i, NOW, 60))]))
+
+
+@pytest.mark.parametrize("title,reason", [
+    ("Abbonamento Stagione 2026/27", "abbonamento o pass"),
+    ("Festival Season Pass", "abbonamento o pass"),
+    ("Daily Pass - Sabato", "abbonamento o pass"),
+    ("2 Days Pass", "abbonamento o pass"),
+    ("3-Days Ticket", "abbonamento o pass"),
+    ("Pass 2 giorni", "abbonamento o pass"),
+    ("Pre-Show Experience", "pre-show"),
+    ("Programma Gare Sabato", "programma gare"),
+    ("Parcheggio Stadio", "parcheggio o upgrade"),
+    ("VIP Upgrade", "parcheggio o upgrade"),
+])
+def test_biglietti_che_non_sono_eventi(title, reason):
+    assert convert(make(title))[0]["_excluded"] == reason
+
+
+def test_classificazione_e_tipo_del_record_escludono():
+    assert convert(make("Festival 2026", segment="Miscellaneous", genre="Undefined",
+                        classifications=[{"primary": True, "segment": {"name": "Miscellaneous"}, "type": {"name": "Season Tickets"}}]))[0]["_excluded"] == "prodotto non evento"
+    assert convert(make("Festival 2026", type="parking"))[0]["_excluded"] == "prodotto non evento"
+    assert convert(make("Festival 2026", test=True))[0]["_excluded"] == "prodotto non evento"
+    assert "_excluded" not in convert(make("Passaggio a nord"))[0]  # "pass" dentro un'altra parola non conta
+
+
+@pytest.mark.parametrize("title", ["Under 15 Giovanili", "Torneo U16", "Juniores Nazionale", "Attività di base", "Triangolari esordienti"])
+def test_sport_giovanile_escluso_solo_per_lo_sport(title):
+    assert convert(make(title, segment="Sports", genre="Football"))[0]["_excluded"] == "sport giovanile"
+    assert "_excluded" not in convert(make(title, segment="Arts & Theatre", genre="Theatre"))[0]
+
+
+def test_categorie_da_classificazione():
+    cat = lambda **k: convert(make("Serata", **k))[0]["category"]  # noqa: E731
+    assert cat(segment="Music", genre="Classical") == "music"
+    assert cat(segment="Arts & Theatre", genre="Classical") == "music"  # concerto di classica sotto Arti e teatro
+    assert cat(segment="Arts & Theatre", genre="Theatre") == "culture"
+    assert cat(segment="Sports", genre="Basketball") == "sport"
+    assert cat(segment="Music", genre="Pop") == "music"
+    assert convert(make("Registrazione TV Amici", segment="Music"))[0]["category"] == "other"
+    assert convert(make("Talk show dal vivo", segment="Music"))[0]["category"] == "other"
+
+
+def test_prezzo_vuoto_o_fascia_corretta():
+    price = lambda *ranges: convert(make("Serata", priceRanges=list(ranges)))[0]["priceType"]  # noqa: E731
+    eur = lambda lo, hi: {"currency": "EUR", "min": lo, "max": hi}  # noqa: E731
+    assert convert(make("Serata"))[0]["priceType"] == "unknown"  # nessuna fascia: mai "low"
+    assert price() == "unknown" and price({"currency": "USD", "min": 10, "max": 20}) == "unknown"
+    assert price(eur(0, 0)) == "free" and price(eur(10, 20)) == "low" and price(eur(10, 25)) == "premium"
+    assert price(eur(15, 20), eur(30, 80)) == "premium"  # più fasce: vale il massimo
+
+
+def test_biglietti_giornalieri_uniti_in_un_evento_lungo():
+    days = [f"2026-12-{d:02d}" for d in (1, 2, 3, 4, 5, 7, 8, 9, 10, 11)]
+    mostra = [make("MARTIN PARR", d, segment="Arts & Theatre", genre="Fine Art", priceRanges=[{"currency": "EUR", "min": 12, "max": 12}]) for d in days]
+    (ev,) = convert(*mostra)
+    assert ev["longRunning"] is True and ev["priceType"] == "low" and ev["sourceUrl"].startswith(f"{tm.BASE}/discovery/v2/series/")
+    assert datetime.fromtimestamp(ev["startTime"] / 1000, timezone.utc).day == 1 and datetime.fromtimestamp(ev["endTime"] / 1000, timezone.utc).day == 12 - 1
+    assert convert(*mostra[2:])[0]["id"] == ev["id"]  # l'id non dipende dal primo giorno ancora in vendita
+    assert convert(*mostra[:2])[0].get("longRunning") is None and len(convert(*mostra[:2])) == 2  # due date non fanno una serie
+
+
+def test_residency_resta_in_date_separate():
+    residency = [make("Mengoni Live", f"2026-12-{d:02d}", priceRanges=[{"currency": "EUR", "min": 50, "max": 90}]) for d in (3, 4, 6, 9, 10, 13, 14, 17)]
+    out = convert(*residency)
+    assert len(out) == 8 and not any(e.get("longRunning") for e in out)  # musica: servono 10 date all'80%
+
+
+def test_serie_di_un_altro_luogo_o_titolo_non_si_mescola():
+    a = [make("MARTIN PARR", f"2026-12-{d:02d}", segment="Arts & Theatre", genre="Fine Art") for d in (1, 2, 3, 4, 5, 6)]
+    b = [make("ALTRA MOSTRA", f"2026-12-{d:02d}", segment="Arts & Theatre", genre="Fine Art") for d in (1, 2)]
+    out = convert(*a, *b)
+    assert len(out) == 3 and sum(1 for e in out if e.get("longRunning")) == 1
 
 
 def pages(totals):
@@ -186,3 +276,20 @@ def test_doppione_comunale_vince_e_prende_il_link(order):
     assert out[0]["contentHash"] == run.content_hash(out[0])
     assert stats["ticketmaster-x"]["duplicates"] + stats["comune-x"]["duplicates"] == 1
     assert stats["comune-x"]["events"] == 1 and stats["ticketmaster-x"]["events"] == 0
+
+
+REAL = Path(__file__).parent / "fixtures" / "ticketmaster_real.json"
+
+
+@pytest.mark.skipif(not REAL.exists(), reason="fixture reale non ancora registrata (record_ticketmaster.py)")
+def test_fixture_reale_tutte_le_regioni():
+    """Su risposte vere: nessun errore, campi validi, id unici, nessuna chiave."""
+    text = REAL.read_text(encoding="utf-8")
+    assert "apikey" not in text.lower()
+    items = json.loads(text)["_embedded"]["events"]
+    regions = sorted({r for r in tm._comuni()[0] for r in [r[2]]})
+    out = [e for r in regions for e in convert(*copy.deepcopy(items), region=r)]
+    assert out and len({e["id"] for e in out}) == len(out)
+    for e in out:
+        assert e["category"] in {"music", "food", "sport", "culture", "kids", "market", "other"} and e["priceType"] in {"free", "low", "premium", "unknown"}
+        assert e["ticketUrl"].startswith("https://") and e["title"] and e["endTime"] >= e["startTime"] and e["lat"] and e["lng"]
