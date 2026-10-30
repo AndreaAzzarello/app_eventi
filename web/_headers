@@ -1,0 +1,7 @@
+# Intestazioni per gli asset statici (Cloudflare Pages). Le pagine del Worker le prendono da src/hooks.server.ts: tenerle allineate.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=()
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
