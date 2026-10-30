@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -161,16 +162,28 @@ def summary(stats: list[dict], cleanup: dict | None) -> str:
     return "\n".join(lines)
 
 
-FULL_TITLE = "Import eventi"  # run-name di un import completo (senza "(dry-run)" né "[regione]")
+MARKER = re.compile(r"^guard \(dry_run=(\w*), regione=([^)]*)\)$")  # nome del job guard: gli input del run, che l'API non espone
 
 
-def import_done_today(runs: list[dict], today: str, current_id: int, plan_ran) -> bool:
+def is_full_import(run: dict, jobs: list[dict]) -> bool:
+    """Import completo = workflow import-events, avviato da schedule o workflow_dispatch, non dry-run, senza regione,
+    con il job `plan` partito (un run che ha saltato per il guard non è un import). Gli input si leggono dal nome del
+    job `guard` (l'API dei run non li dà); i run senza quel nome (precedenti) si deducono dai job: più regioni e pulizia non saltata."""
+    if run["event"] not in ("schedule", "workflow_dispatch") or run.get("conclusion") in ("cancelled", "skipped"):
+        return False
+    by_name = {j["name"]: j for j in jobs}
+    if "plan" not in by_name or by_name["plan"]["conclusion"] == "skipped":
+        return False
+    marker = next((m for j in jobs if (m := MARKER.match(j["name"]))), None)
+    if marker:
+        return marker[1] != "true" and not marker[2].strip()
+    return sum(j["name"].startswith("import (") for j in jobs) > 1 and by_name.get("cleanup", {}).get("conclusion") != "skipped"
+
+
+def import_done_today(runs: list[dict], today: str, current_id: int, jobs_of) -> bool:
     """True se oggi (data UTC) è già partito un altro import completo: in corso o terminato, riuscito o no.
-
-    Contano solo i run il cui job `plan` è davvero partito (plan_ran(run_id)): un run che ha saltato per questo stesso
-    controllo non è un import. Cancellati e rifiutati dal controllo non contano, così si può ripartire."""
-    return any(r["id"] != current_id and r["created_at"].startswith(today) and r["display_title"] == FULL_TITLE
-               and r.get("conclusion") not in ("cancelled", "skipped") and plan_ran(r["id"]) for r in runs)
+    jobs_of(run_id) → job del run [{name, conclusion}]."""
+    return any(r["id"] != current_id and r["created_at"].startswith(today) and is_full_import(r, jobs_of(r["id"])) for r in runs)
 
 
 def guard() -> bool:
@@ -184,8 +197,8 @@ def guard() -> bool:
                                              check=True).stdout)
 
         runs = gh(f"actions/workflows/import-events.yml/runs?created=>={today}&per_page=50")["workflow_runs"]
-        plan_ran = lambda rid: any(j["name"] == "plan" and j["conclusion"] != "skipped" for j in gh(f"actions/runs/{rid}/jobs")["jobs"])
-        go = not import_done_today(runs, today, int(os.environ.get("GITHUB_RUN_ID", 0)), plan_ran)
+        go = not import_done_today(runs, today, int(os.environ.get("GITHUB_RUN_ID", 0)),
+                                   lambda rid: gh(f"actions/runs/{rid}/jobs?per_page=100")["jobs"])
         print("Import completo di oggi già avviato: salto." if not go else "Nessun import completo oggi: parto.")
     if path := os.environ.get("GITHUB_OUTPUT"):
         with open(path, "a", encoding="utf-8") as f:

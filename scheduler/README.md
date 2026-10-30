@@ -10,7 +10,7 @@ Tre avvii, una sola esecuzione al giorno:
 | 10:17 | cron di GitHub (`import-events.yml`) | riserva |
 | a mano | `gh workflow run import-events.yml -f auto=true` | riserva manuale |
 
-Il job `guard` del workflow (`python ci_report.py guard`) salta l'avvio se oggi (data UTC) esiste già un import completo (titolo "Import eventi", niente dry-run né regione singola), in corso o terminato; i run cancellati non contano. Il `concurrency` serializza i tre avvii, quindi il secondo trova il primo. I lanci manuali senza `auto` non sono controllati (restano possibili dry-run e regioni singole).
+Il job `guard` del workflow (`python ci_report.py guard`) salta l'avvio se oggi (data UTC) esiste già un import completo (workflow `import-events.yml`, evento `schedule` o `workflow_dispatch`, né dry-run né regione singola), in corso o terminato; i run cancellati o saltati non contano. L'API dei run non espone gli input: `guard` li legge dal nome del proprio job (`guard (dry_run=false, regione=)`), indipendente dal titolo del run. Il `concurrency` serializza i tre avvii, quindi il secondo trova il primo. I lanci manuali senza `auto` non sono controllati (restano possibili dry-run e regioni singole).
 
 ## 1. Token GitHub (solo Actions: write su questo repo)
 1. GitHub → foto profilo → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
