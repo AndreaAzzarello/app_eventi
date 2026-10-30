@@ -155,6 +155,11 @@ const nowMinute = () => Math.floor(Date.now() / 60_000) * 60_000;
 /** Esportato per i test. */
 export const PER_CELL_LIMIT = 150;
 
+/** Celle per richiesta: 100 km + margine sono ~120 celle; di più è un abuso, non si legge nulla. */
+export const MAX_CELLS = 150;
+/** Id per richiesta di /api/events?ids=. */
+export const MAX_IDS = 25;
+
 /** Limite per la query dedicata agli eventi lunghi (mostre, rassegne): sono pochi rispetto ai puntuali. */
 const LONG_LIMIT = 100;
 const TRUE: Value = { booleanValue: true };
@@ -209,7 +214,9 @@ export function eventsNear(center: LatLng, km: number): Promise<Event[]> {
 	return cached(`near:${center.lat},${center.lng},${km}`, async () => {
 		const now = nowMinute();
 		if (await bundlesReady()) {
-			const rows = await readBundles(cellsAround(center, km));
+			const cells = cellsAround(center, km);
+			if (cells.length > MAX_CELLS) throw new Error(`Troppe celle: ${cells.length}`);
+			const rows = await readBundles(cells);
 			return liveEvents(rows, now).filter((e) => distanceKm(center, e) <= km).sort(compareEvents(now));
 		}
 		const batches = await Promise.all(
@@ -250,6 +257,7 @@ export function eventsAround(place: LatLng, radiusKm: number) {
 export function eventsInCity(citySlug: string, limit = 100): Promise<Event[]> {
 	return cached(`city:${citySlug}:${limit}`, async () => {
 		if (/^[a-z0-9-]{1,80}$/.test(citySlug) && (await bundlesReady())) {
+			// Niente controllo sulla copertura: una città può avere eventi (manuali, regionali) senza stare in coverage.
 			return liveEvents(await readBundles([`c_${citySlug}`]), nowMinute()).sort(compareEvents(Date.now())).slice(0, limit);
 		}
 		const where = [f('citySlug', 'EQUAL', { stringValue: citySlug }), f('endTime', 'GREATER_THAN_OR_EQUAL', int(nowMinute()))];
@@ -316,8 +324,8 @@ export function coverage(): Promise<Coverage[]> {
 export function regionCoverage(slug: string): Promise<Coverage | null> {
 	if (!/^[a-z0-9-]{1,70}$/.test(slug)) return Promise.resolve(null);
 	return cached(`region:${slug}`, async () => {
-		const hit = (await coverageBundle())?.find((r) => r.slug === slug);
-		if (hit) return hit;
+		const bundle = await coverageBundle();
+		if (bundle) return bundle.find((r) => r.slug === slug) ?? null; // bundle presente: una regione assente non esiste, niente lettura
 		readCount++;
 		const doc = await call<Doc>(`/coverage/${slug}`);
 		return doc ? toCoverage(doc) : null;
@@ -333,16 +341,18 @@ export function getEvent(id: string): Promise<Event | null> {
 	});
 }
 
-/** Più eventi per id in una richiesta (preferiti degli utenti non loggati). */
-export async function getEvents(ids: string[]): Promise<Event[]> {
-	const valid = ids.filter((id) => /^[A-Za-z0-9_]{1,64}$/.test(id)).slice(0, 100);
-	if (!valid.length) return [];
-	const r = root();
-	const rows = await call<{ found?: Doc }[]>(':batchGet', {
-		documents: valid.map((id) => `${r.name}/events/${id}`)
+/** Più eventi per id in una richiesta (preferiti degli utenti non loggati): id unici e ordinati, in cache come il resto. */
+export function getEvents(ids: string[]): Promise<Event[]> {
+	const valid = [...new Set(ids.filter((id) => /^[A-Za-z0-9_]{1,64}$/.test(id)))].sort().slice(0, MAX_IDS);
+	if (!valid.length) return Promise.resolve([]);
+	return cached(`events:${valid.join(',')}`, async () => {
+		const r = root();
+		const rows = await call<{ found?: Doc }[]>(':batchGet', {
+			documents: valid.map((id) => `${r.name}/events/${id}`)
+		});
+		readCount += valid.length;
+		return (rows ?? []).flatMap((x) => (x.found && visible(x.found) ? [toEvent(x.found)] : []));
 	});
-	readCount += valid.length;
-	return (rows ?? []).flatMap((x) => (x.found && visible(x.found) ? [toEvent(x.found)] : []));
 }
 
 export interface MonthStats {

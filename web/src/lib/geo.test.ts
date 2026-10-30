@@ -25,3 +25,13 @@ describe('geo', () => {
 		expect(placeFromNominatim(undefined)).toBeNull();
 	});
 });
+
+describe('inItaly', () => {
+	it('accetta i comuni italiani e scarta il resto del mondo', async () => {
+		const { inItaly } = await import('./geo');
+		expect(inItaly({ lat: 44.65, lng: 10.93 })).toBe(true); // Modena
+		expect(inItaly({ lat: 36.9, lng: 14.7 })).toBe(true); // Sicilia
+		expect(inItaly({ lat: 48.85, lng: 2.35 })).toBe(false); // Parigi
+		expect(inItaly({ lat: 0, lng: 0 })).toBe(false);
+	});
+});

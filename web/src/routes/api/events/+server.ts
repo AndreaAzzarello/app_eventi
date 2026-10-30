@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
-import { RADII_KM } from '$lib/geo';
-import { eventsAround, getEvents } from '$lib/server/firestore';
+import { RADII_KM, inItaly } from '$lib/geo';
+import { MAX_IDS, eventsAround, getEvents } from '$lib/server/firestore';
 import type { RequestHandler } from './$types';
 
 // GET /api/events?lat=&lng=&r=  → eventi nel raggio dal punto della griglia di ~5 km più vicino
@@ -9,14 +9,16 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ url, setHeaders }) => {
 	const ids = url.searchParams.get('ids');
 	if (ids != null) {
-		const list = await getEvents(ids.split(',').filter(Boolean));
+		const wanted = ids.split(',').filter(Boolean);
+		if (wanted.length > MAX_IDS) error(400, `Al massimo ${MAX_IDS} id`);
+		const list = await getEvents(wanted);
 		setHeaders({ 'cache-control': 'public, max-age=60, s-maxage=600' });
 		return json(list);
 	}
 	const lat = Number(url.searchParams.get('lat'));
 	const lng = Number(url.searchParams.get('lng'));
 	const r = Number(url.searchParams.get('r'));
-	if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+	if (!Number.isFinite(lat) || !Number.isFinite(lng) || !inItaly({ lat, lng }))
 		error(400, 'Coordinate non valide');
 	if (!(RADII_KM as readonly number[]).includes(r)) error(400, 'Raggio non valido');
 	const { events } = await eventsAround({ lat, lng }, r);

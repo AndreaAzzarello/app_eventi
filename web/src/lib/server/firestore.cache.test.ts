@@ -97,4 +97,56 @@ describe('cache dei dati Firestore', () => {
 		await expect(f.eventsAround(center, 25)).rejects.toThrow('429');
 		expect([...store.keys()].some((k) => k.includes('near'))).toBe(false); // nessuna lista in cache
 	});
+
+	describe('limiti anti-abuso', () => {
+		const coverageDoc = {
+			name: 'projects/p/databases/(default)/documents/bundles/coverage',
+			fields: { json: { stringValue: JSON.stringify([{ slug: 'lazio', name: 'Lazio', comuni: [{ name: 'Roma', slug: 'roma' }] }]) } }
+		};
+		/** Con il bundle coverage presente ogni altra lettura è tracciata in `reads`. */
+		const withCoverage = () => {
+			const reads: string[] = [];
+			fetchMock.mockImplementation(async (u: string, init?: { body?: string }) => {
+				if (u.includes('/bundles/coverage') && !init?.body) return new Response(JSON.stringify(coverageDoc));
+				reads.push(u + (init?.body ?? ''));
+				return new Response(init?.body ? '[]' : '{}', { status: init?.body ? 200 : 404 });
+			});
+			return reads;
+		};
+
+		it('getEvents: al massimo 25 id, e lo stesso insieme in ordine diverso costa una sola lettura', async () => {
+			const f = await import('./firestore');
+			const ids = Array.from({ length: 40 }, (_, i) => `e${String(i).padStart(2, '0')}`);
+			await f.getEvents(ids);
+			const body = JSON.parse(fetchMock.mock.calls.at(-1)![1].body);
+			expect(body.documents).toHaveLength(25);
+			const calls = fetchMock.mock.calls.length;
+			await f.getEvents([...ids].reverse());
+			await f.getEvents([...ids, ...ids]);
+			expect(fetchMock.mock.calls.length).toBe(calls);
+		});
+
+		it('regione fuori dalla copertura: nessuna lettura oltre al bundle coverage', async () => {
+			const reads = withCoverage();
+			const f = await import('./firestore');
+			expect(await f.regionCoverage('inventata')).toBeNull();
+			expect(reads).toEqual([]);
+			expect((await f.regionCoverage('lazio'))?.name).toBe('Lazio');
+		});
+
+		it('evento inesistente (404): la seconda richiesta non richiama Firestore', async () => {
+			const f = await import('./firestore');
+			expect(await f.getEvent('nonEsiste')).toBeNull();
+			const calls = fetchMock.mock.calls.length;
+			expect(await f.getEvent('nonEsiste')).toBeNull();
+			expect(fetchMock.mock.calls.length).toBe(calls);
+		});
+
+		it('raggio enorme: troppe celle, errore senza leggere i bundle', async () => {
+			const reads = withCoverage();
+			const f = await import('./firestore');
+			await expect(f.eventsNear(center, 5000)).rejects.toThrow('Troppe celle');
+			expect(reads).toEqual([]);
+		});
+	});
 });

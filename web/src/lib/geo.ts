@@ -8,6 +8,9 @@ export interface LatLng {
 
 export const RADII_KM = [10, 25, 50, 100] as const;
 export const DEFAULT_RADIUS_KM = 25;
+/** Riquadro sull'Italia (isole comprese, con un po' di margine): fuori di qui /api/events non legge nulla. */
+export const ITALY = { latMin: 35, latMax: 47.5, lngMin: 6, lngMax: 19 };
+export const inItaly = (p: LatLng) => p.lat >= ITALY.latMin && p.lat <= ITALY.latMax && p.lng >= ITALY.lngMin && p.lng <= ITALY.lngMax;
 /** Centro di partenza finché l'utente non sceglie: i dati iniziali sono nel modenese. */
 export const DEFAULT_PLACE = { lat: 44.6471, lng: 10.9252, label: 'Modena' };
 

@@ -23,9 +23,16 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await fetch(`/api/events?ids=${encodeURIComponent(key)}`);
-			if (!res.ok) throw new Error();
-			events = await res.json();
+			// Blocchi da 25: tanti sono gli id che l'API accetta per richiesta.
+			const parts = Array.from({ length: Math.ceil(ids.length / 25) }, (_, i) => ids.slice(i * 25, i * 25 + 25).sort().join(','));
+			const lists = await Promise.all(
+				parts.map(async (p) => {
+					const res = await fetch(`/api/events?ids=${encodeURIComponent(p)}`);
+					if (!res.ok) throw new Error();
+					return (await res.json()) as Event[];
+				})
+			);
+			events = lists.flat();
 		} catch {
 			error = 'Non riesco a caricare i preferiti.';
 			loadedKey = null;
