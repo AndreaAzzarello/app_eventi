@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from build_comuni import CACHE, OUT, build, outside_province, parse_istat, parse_wikidata  # noqa: E402
+from build_comuni import CACHE, OUT, SLUG_DIR, build, outside_province, parse_istat, parse_wikidata, slug_chunks  # noqa: E402
 from geo import slugify  # noqa: E402
 
 ISTAT = ("Codice Regione;Codice Comune formato alfanumerico;Denominazione in italiano;Denominazione altra lingua;"
@@ -72,6 +72,15 @@ def test_outside_province_segnala_coordinate_sbagliate():
     assert outside_province(data) == ["Bolzano (BZ)"]
 
 
+def test_slug_chunks_un_file_per_iniziale():
+    data, _ = build(parse_istat(ISTAT), parse_wikidata(WIKI))
+    chunks = slug_chunks(data)
+    assert set(chunks) == {"s", "b", "a"}
+    assert chunks["s"]["samone-to"] == ["Samone", 45.45, 7.84, "TO", "Piemonte"]
+    assert chunks["b"]["bolzano"][4] == "Trentino-Alto Adige"
+    assert sum(len(c) for c in chunks.values()) == len(data["c"])
+
+
 # --- file generato (python build_comuni.py) ---
 
 needs_file = pytest.mark.skipif(not OUT.exists(), reason="comuni.json non generato")
@@ -110,3 +119,10 @@ def test_bilingui_e_omonimi_noti(data):
     assert by[("Aosta", "AO")][1] == "Aoste"
     assert by[("Merano", "BZ")][1] == "Meran"
     assert {by[("Samone", "TO")][7], by[("Samone", "TN")][7]} == {"samone-to", "samone-tn"}
+
+
+@needs_file
+def test_indice_del_server_coincide_con_il_file(data):
+    files = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in SLUG_DIR.glob("*.json")}
+    assert files == slug_chunks(data)
+    assert max(p.stat().st_size for p in SLUG_DIR.glob("*.json")) < 150_000  # un file solo si carica nel Worker: pochi KB di JSON da leggere

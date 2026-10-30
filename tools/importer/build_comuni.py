@@ -6,6 +6,8 @@ Dati: ISTAT "Elenco dei comuni italiani" (CC BY 4.0: codici, nomi, nomi bilingui
       Wikidata (CC0: coordinate del centro, popolazione più recente, nome francese per la Valle d'Aosta).
 I due elenchi si uniscono per codice ISTAT. Un comune senza coordinate in Wikidata resta fuori dal file e viene
 segnalato (niente coordinate inventate a mano); test_build_comuni.py ne fissa il numero massimo.
+Oltre al file completo (per la ricerca nel browser) scrive web/src/lib/data/slug/<iniziale>.json, solo per il server: slug →
+[nome, lat, lng, sigla, regione]. Per risolvere ?luogo= il Worker carica il file di una sola lettera (qualche decina di KB), non tutto l'elenco.
 Formato (compatto, lo legge web/src/lib/comuni.ts):
   {"v": 1, "regioni": [nome…], "c": [[nome, nome altra lingua|"", sigla, indice regione, lat, lng, popolazione, slug|""]…]}
 Lo slug è slugify(nome); per gli omonimi, tutti quelli del gruppo hanno anche la sigla (samone-to, samone-tn).
@@ -30,7 +32,9 @@ from registry import USER_AGENT
 
 HERE = Path(__file__).parent
 CACHE = HERE / ".httpcache"
-OUT = HERE.parent.parent / "web" / "src" / "lib" / "data" / "comuni.json"
+DATA = HERE.parent.parent / "web" / "src" / "lib" / "data"
+OUT = DATA / "comuni.json"
+SLUG_DIR = DATA / "slug"
 SPARQL = "https://query.wikidata.org/sparql"
 # Comuni italiani attivi (Q747074 e sottoclassi: i comuni valdostani ne usano una) con codice ISTAT (P635) e coordinate (P625); popolazione (P1082) con la sua data (P585).
 QUERY = """SELECT ?code ?coord ?pop ?d ?fr ?it WHERE {
@@ -41,7 +45,6 @@ QUERY = """SELECT ?code ?coord ?pop ?d ?fr ?it WHERE {
   OPTIONAL { ?c p:P1082 ?s. ?s ps:P1082 ?pop. OPTIONAL { ?s pq:P585 ?d } }
 }"""
 AOSTA = "Valle d'Aosta"
-SARDINIA_BOX = "8.1,41.4,9.9,38.8"  # lon_min,lat_max,lon_max,lat_min, come in provinces.json
 
 
 def parse_istat(text: str) -> list[dict]:
@@ -109,9 +112,25 @@ def build(istat: list[dict], wiki: dict[str, dict]) -> tuple[dict, list[dict]]:
 
 def outside_province(data: dict) -> list[str]:
     """Comuni il cui centro cade fuori dal riquadro della propria provincia (sigle senza riquadro: non controllate)."""
-    # Le province sarde sono cambiate con la riforma (OT, OG, VS, CI tornano e se ne vanno): per la Sardegna vale il riquadro dell'isola.
-    box = lambda sig: SARDINIA_BOX if sig in SARDINIA else PROVINCES[sig][1] if sig in PROVINCES else None  # noqa: E731
-    return [f"{n} ({sig})" for n, _a, sig, _r, lat, lng, *_ in data["c"] if not in_viewbox(lat, lng, box(sig))]
+    # L'elenco ISTAT ha ancora le province sarde di prima della riforma (Olbia è "SS", ma ora sta in OT): per la Sardegna basta cadere
+    # in uno dei riquadri delle province sarde.
+    sardinia = [PROVINCES[s][1] for s in SARDINIA if s in PROVINCES]
+    boxes = lambda sig: sardinia if sig in SARDINIA else [PROVINCES[sig][1] if sig in PROVINCES else None]  # noqa: E731
+    return [f"{n} ({sig})" for n, _a, sig, _r, lat, lng, *_ in data["c"] if not any(in_viewbox(lat, lng, b) for b in boxes(sig))]
+
+
+def slug_chunks(data: dict) -> dict[str, dict[str, list]]:
+    """iniziale → {slug: [nome, lat, lng, sigla, regione]}: l'indice per il server, un file per lettera."""
+    out: dict[str, dict[str, list]] = {}
+    for name, _alt, sig, reg, lat, lng, _pop, slug in data["c"]:
+        s = slug or slugify(name)
+        out.setdefault(s[0], {})[s] = [name, lat, lng, sig, data["regioni"][reg]]
+    return out
+
+
+def write_json(path: Path, obj) -> None:
+    """UTF-8 con a capo LF su ogni sistema: lo stesso file ovunque lo si generi."""
+    path.write_bytes((json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + chr(10)).encode("utf-8"))
 
 
 def cached(name: str, refresh: bool, fetch):
@@ -133,8 +152,16 @@ def main() -> int:
             SPARQL, params={"query": QUERY, "format": "json"}, headers={"Accept": "application/sparql-results+json"}).raise_for_status().content))
     data, missing = build(parse_istat(istat), parse_wikidata(wiki))
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
-    print(f"{len(data['c'])} comuni scritti in {OUT} ({OUT.stat().st_size // 1024} KB)")
+    write_json(OUT, data)
+    SLUG_DIR.mkdir(exist_ok=True)
+    chunks = slug_chunks(data)
+    for old in SLUG_DIR.glob("*.json"):
+        if old.stem not in chunks:
+            old.unlink()
+    for letter, rows in chunks.items():
+        write_json(SLUG_DIR / f"{letter}.json", rows)
+    biggest = max(p.stat().st_size for p in SLUG_DIR.glob("*.json"))
+    print(f"{len(data['c'])} comuni scritti in {OUT} ({OUT.stat().st_size // 1024} KB), indice per il server in {len(chunks)} file (il più grande {biggest // 1024} KB)")
     if missing:
         print(f"ATTENZIONE: {len(missing)} comuni ISTAT senza coordinate in Wikidata, esclusi: " + ", ".join(f"{r['nome']} ({r['sigla']})" for r in missing))
     if bad := outside_province(data):

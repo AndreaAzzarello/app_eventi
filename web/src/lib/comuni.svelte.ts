@@ -1,5 +1,6 @@
 // Tutti i comuni italiani per la ricerca: il file (~125 KB compressi, hash nel nome, cache immutabile) si scarica al primo
 // uso della barra di ricerca, mai al caricamento della pagina. Si unisce alla copertura per sapere dove ci sono eventi.
+import { browser } from '$app/environment';
 import { decodeComuni, withCoverage, type Comune, type RawComuni } from './comuni';
 import { coverageStore } from './coverage.svelte';
 
@@ -11,7 +12,7 @@ class ComuniStore {
 
 	/** Una sola richiesta alla volta; chi chiama può attendere che i dati siano arrivati. */
 	load(): Promise<void> {
-		if (this.#list.length) return Promise.resolve();
+		if (!browser || this.#list.length) return Promise.resolve(); // il server non ne ha bisogno (e il file non entra nel Worker)
 		return (this.#pending ??= import('./data/comuni.json')
 			.then((m) => void (this.#list = decodeComuni(m.default as unknown as RawComuni)))
 			.catch(() => undefined) // senza il file resta la ricerca nella copertura e su Nominatim; si riprova alla prossima occasione

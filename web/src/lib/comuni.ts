@@ -96,16 +96,11 @@ export function withCoverage(list: Comune[], regions: CoverageRegion[]): Comune[
 
 export const comunePlace = (c: Comune): ChosenPlace => ({ lat: c.lat, lng: c.lng, label: c.name, slug: c.slug, region: c.region });
 
-/**
- * Il comune del file con questo slug, senza decodificare tutto il file (lo usa il server: pochi millisecondi di CPU).
- * Il confronto parte dalla prima lettera, che nei nomi dei comuni coincide con quella dello slug (verificato dal test su tutto il file).
- */
-export function comuneBySlug(raw: RawComuni, slug: string): ChosenPlace | null {
-	for (const r of raw.c) {
-		const name = r[0] as string;
-		const own = (r[7] as string) || (name[0].toLowerCase() === slug[0] ? slugify(name) : '');
-		if (own === slug)
-			return { lat: r[4] as number, lng: r[5] as number, label: name, slug, region: raw.regioni[r[3] as number] };
-	}
-	return null;
+/** Indice per il server (src/lib/data/slug/<iniziale>.json): slug → [nome, lat, lng, sigla, regione]. */
+export type SlugChunk = Record<string, [string, number, number, string, string]>;
+
+/** Il comune con questo slug nel file della sua iniziale: il Worker non carica né decodifica l'elenco intero (poca CPU). */
+export function comuneFromChunk(chunk: SlugChunk, slug: string): ChosenPlace | null {
+	const r = Object.hasOwn(chunk, slug) ? chunk[slug] : null;
+	return r ? { label: r[0], lat: r[1], lng: r[2], slug, region: r[4] } : null;
 }

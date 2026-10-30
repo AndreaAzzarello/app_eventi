@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { comuneBySlug, decodeComuni, fold, shorten, withCoverage, type RawComuni } from './comuni';
+import { comuneFromChunk, decodeComuni, fold, shorten, withCoverage, type RawComuni, type SlugChunk } from './comuni';
 import raw from './data/comuni.json';
 import { slugify } from './event';
 import { rankPlaces, strongPlace, type CoverageRegion } from './places';
 
-const data = raw as unknown as RawComuni;
-const all = decodeComuni(data);
+const all = decodeComuni(raw as unknown as RawComuni);
 const rank = (q: string, regions: CoverageRegion[] = [], limit = 6) => rankPlaces(q, regions, limit, withCoverage(all, regions));
 const names = (q: string, regions: CoverageRegion[] = []) => rank(q, regions).map((h) => `${h.place.label} ${h.detail}`.trim());
 
@@ -27,16 +26,30 @@ describe('file dei comuni', () => {
 		expect(all.length).toBeGreaterThanOrEqual(7800);
 		expect(new Set(all.map((c) => c.slug)).size).toBe(all.length);
 	});
-	it('la prima lettera del nome è quella dello slug (ipotesi di comuneBySlug)', () => {
-		for (const c of all) expect(slugify(c.name)[0], c.name).toBe(c.name[0].toLowerCase());
+	it('indice del server: un file per iniziale, ogni comune risolve a sé stesso', () => {
+		const chunks = import.meta.glob<SlugChunk>('./data/slug/*.json', { eager: true, import: 'default' });
+		let n = 0;
+		for (const [path, chunk] of Object.entries(chunks)) {
+			const letter = path.match(/([^/]+)\.json$/)![1];
+			for (const slug of Object.keys(chunk)) {
+				expect(slug[0], slug).toBe(letter);
+				n++;
+			}
+		}
+		expect(n).toBe(all.length);
+		const byLetter = (slug: string) => chunks[`./data/slug/${slug[0]}.json`];
+		for (const c of all) expect(comuneFromChunk(byLetter(c.slug), c.slug), c.slug).toMatchObject({ label: c.name, region: c.region, lat: c.lat, slug: c.slug });
 	});
-	it('comuneBySlug trova anche omonimi, apostrofi e comuni piccoli', () => {
-		expect(comuneBySlug(data, 'samone-to')).toMatchObject({ label: 'Samone', region: 'Piemonte', slug: 'samone-to' });
-		expect(comuneBySlug(data, 'samone-tn')).toMatchObject({ label: 'Samone', region: 'Trentino-Alto Adige' });
-		expect(comuneBySlug(data, 'l-aquila')?.label).toBe('L\'Aquila');
-		expect(comuneBySlug(data, 'bolzano')).toMatchObject({ label: 'Bolzano' });
-		expect(comuneBySlug(data, 'samone')).toBeNull(); // ambiguo: serve la sigla
-		expect(comuneBySlug(data, 'non-esiste')).toBeNull();
+	it('comuneFromChunk: omonimi, apostrofi, sconosciuti', () => {
+		const chunks = import.meta.glob<SlugChunk>('./data/slug/*.json', { eager: true, import: 'default' });
+		const find = (slug: string) => comuneFromChunk(chunks[`./data/slug/${slug[0]}.json`] ?? {}, slug);
+		expect(find('samone-to')).toMatchObject({ label: 'Samone', region: 'Piemonte', slug: 'samone-to' });
+		expect(find('samone-tn')).toMatchObject({ label: 'Samone', region: 'Trentino-Alto Adige' });
+		expect(find('l-aquila')?.label).toBe("L'Aquila");
+		expect(find('bolzano')).toMatchObject({ label: 'Bolzano' });
+		expect(find('samone')).toBeNull(); // ambiguo: serve la sigla
+		expect(find('constructor')).toBeNull();
+		expect(find('non-esiste')).toBeNull();
 	});
 });
 
