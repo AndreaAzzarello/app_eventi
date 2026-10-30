@@ -256,7 +256,7 @@ describe('submissions', () => {
     it('admin approva: evento + stato + contatore', async () => {
       const fs = db('adm', ADMIN);
       const b = writeBatch(fs);
-      b.set(doc(fs, 'events', 'new1'), { ...event(), source: 'user', submittedBy: 'alice', sourceUrl: '', createdAt: 1, updatedAt: 1 });
+      b.set(doc(fs, 'events', 'new1'), { ...event(), source: 'user', sourceUrl: '', createdAt: 1, updatedAt: 1 });
       b.update(doc(fs, 'submissions', 's1'), { status: 'approved', eventId: 'new1', reviewedAt: serverTimestamp() });
       b.update(doc(fs, 'users', 'alice'), { pendingCount: increment(-1) });
       await assertSucceeds(b.commit());

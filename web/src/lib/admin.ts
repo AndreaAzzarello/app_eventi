@@ -41,9 +41,8 @@ export async function saveEvent(id: string | null, input: EventInput): Promise<s
 		updatedAt: now,
 		// La frazione vale solo se l'admin non ha spostato il luogo in un altro comune.
 		...(old?.locality && input.city === old.city ? { locality: old.locality } : {}),
-		...(long ? { longRunning: true } : {}),
-		...(old?.submittedBy ? { submittedBy: old.submittedBy } : {})
-	});
+		...(long ? { longRunning: true } : {})
+	}); // niente submittedBy: un evento vecchio che lo aveva lo perde alla prima modifica
 	return ref.id;
 }
 
@@ -65,14 +64,14 @@ const EVENT_KEYS = [
 	'lat', 'lng', 'imageUrl', 'ticketUrl', 'tags', 'geohash', 'city', 'citySlug', 'province', 'region'
 ] as const;
 
-/** Approva: copia in events (source "user", submittedBy interno), chiude la proposta, libera il posto dell'autore. */
+/** Approva: copia in events (source "user", senza l'autore: l'uid resta solo nella proposta), chiude la proposta, libera il posto dell'autore. */
 export async function approve(s: Submission): Promise<string> {
 	const { fs, db } = await session.start();
 	const eventRef = fs.doc(fs.collection(db, 'events'));
 	const now = Date.now();
 	const data = Object.fromEntries(EVENT_KEYS.map((k) => [k, s[k]]));
 	const b = fs.writeBatch(db);
-	b.set(eventRef, { ...data, source: 'user', sourceUrl: '', submittedBy: s.ownerId, createdAt: now, updatedAt: now });
+	b.set(eventRef, { ...data, source: 'user', sourceUrl: '', createdAt: now, updatedAt: now });
 	b.update(fs.doc(db, 'submissions', s.id), { status: 'approved', eventId: eventRef.id, reviewedAt: fs.serverTimestamp() });
 	b.update(fs.doc(db, 'users', s.ownerId), { pendingCount: fs.increment(-1) });
 	await b.commit();
